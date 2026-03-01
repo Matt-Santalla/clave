@@ -8,7 +8,9 @@
 
 ## Download
 
-Get the latest release from [GitHub Releases](https://github.com/codika-io/clave/releases/latest). Download the `.dmg`, drag to Applications, done.
+[**Download Clave v1.8.8**](https://github.com/codika-io/clave/releases/download/v1.8.8/clave-1.8.8.dmg) (macOS Universal — Apple Silicon & Intel) · [All releases](https://github.com/codika-io/clave/releases)
+
+Download the `.dmg`, drag to Applications, done.
 
 Auto-updates are built in — once installed, new versions download silently in the background.
 
@@ -46,6 +48,13 @@ npm run build:mac    # build macOS .dmg (requires signing credentials)
 ## Tech stack
 
 [Electron](https://www.electronjs.org/) &middot; [React 19](https://react.dev/) &middot; [TypeScript](https://www.typescriptlang.org/) &middot; [xterm.js](https://xtermjs.org/) &middot; [node-pty](https://github.com/microsoft/node-pty) &middot; [Zustand](https://zustand.docs.pmnd.rs/) &middot; [Tailwind CSS v4](https://tailwindcss.com/) &middot; [Framer Motion](https://motion.dev/)
+
+## Roadmap
+
+- [ ] Linux support
+- [ ] Windows support
+- [ ] Session persistence across app restarts
+- [ ] Configurable keybindings
 
 ## Contributing
 
