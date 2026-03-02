@@ -11,7 +11,7 @@ Open as many sessions as you need, arrange them side-by-side, and switch between
 </div>
 
 <p align="center">
-  <video src="assets/demo.mp4" alt="Clave demo" width="800" autoplay loop muted playsinline></video>
+  <img src="assets/demo.gif" alt="Clave demo" width="800" />
 </p>
 
 ---
