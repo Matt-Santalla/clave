@@ -11,7 +11,7 @@ Open as many sessions as you need, arrange them side-by-side, and switch between
 </div>
 
 <p align="center">
-  <img src="assets/demo.gif" alt="Clave demo" width="800" />
+  <img src="assets/demo.avif" alt="Clave demo" width="800" />
 </p>
 
 ---
