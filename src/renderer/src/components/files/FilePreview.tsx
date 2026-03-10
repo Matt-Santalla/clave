@@ -2,9 +2,11 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { useSessionStore } from '../../store/session-store'
 import { useSyntaxHighlight } from '../../hooks/use-syntax-highlight'
+import { MarkdownRenderer } from './MarkdownRenderer'
 import type { FileReadResult } from '../../../../preload/index.d'
 
 const IMAGE_EXTS = new Set(['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp', 'ico'])
+const MARKDOWN_EXTS = new Set(['md', 'mdx'])
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
@@ -41,6 +43,7 @@ export function FilePreview() {
   const filename = previewFile?.split('/').pop() ?? ''
   const ext = filename.split('.').pop()?.toLowerCase() ?? ''
   const isImage = IMAGE_EXTS.has(ext)
+  const isMarkdown = MARKDOWN_EXTS.has(ext)
 
   const isDirty = isEditing && editContent !== (fileData?.content ?? '')
   const canEdit = fileData && !fileData.binary && !fileData.truncated && !isImage && !loadError
@@ -305,6 +308,8 @@ export function FilePreview() {
                 style={{ tabSize: 2 }}
               />
             </div>
+          ) : isMarkdown && fileData?.content ? (
+            <MarkdownRenderer content={fileData.content} />
           ) : highlightLoading || !html ? (
             <div className="px-4 py-8 text-center text-sm text-text-tertiary">Loading...</div>
           ) : (
