@@ -738,6 +738,14 @@ export function Sidebar() {
       setDraggingIds(ids)
       e.dataTransfer.effectAllowed = 'move'
       e.dataTransfer.setData('text/plain', itemId)
+
+      // Use the inner <button> as drag image so the ghost preserves rounded corners
+      // (the wrapper <div> is rectangular and produces a square ghost)
+      const button = (e.currentTarget as HTMLElement).querySelector('button')
+      if (button) {
+        const rect = button.getBoundingClientRect()
+        e.dataTransfer.setDragImage(button, e.clientX - rect.left, e.clientY - rect.top)
+      }
     },
     []
   )
