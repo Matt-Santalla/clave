@@ -241,6 +241,14 @@ export function FileTree({ cwd, isCustom, onChangeFolder, onResetFolder, onNavig
           label: 'Edit',
           onClick: () => setPreviewFile(node.path, 'tree', cwd)
         })
+        const fileExt = node.path.split('.').pop()?.toLowerCase() ?? ''
+        const externalExts = new Set(['html', 'htm', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'svg', 'webp'])
+        if (externalExts.has(fileExt)) {
+          items.push({
+            label: 'Open Externally',
+            onClick: () => { window.electronAPI?.openPath(absPath) }
+          })
+        }
       }
       if (node.type === 'directory') {
         items.push({

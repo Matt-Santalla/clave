@@ -3,6 +3,8 @@ import { useSessionStore, type FileTab } from '../../store/session-store'
 import { FileContentRenderer } from './FileContentRenderer'
 import { DocumentTextIcon } from '@heroicons/react/24/outline'
 
+const EXTERNAL_EXTS = new Set(['html', 'htm', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'svg', 'webp'])
+
 interface FileViewerProps {
   fileTab: FileTab
 }
@@ -11,6 +13,8 @@ export function FileViewer({ fileTab }: FileViewerProps) {
   const removeFileTab = useSessionStore((s) => s.removeFileTab)
 
   const filename = fileTab.filePath.split('/').pop() ?? ''
+  const ext = filename.split('.').pop()?.toLowerCase() ?? ''
+  const canOpenExternally = EXTERNAL_EXTS.has(ext)
   // Extract cwd: everything up to the last path component
   const cwd = fileTab.filePath.substring(0, fileTab.filePath.lastIndexOf('/')) || '/'
   // Relative path for readFile: just the filename
@@ -22,6 +26,10 @@ export function FileViewer({ fileTab }: FileViewerProps) {
 
   const handleRevealInFinder = useCallback(() => {
     window.electronAPI?.showItemInFolder(fileTab.filePath)
+  }, [fileTab.filePath])
+
+  const handleOpenExternally = useCallback(() => {
+    window.electronAPI?.openPath(fileTab.filePath)
   }, [fileTab.filePath])
 
   return (
@@ -36,6 +44,19 @@ export function FileViewer({ fileTab }: FileViewerProps) {
           )}
         </div>
         <div className="flex items-center gap-1 flex-shrink-0 ml-2">
+          {canOpenExternally && (
+            <button
+              onClick={handleOpenExternally}
+              className="p-1 rounded hover:bg-surface-200 text-text-tertiary hover:text-text-primary transition-colors"
+              title="Open externally"
+            >
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                <path d="M7 1h4v4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M11 1L5.5 6.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+                <path d="M9 7v3.5c0 .28-.22.5-.5.5h-7a.5.5 0 0 1-.5-.5v-7c0-.28.22-.5.5-.5H5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+              </svg>
+            </button>
+          )}
           <button
             onClick={handleCopyPath}
             className="p-1 rounded hover:bg-surface-200 text-text-tertiary hover:text-text-primary transition-colors"

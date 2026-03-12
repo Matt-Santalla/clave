@@ -7,6 +7,7 @@ import type { FileReadResult } from '../../../../preload/index.d'
 
 const IMAGE_EXTS = new Set(['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp', 'ico'])
 const MARKDOWN_EXTS = new Set(['md', 'mdx'])
+const EXTERNAL_EXTS = new Set(['html', 'htm', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'svg', 'webp'])
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
@@ -26,6 +27,7 @@ export function FilePreview() {
   const setPreviewFile = useSessionStore((s) => s.setPreviewFile)
   const focusedSessionId = useSessionStore((s) => s.focusedSessionId)
   const sessions = useSessionStore((s) => s.sessions)
+  const addFileTab = useSessionStore((s) => s.addFileTab)
   const fileTreeOpen = useSessionStore((s) => s.fileTreeOpen)
   const fileTreeWidth = useSessionStore((s) => s.fileTreeWidth)
 
@@ -47,6 +49,7 @@ export function FilePreview() {
 
   const isDirty = isEditing && editContent !== (fileData?.content ?? '')
   const canEdit = fileData && !fileData.binary && !fileData.truncated && !isImage && !loadError
+  const canOpenExternally = EXTERNAL_EXTS.has(ext)
 
   // Load file content
   useEffect(() => {
@@ -138,6 +141,22 @@ export function FilePreview() {
       close()
     }
   }, [isDirty, isEditing, discardEdit, close])
+
+  const openInTab = useCallback(() => {
+    if (!previewFile || !cwd) return
+    const name = previewFile.split('/').pop() ?? previewFile
+    addFileTab({
+      id: `file-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      filePath: `${cwd}/${previewFile}`,
+      name
+    })
+    close()
+  }, [previewFile, cwd, addFileTab, close])
+
+  const openExternally = useCallback(() => {
+    if (!previewFile || !cwd) return
+    window.electronAPI?.openPath(`${cwd}/${previewFile}`)
+  }, [previewFile, cwd])
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -237,6 +256,30 @@ export function FilePreview() {
               </>
             ) : (
               <>
+                <button
+                  onClick={openInTab}
+                  className="p-1 rounded hover:bg-surface-200 text-text-tertiary hover:text-text-primary transition-colors"
+                  title="Open in tab"
+                >
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                    <path d="M2 4V2.5C2 2.22 2.22 2 2.5 2H9.5C9.78 2 10 2.22 10 2.5V4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+                    <path d="M1 4h10v6.5c0 .28-.22.5-.5.5h-9a.5.5 0 0 1-.5-.5V4Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+                    <path d="M4 2v2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+                  </svg>
+                </button>
+                {canOpenExternally && (
+                  <button
+                    onClick={openExternally}
+                    className="p-1 rounded hover:bg-surface-200 text-text-tertiary hover:text-text-primary transition-colors"
+                    title="Open externally"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                      <path d="M7 1h4v4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+                      <path d="M11 1L5.5 6.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+                      <path d="M9 7v3.5c0 .28-.22.5-.5.5h-7a.5.5 0 0 1-.5-.5v-7c0-.28.22-.5.5-.5H5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+                    </svg>
+                  </button>
+                )}
                 {canEdit && (
                   <button
                     onClick={enterEditMode}
