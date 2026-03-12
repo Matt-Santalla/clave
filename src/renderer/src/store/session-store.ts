@@ -556,6 +556,10 @@ export const useSessionStore = create<SessionState>((set) => ({
       const fileTabs = state.fileTabs.filter((f) => f.id !== id)
       const selectedSessionIds = state.selectedSessionIds.filter((sid) => sid !== id)
       const displayOrder = getDisplayOrder(state).filter((did) => did !== id)
+      const groups = state.groups.map((g) => ({
+        ...g,
+        sessionIds: g.sessionIds.filter((sid) => sid !== id)
+      }))
 
       let focusedSessionId = state.focusedSessionId
       if (focusedSessionId === id) {
@@ -567,11 +571,12 @@ export const useSessionStore = create<SessionState>((set) => ({
           fileTabs,
           selectedSessionIds: [lastId],
           focusedSessionId: lastId,
+          groups,
           displayOrder
         }
       }
 
-      return { fileTabs, selectedSessionIds, focusedSessionId, displayOrder }
+      return { fileTabs, selectedSessionIds, focusedSessionId, groups, displayOrder }
     }),
 
   renameFileTab: (id, name) =>
