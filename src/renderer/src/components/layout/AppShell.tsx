@@ -9,8 +9,6 @@ import { SettingsPanel } from '../settings/SettingsPanel'
 import { UpdateToast } from '../ui/UpdateToast'
 import { UpdateOverlay } from '../ui/UpdateOverlay'
 import { useLaunchTemplate } from '../../hooks/use-launch-template'
-import { useSessionRestore } from '../../hooks/use-session-restore'
-import { useSessionSave } from '../../hooks/use-session-save'
 import { FilePalette } from '../files/FilePalette'
 import { SidePanel } from '../git/SidePanel'
 import { FilePreview } from '../files/FilePreview'
@@ -42,8 +40,6 @@ export function AppShell() {
   const removeFileTab = useSessionStore((s) => s.removeFileTab)
 
   useLaunchTemplate()
-  useSessionRestore()
-  useSessionSave()
 
   const spawnSessionWithOptions = useCallback(
     async (claudeMode: boolean, dangerousMode: boolean) => {

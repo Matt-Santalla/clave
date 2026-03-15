@@ -166,11 +166,6 @@ const electronAPI = {
   gitGenerateCommitMessage: (cwd: string) =>
     ipcRenderer.invoke('git:generate-commit-message', cwd),
 
-  // Session persistence
-  saveSessionState: (state: unknown) => ipcRenderer.invoke('session:save-state', state),
-  saveSessionStateSync: (state: unknown) => ipcRenderer.sendSync('session:save-state-sync', state),
-  loadSessionState: () => ipcRenderer.invoke('session:load-state'),
-
   showNotification: (options: { title: string; body: string; sessionId: string }) =>
     ipcRenderer.invoke('notification:show', options),
 

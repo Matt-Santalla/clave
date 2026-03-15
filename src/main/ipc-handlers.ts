@@ -6,7 +6,6 @@ import { boardManager } from './board-manager'
 import { templateManager, type LaunchTemplate, type LaunchTemplatesData } from './template-manager'
 import { usageManager } from './usage-manager'
 import { gitManager } from './git-manager'
-import { sessionPersistence, type PersistedState } from './session-persistence'
 import * as fs from 'fs'
 import * as path from 'path'
 
@@ -243,18 +242,4 @@ export function registerIpcHandlers(): void {
     return result.filePaths[0]
   })
 
-  // Session persistence
-  ipcMain.handle('session:save-state', (_event, state: PersistedState) => {
-    sessionPersistence.save(state)
-  })
-
-  // Sync save for beforeunload — blocks the renderer until the file is written
-  ipcMain.on('session:save-state-sync', (event, state: PersistedState) => {
-    sessionPersistence.save(state)
-    event.returnValue = true
-  })
-
-  ipcMain.handle('session:load-state', () => {
-    return sessionPersistence.load()
-  })
 }

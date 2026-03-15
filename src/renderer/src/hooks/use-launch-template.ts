@@ -7,24 +7,17 @@ export function useLaunchTemplate(): void {
   const loaded = useTemplateStore((s) => s.loaded)
   const templates = useTemplateStore((s) => s.templates)
   const defaultTemplateId = useTemplateStore((s) => s.defaultTemplateId)
-  const restoredFromDisk = useSessionStore((s) => s.restoredFromDisk)
 
   // Load template data on mount
   useEffect(() => {
     useTemplateStore.getState().loadTemplates()
   }, [])
 
-  // Apply default template once after load — but skip if sessions were restored from disk
+  // Apply default template once after load
   useEffect(() => {
     if (!loaded || hasApplied.current) return
 
-    // Wait for session restore to complete (null = not yet attempted)
-    if (restoredFromDisk === null) return
-
     hasApplied.current = true
-
-    // If sessions were restored, don't also apply the template
-    if (restoredFromDisk) return
 
     if (defaultTemplateId === 'blank') return
 
@@ -32,7 +25,7 @@ export function useLaunchTemplate(): void {
     if (!template || template.sessions.length === 0) return
 
     applyTemplate(template)
-  }, [loaded, defaultTemplateId, templates, restoredFromDisk])
+  }, [loaded, defaultTemplateId, templates])
 }
 
 /**

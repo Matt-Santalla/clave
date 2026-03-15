@@ -34,7 +34,6 @@ function createWindow(): void {
     mainWindow.show()
   })
 
-  // Kill orphaned PTYs after the window closes (beforeunload already saved state)
   mainWindow.on('closed', () => {
     ptyManager.killAll()
   })
@@ -77,6 +76,3 @@ app.on('window-all-closed', () => {
   }
 })
 
-// No before-quit handler — Electron automatically closes windows on quit,
-// which triggers beforeunload (renderer saves state) → closed (kills PTYs).
-// Killing PTYs in before-quit would race: PTYs die before state is saved.

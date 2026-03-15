@@ -90,8 +90,6 @@ interface SessionState {
   sidePanelTab: 'files' | 'git'
   gitViewMode: 'list' | 'tree'
   gitPanelMode: 'changes' | 'log'
-  restoredFromDisk: boolean | null // null = not yet attempted, true/false = result
-
   addSession: (session: Session) => void
   removeSession: (id: string) => void
   selectSession: (id: string, addToSelection: boolean) => void
@@ -136,18 +134,6 @@ interface SessionState {
   removeFileTab: (id: string) => void
   renameFileTab: (id: string, name: string) => void
   setClaudeSessionId: (id: string, claudeSessionId: string) => void
-  setRestoredFromDisk: (value: boolean) => void
-  restoreState: (state: {
-    sessions: Session[]
-    groups: SessionGroup[]
-    displayOrder: string[]
-    focusedSessionId: string | null
-    selectedSessionIds: string[]
-    sidebarOpen: boolean
-    sidebarWidth: number
-    activeView: ActiveView
-    fileTabs?: FileTab[]
-  }) => void
 }
 
 let groupCounter = 0
@@ -202,8 +188,6 @@ export const useSessionStore = create<SessionState>((set) => ({
   sidePanelTab: 'files' as const,
   gitViewMode: 'list' as const,
   gitPanelMode: 'changes' as const,
-  restoredFromDisk: null,
-
   addSession: (session) =>
     set((state) => ({
       sessions: [...state.sessions, session],
@@ -599,20 +583,5 @@ export const useSessionStore = create<SessionState>((set) => ({
       sessions: state.sessions.map((s) =>
         s.id === id ? { ...s, claudeSessionId } : s
       )
-    })),
-
-  setRestoredFromDisk: (value) => set({ restoredFromDisk: value }),
-
-  restoreState: (restored) =>
-    set(() => ({
-      sessions: restored.sessions,
-      groups: restored.groups,
-      displayOrder: restored.displayOrder,
-      focusedSessionId: restored.focusedSessionId,
-      selectedSessionIds: restored.selectedSessionIds,
-      sidebarOpen: restored.sidebarOpen,
-      sidebarWidth: restored.sidebarWidth,
-      activeView: restored.activeView,
-      fileTabs: restored.fileTabs ?? []
     }))
 }))
