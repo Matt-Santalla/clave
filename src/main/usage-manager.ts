@@ -471,8 +471,8 @@ class UsageManager {
       if (parsed && parsed.version === 3 && parsed.files) {
         this.cache = parsed as UsageCache
       }
-    } catch {
-      // No cache or corrupt — start fresh
+    } catch (err) {
+      console.warn('[usage] Cache load failed, starting fresh:', (err as Error).message)
     }
     this.cacheLoaded = true
   }
@@ -482,8 +482,8 @@ class UsageManager {
       const dir = path.dirname(this.cachePath)
       fs.mkdirSync(dir, { recursive: true })
       fs.writeFileSync(this.cachePath, JSON.stringify(this.cache), 'utf-8')
-    } catch {
-      // Non-critical — cache is just an optimization
+    } catch (err) {
+      console.warn('[usage] Cache save failed:', (err as Error).message)
     }
   }
 

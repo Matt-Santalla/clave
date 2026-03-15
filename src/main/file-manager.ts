@@ -74,8 +74,8 @@ class FileManager {
         try {
           const stat = await fs.stat(path.join(resolved, entry.name))
           result.size = stat.size
-        } catch {
-          // skip stat errors
+        } catch (err) {
+          console.warn('[fs] stat failed for entry:', entry.name, (err as Error).message)
         }
       }
       results.push(result)

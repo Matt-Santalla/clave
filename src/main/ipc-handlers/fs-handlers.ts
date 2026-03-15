@@ -76,8 +76,8 @@ export function registerFsHandlers(): void {
 
       watcher.on('error', cleanup)
       fsWatchers.set(wcId, { cwd, watcher, cleanup })
-    } catch {
-      // fs.watch can throw if path doesn't exist
+    } catch (err) {
+      console.warn('[fs] Watch failed for:', cwd, (err as Error).message)
     }
   })
 

@@ -203,7 +203,7 @@ class GitManager {
       try {
         await git.pull(['--rebase', '--autostash'])
       } catch (err) {
-        try { await git.rebase(['--abort']) } catch { /* abort may fail if rebase didn't start */ }
+        try { await git.rebase(['--abort']) } catch { /* expected: abort may fail if rebase didn't start */ }
         throw err
       }
       return
@@ -250,7 +250,9 @@ class GitManager {
 
     // Delete untracked files from filesystem
     for (const filePath of untrackedPaths) {
-      await fs.promises.unlink(path.join(cwd, filePath)).catch(() => {})
+      await fs.promises.unlink(path.join(cwd, filePath)).catch((err) => {
+        console.warn('[git] Failed to delete untracked file:', filePath, err.message)
+      })
     }
   }
 
@@ -258,8 +260,8 @@ class GitManager {
     try {
       const git = simpleGit(cwd)
       await git.fetch()
-    } catch {
-      // silently ignore — offline, no remote, auth issues
+    } catch (err) {
+      console.warn('[git] Fetch skipped:', (err as Error).message)
     }
   }
 
@@ -286,7 +288,8 @@ class GitManager {
       const git = simpleGit(cwd)
       const result = await git.log({ maxCount, format: GIT_LOG_FORMAT })
       return parseLogEntries(result.all)
-    } catch {
+    } catch (err) {
+      console.warn('[git] getLog failed:', (err as Error).message)
       return []
     }
   }
@@ -303,6 +306,7 @@ class GitManager {
       })
       return parseLogEntries(result.all)
     } catch {
+      // Expected: no remote tracking branch
       return []
     }
   }
@@ -319,6 +323,7 @@ class GitManager {
       })
       return parseLogEntries(result.all)
     } catch {
+      // Expected: no remote tracking branch
       return []
     }
   }
@@ -349,7 +354,8 @@ class GitManager {
         files.push({ path: filePath, status: statusChar, insertions, deletions })
       }
       return files
-    } catch {
+    } catch (err) {
+      console.warn('[git] getCommitFiles failed:', hash, (err as Error).message)
       return []
     }
   }
@@ -359,11 +365,12 @@ class GitManager {
       const git = simpleGit(cwd)
       return await git.raw(['diff', `${hash}~1`, hash, '--', filePath])
     } catch {
-      // For initial commits (no parent), use show
+      // Expected for initial commits (no parent) — fall back to show
       try {
         const git = simpleGit(cwd)
         return await git.raw(['show', `${hash}:${filePath}`])
-      } catch {
+      } catch (err) {
+        console.warn('[git] getCommitDiff failed:', hash, filePath, (err as Error).message)
         return ''
       }
     }
