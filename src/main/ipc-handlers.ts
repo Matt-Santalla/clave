@@ -1,5 +1,5 @@
 import { ipcMain, dialog, shell, BrowserWindow } from 'electron'
-import { ptyManager } from './pty-manager'
+import { ptyManager, type PtySpawnOptions } from './pty-manager'
 import { installUpdate, startDownload, cancelDownload } from './auto-updater'
 import { fileManager } from './file-manager'
 import { boardManager } from './board-manager'
@@ -166,7 +166,7 @@ export function registerIpcHandlers(): void {
     if (existing) existing.cleanup()
   })
 
-  ipcMain.handle('pty:spawn', (_event, cwd: string, options?: { dangerousMode?: boolean; claudeMode?: boolean; resumeSessionId?: string; claudeSessionId?: string; initialCommand?: string; autoExecute?: boolean }) => {
+  ipcMain.handle('pty:spawn', (_event, cwd: string, options?: PtySpawnOptions) => {
     const session = ptyManager.spawn(cwd, options)
     const win = BrowserWindow.fromWebContents(_event.sender)
 

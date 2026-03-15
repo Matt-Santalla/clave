@@ -57,6 +57,15 @@ export function getLoginShellEnv(): Record<string, string> {
   return loginShellEnv
 }
 
+export interface PtySpawnOptions {
+  dangerousMode?: boolean
+  claudeMode?: boolean
+  resumeSessionId?: string
+  claudeSessionId?: string
+  initialCommand?: string
+  autoExecute?: boolean
+}
+
 export interface PtySession {
   id: string
   cwd: string
@@ -68,7 +77,7 @@ export interface PtySession {
 class PtyManager {
   private sessions = new Map<string, PtySession>()
 
-  spawn(cwd: string, options?: { dangerousMode?: boolean; claudeMode?: boolean; resumeSessionId?: string; claudeSessionId?: string; initialCommand?: string; autoExecute?: boolean }): PtySession & { claudeSessionId?: string } {
+  spawn(cwd: string, options?: PtySpawnOptions): PtySession & { claudeSessionId?: string } {
     const id = randomUUID()
     const folderName = cwd.split('/').pop() || cwd
     const useClaudeMode = options?.claudeMode !== false
