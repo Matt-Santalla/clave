@@ -47,6 +47,30 @@ export interface GitCommitFileStatus {
   deletions: number
 }
 
+/** Format object for simple-git log calls */
+const GIT_LOG_FORMAT = {
+  hash: '%H',
+  shortHash: '%h',
+  message: '%s',
+  author: '%an',
+  date: '%aI',
+  refs: '%D'
+}
+
+/** Parse raw log entries from simple-git into GitLogEntry[] */
+function parseLogEntries(
+  entries: ReadonlyArray<{ hash: string; shortHash: string; message: string; author: string; date: string; refs: string }>
+): GitLogEntry[] {
+  return entries.map((entry) => ({
+    hash: entry.hash,
+    shortHash: entry.shortHash,
+    message: entry.message,
+    author: entry.author,
+    date: entry.date,
+    refs: entry.refs ? entry.refs.split(', ').filter(Boolean) : []
+  }))
+}
+
 function mapFiles(status: StatusResult): GitFileStatus[] {
   const files: GitFileStatus[] = []
 
@@ -260,27 +284,8 @@ class GitManager {
   ): Promise<GitLogEntry[]> {
     try {
       const git = simpleGit(cwd)
-      const result = await git.log({
-        maxCount,
-        format: {
-          hash: '%H',
-          shortHash: '%h',
-          message: '%s',
-          author: '%an',
-          date: '%aI',
-          refs: '%D'
-        }
-      })
-      return result.all.map((entry) => ({
-        hash: entry.hash,
-        shortHash: entry.shortHash,
-        message: entry.message,
-        author: entry.author,
-        date: entry.date,
-        refs: entry.refs
-          ? entry.refs.split(', ').filter(Boolean)
-          : []
-      }))
+      const result = await git.log({ maxCount, format: GIT_LOG_FORMAT })
+      return parseLogEntries(result.all)
     } catch {
       return []
     }
@@ -294,23 +299,9 @@ class GitManager {
       const result = await git.log({
         from: `origin/${branch}`,
         to: 'HEAD',
-        format: {
-          hash: '%H',
-          shortHash: '%h',
-          message: '%s',
-          author: '%an',
-          date: '%aI',
-          refs: '%D'
-        }
+        format: GIT_LOG_FORMAT
       })
-      return result.all.map((entry) => ({
-        hash: entry.hash,
-        shortHash: entry.shortHash,
-        message: entry.message,
-        author: entry.author,
-        date: entry.date,
-        refs: entry.refs ? entry.refs.split(', ').filter(Boolean) : []
-      }))
+      return parseLogEntries(result.all)
     } catch {
       return []
     }
@@ -324,23 +315,9 @@ class GitManager {
       const result = await git.log({
         from: 'HEAD',
         to: `origin/${branch}`,
-        format: {
-          hash: '%H',
-          shortHash: '%h',
-          message: '%s',
-          author: '%an',
-          date: '%aI',
-          refs: '%D'
-        }
+        format: GIT_LOG_FORMAT
       })
-      return result.all.map((entry) => ({
-        hash: entry.hash,
-        shortHash: entry.shortHash,
-        message: entry.message,
-        author: entry.author,
-        date: entry.date,
-        refs: entry.refs ? entry.refs.split(', ').filter(Boolean) : []
-      }))
+      return parseLogEntries(result.all)
     } catch {
       return []
     }
