@@ -65,7 +65,8 @@ command -v npm  >/dev/null 2>&1 || error "npm not found"
 BRANCH=$(git branch --show-current)
 [[ "$BRANCH" == "main" ]] || error "Must be on 'main' branch (currently on '$BRANCH')"
 
-git pull --ff-only origin main || error "Failed to pull latest changes"
+git fetch origin main
+git merge --ff-only origin/main || error "Failed to fast-forward to origin/main"
 
 # ── Bump version ───────────────────────────────────────────────────
 CURRENT_VERSION=$(node -p "require('./package.json').version")
