@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useSessionStore, type Theme } from '../../store/session-store'
 import { useTemplateStore } from '../../store/template-store'
 import { StarIcon as StarOutline, TrashIcon, PlusIcon } from '@heroicons/react/24/outline'
 import { StarIcon as StarSolid } from '@heroicons/react/24/solid'
+import { LocationsTab } from './LocationsTab'
 
 const themes: { id: Theme; label: string; colors: { bg: string; surface: string; text: string; border: string } }[] = [
   {
@@ -39,6 +40,8 @@ export function SettingsPanel() {
   const [isNaming, setIsNaming] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingName, setEditingName] = useState('')
+  const tab = useSessionStore((s) => s.settingsTab)
+  const setTab = useSessionStore((s) => s.setSettingsTab)
 
   useEffect(() => {
     if (!loaded) useTemplateStore.getState().loadTemplates()
@@ -72,7 +75,21 @@ export function SettingsPanel() {
       <div className="max-w-xl">
         <h2 className="text-lg font-semibold text-text-primary mb-6">Settings</h2>
 
-        <section>
+        <div className="flex gap-1 mb-6 bg-surface-100 rounded-lg p-1">
+          {(['general', 'templates', 'locations'] as const).map((t) => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={`flex-1 text-xs font-medium py-1.5 rounded-md transition-colors ${
+                tab === t ? 'bg-surface-0 text-text-primary shadow-sm' : 'text-text-tertiary hover:text-text-secondary'
+              }`}
+            >
+              {t.charAt(0).toUpperCase() + t.slice(1)}
+            </button>
+          ))}
+        </div>
+
+        {tab === 'general' && <section>
           <h3 className="text-xs font-semibold text-text-tertiary uppercase tracking-widest mb-3">
             Appearance
           </h3>
@@ -119,9 +136,9 @@ export function SettingsPanel() {
               </button>
             ))}
           </div>
-        </section>
+        </section>}
 
-        <section className="mt-8">
+        {tab === 'templates' && <section>
           <h3 className="text-xs font-semibold text-text-tertiary uppercase tracking-widest mb-3">
             Launch Templates
           </h3>
@@ -247,7 +264,9 @@ export function SettingsPanel() {
               Save current layout
             </button>
           )}
-        </section>
+        </section>}
+
+        {tab === 'locations' && <LocationsTab />}
       </div>
     </div>
   )

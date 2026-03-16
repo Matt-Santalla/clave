@@ -5,6 +5,9 @@ import { registerIpcHandlers } from './ipc-handlers'
 import { ptyManager, preloadLoginShellEnv } from './pty-manager'
 import { initAutoUpdater } from './auto-updater'
 import { initNotificationManager } from './notification-manager'
+import { sshManager } from './ssh-manager'
+import { locationManager } from './location-manager'
+import { openclawClient } from './openclaw-client'
 
 function createWindow(): void {
   const icon = nativeImage.createFromPath(join(__dirname, '../../resources/icon.png'))
@@ -36,6 +39,8 @@ function createWindow(): void {
 
   mainWindow.on('closed', () => {
     ptyManager.killAll()
+    sshManager.disconnectAll()
+    openclawClient.disconnectAll()
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
@@ -64,6 +69,25 @@ app.whenReady().then(() => {
   initNotificationManager()
   createWindow()
   initAutoUpdater()
+
+  // Auto-connect locations with autoConnect enabled
+  const locations = locationManager.getLocations()
+  for (const loc of locations) {
+    if (loc.type === 'remote' && loc.autoConnect) {
+      const config = locationManager.getCredentials(loc.id)
+      if (config) {
+        sshManager.connect(loc.id, config).then(() => {
+          locationManager.setLocationStatus(loc.id, 'connected')
+          // Connect OpenClaw if detected
+          if (loc.openclawPort && loc.host) {
+            openclawClient.connect(loc.id, `ws://${loc.host}:${loc.openclawPort}`).catch(() => {})
+          }
+        }).catch(() => {
+          locationManager.setLocationStatus(loc.id, 'error')
+        })
+      }
+    }
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()

@@ -1,30 +1,34 @@
 import { ChevronRightIcon, ViewColumnsIcon, ChartBarIcon, Cog6ToothIcon } from '@heroicons/react/24/outline'
 import { useSessionStore, type ActiveView } from '../../store/session-store'
+import { useAgentStore } from '../../store/agent-store'
+import { useLocationStore } from '../../store/location-store'
 import { useBoardStore } from '../../store/board-store'
 import { cn } from '../../lib/utils'
 
 export function SectionHeading({
   title,
   collapsed,
-  onToggle
+  onToggle,
+  actions
 }: {
   title: string
   collapsed: boolean
   onToggle: () => void
+  actions?: React.ReactNode
 }) {
   return (
-    <button
-      onClick={onToggle}
-      className="w-full flex items-center gap-1.5 px-4 pt-4 pb-1.5 flex-shrink-0"
-    >
-      <ChevronRightIcon
-        className={cn(
-          'w-3 h-3 text-text-tertiary transition-transform duration-150',
-          collapsed ? 'rotate-0' : 'rotate-90'
-        )}
-      />
-      <span className="text-xs font-medium text-text-tertiary">{title}</span>
-    </button>
+    <div className="w-full flex items-center gap-1.5 px-4 pt-4 pb-1.5 flex-shrink-0">
+      <button onClick={onToggle} className="flex items-center gap-1.5">
+        <ChevronRightIcon
+          className={cn(
+            'w-3 h-3 text-text-tertiary transition-transform duration-150',
+            collapsed ? 'rotate-0' : 'rotate-90'
+          )}
+        />
+        <span className="text-xs font-medium text-text-tertiary">{title}</span>
+      </button>
+      {actions && <div className="ml-auto flex items-center gap-0.5">{actions}</div>}
+    </div>
   )
 }
 
@@ -60,6 +64,78 @@ function WorkspaceButton({
         </span>
       )}
     </button>
+  )
+}
+
+const agentStatusColors: Record<string, string> = {
+  online: 'bg-green-500',
+  offline: 'bg-gray-400',
+  busy: 'bg-amber-500',
+  error: 'bg-red-500'
+}
+
+function AgentItem({
+  agent,
+  isActive,
+  onClick
+}: {
+  agent: { id: string; name: string; status: string; locationId: string }
+  isActive: boolean
+  onClick: () => void
+}) {
+  const location = useLocationStore((s) => s.locations.find((l) => l.id === agent.locationId))
+
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        'w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors',
+        isActive
+          ? 'bg-surface-200 text-text-primary'
+          : 'text-text-secondary hover:text-text-primary hover:bg-surface-100'
+      )}
+    >
+      <div className={cn('w-2 h-2 rounded-full flex-shrink-0', agentStatusColors[agent.status] || 'bg-gray-400')} />
+      <span className="truncate">{agent.name}</span>
+      {location && location.type === 'remote' && (
+        <span className="ml-auto text-[10px] text-text-tertiary truncate max-w-[60px]">
+          {location.name}
+        </span>
+      )}
+    </button>
+  )
+}
+
+export function AgentsSection({ collapsed }: { collapsed: boolean }) {
+  const agents = useAgentStore((s) => s.agents)
+  const activeAgentId = useAgentStore((s) => s.activeAgentId)
+  const setActiveAgent = useAgentStore((s) => s.setActiveAgent)
+  const setActiveView = useSessionStore((s) => s.setActiveView)
+
+  if (collapsed) return null
+
+  if (agents.length === 0) {
+    return (
+      <div className="px-4 py-3 flex-shrink-0">
+        <p className="text-xs text-text-tertiary">No agents connected</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="px-2 pt-0.5 overflow-y-auto max-h-[30vh] flex-shrink-0">
+      {agents.map((agent) => (
+        <AgentItem
+          key={agent.id}
+          agent={agent}
+          isActive={activeAgentId === agent.id}
+          onClick={() => {
+            setActiveAgent(agent.id)
+            setActiveView('agents')
+          }}
+        />
+      ))}
+    </div>
   )
 }
 

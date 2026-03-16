@@ -8,6 +8,7 @@ import { UsagePanel } from '../usage/UsagePanel'
 import { SettingsPanel } from '../settings/SettingsPanel'
 import { UpdateToast } from '../ui/UpdateToast'
 import { UpdateOverlay } from '../ui/UpdateOverlay'
+import { AgentChatPanel } from '../agents/AgentChatPanel'
 import { useLaunchTemplate } from '../../hooks/use-launch-template'
 import { FilePalette } from '../files/FilePalette'
 import { SidePanel } from '../git/SidePanel'
@@ -272,6 +273,11 @@ export function AppShell() {
           {/* Settings view */}
           <div className={activeView === 'settings' ? 'flex-1 flex min-h-0' : 'hidden'}>
             <SettingsPanel />
+          </div>
+
+          {/* Agents view — hidden but stays mounted */}
+          <div className={activeView === 'agents' ? 'flex-1 flex min-h-0' : 'hidden'}>
+            <AgentChatPanel />
           </div>
 
           {/* Terminal grid + file tree — hidden but stays mounted */}

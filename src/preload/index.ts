@@ -177,6 +177,69 @@ const electronAPI = {
     return (): void => {
       ipcRenderer.removeListener(channel, listener)
     }
+  },
+
+  // ── Locations ──
+  locationList: () => ipcRenderer.invoke('location:list'),
+  locationAdd: (loc: unknown, password?: string) =>
+    ipcRenderer.invoke('location:add', loc, password),
+  locationUpdate: (id: string, updates: unknown) =>
+    ipcRenderer.invoke('location:update', id, updates),
+  locationRemove: (id: string) => ipcRenderer.invoke('location:remove', id),
+  locationTestConnection: (id: string) =>
+    ipcRenderer.invoke('location:test-connection', id),
+  locationInstallPlugin: (id: string) =>
+    ipcRenderer.invoke('location:install-plugin', id),
+
+  // ── SSH / Remote Terminal ──
+  sshConnect: (locationId: string) => ipcRenderer.invoke('ssh:connect', locationId),
+  sshDisconnect: (locationId: string) => ipcRenderer.invoke('ssh:disconnect', locationId),
+  sshOpenShell: (locationId: string, cwd?: string) =>
+    ipcRenderer.invoke('ssh:open-shell', locationId, cwd),
+  sshShellWrite: (shellId: string, data: string) =>
+    ipcRenderer.send('ssh:shell-write', shellId, data),
+  sshShellResize: (shellId: string, cols: number, rows: number) =>
+    ipcRenderer.send('ssh:shell-resize', shellId, cols, rows),
+  sshShellClose: (shellId: string) => ipcRenderer.invoke('ssh:shell-close', shellId),
+  onSshShellData: (shellId: string, callback: (data: string) => void) => {
+    const channel = `ssh:shell-data:${shellId}`
+    const listener = (_event: Electron.IpcRendererEvent, data: string): void => callback(data)
+    ipcRenderer.on(channel, listener)
+    return (): void => { ipcRenderer.removeListener(channel, listener) }
+  },
+  onSshShellExit: (shellId: string, callback: (exitCode: number) => void) => {
+    const channel = `ssh:shell-exit:${shellId}`
+    const listener = (_event: Electron.IpcRendererEvent, exitCode: number): void => callback(exitCode)
+    ipcRenderer.on(channel, listener)
+    return (): void => { ipcRenderer.removeListener(channel, listener) }
+  },
+
+  // ── Remote FS (SFTP) ──
+  sftpReadDir: (locationId: string, dirPath: string) =>
+    ipcRenderer.invoke('sftp:read-dir', locationId, dirPath),
+  sftpReadFile: (locationId: string, filePath: string) =>
+    ipcRenderer.invoke('sftp:read-file', locationId, filePath),
+  sftpStat: (locationId: string, filePath: string) =>
+    ipcRenderer.invoke('sftp:stat', locationId, filePath),
+
+  // ── Agents ──
+  agentList: (locationId: string) => ipcRenderer.invoke('agent:list', locationId),
+  agentConnect: (locationId: string) => ipcRenderer.invoke('agent:connect', locationId),
+  agentDisconnect: (locationId: string) => ipcRenderer.invoke('agent:disconnect', locationId),
+  agentSend: (agentId: string, locationId: string, content: string) =>
+    ipcRenderer.invoke('agent:send', agentId, locationId, content),
+  onAgentMessage: (agentId: string, callback: (message: unknown) => void) => {
+    const channel = `agent:on-message:${agentId}`
+    const listener = (_event: Electron.IpcRendererEvent, message: unknown): void => callback(message)
+    ipcRenderer.on(channel, listener)
+    return (): void => { ipcRenderer.removeListener(channel, listener) }
+  },
+  onAgentsUpdated: (callback: (locationId: string, agents: unknown[]) => void) => {
+    const channel = 'agent:agents-updated'
+    const listener = (_event: Electron.IpcRendererEvent, locationId: string, agents: unknown[]): void =>
+      callback(locationId, agents)
+    ipcRenderer.on(channel, listener)
+    return (): void => { ipcRenderer.removeListener(channel, listener) }
   }
 }
 

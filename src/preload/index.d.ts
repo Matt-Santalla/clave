@@ -213,6 +213,37 @@ export interface ElectronAPI {
   gitCommitFiles: (cwd: string, hash: string) => Promise<GitCommitFileStatus[]>
   gitCommitDiff: (cwd: string, hash: string, filePath: string) => Promise<string>
   gitGenerateCommitMessage: (cwd: string) => Promise<string>
+
+  // Locations
+  locationList: () => Promise<import('../shared/remote-types').Location[]>
+  locationAdd: (loc: unknown, password?: string) => Promise<import('../shared/remote-types').Location>
+  locationUpdate: (id: string, updates: unknown) => Promise<void>
+  locationRemove: (id: string) => Promise<void>
+  locationTestConnection: (id: string) => Promise<{ success: boolean; error?: string; openclawVersion?: string; openclawPort?: number }>
+  locationInstallPlugin: (id: string) => Promise<{ success: boolean; output?: string; error?: string }>
+
+  // SSH / Remote Terminal
+  sshConnect: (locationId: string) => Promise<void>
+  sshDisconnect: (locationId: string) => Promise<void>
+  sshOpenShell: (locationId: string, cwd?: string) => Promise<string>
+  sshShellWrite: (shellId: string, data: string) => void
+  sshShellResize: (shellId: string, cols: number, rows: number) => void
+  sshShellClose: (shellId: string) => Promise<void>
+  onSshShellData: (shellId: string, callback: (data: string) => void) => () => void
+  onSshShellExit: (shellId: string, callback: (exitCode: number) => void) => () => void
+
+  // Remote FS (SFTP)
+  sftpReadDir: (locationId: string, dirPath: string) => Promise<import('../shared/remote-types').RemoteDirEntry[]>
+  sftpReadFile: (locationId: string, filePath: string) => Promise<string>
+  sftpStat: (locationId: string, filePath: string) => Promise<{ isDirectory: boolean; isFile: boolean; size: number; mtime: number }>
+
+  // Agents
+  agentList: (locationId: string) => Promise<import('../shared/remote-types').Agent[]>
+  agentConnect: (locationId: string) => Promise<void>
+  agentDisconnect: (locationId: string) => Promise<void>
+  agentSend: (agentId: string, locationId: string, content: string) => Promise<import('../shared/remote-types').ChatMessage>
+  onAgentMessage: (agentId: string, callback: (message: unknown) => void) => () => void
+  onAgentsUpdated: (callback: (locationId: string, agents: unknown[]) => void) => () => void
 }
 
 declare global {

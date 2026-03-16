@@ -62,6 +62,8 @@ export interface Session {
   claudeMode: boolean
   dangerousMode: boolean
   claudeSessionId: string | null
+  locationId?: string
+  shellId?: string
 }
 
 export interface SessionGroup {
@@ -80,4 +82,4 @@ export interface FileTab {
   name: string
 }
 
-export type ActiveView = 'terminals' | 'board' | 'usage' | 'settings'
+export type ActiveView = 'terminals' | 'board' | 'usage' | 'settings' | 'agents'

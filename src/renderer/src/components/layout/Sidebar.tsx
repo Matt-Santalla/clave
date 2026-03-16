@@ -17,7 +17,7 @@ import { ConfirmDialog } from '../ui/ConfirmDialog'
 import { GroupCommandDialog } from '../ui/GroupCommandDialog'
 import { cn } from '../../lib/utils'
 import { ClaudeToggle, DangerousToggle } from './SidebarToggles'
-import { SectionHeading, WorkspaceSection } from './SidebarSections'
+import { SectionHeading, WorkspaceSection, AgentsSection } from './SidebarSections'
 import {
   MagnifyingGlassIcon,
   PlusIcon,
@@ -80,12 +80,12 @@ export function Sidebar() {
   const setSearchQuery = useSessionStore((s) => s.setSearchQuery)
   const [sessionsCollapsed, setSessionsCollapsed] = useState(false)
   const [workspaceCollapsed, setWorkspaceCollapsed] = useState(false)
+  const [agentsCollapsed, setAgentsCollapsed] = useState(false)
   const [loading, setLoading] = useState(false)
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [deleteConfirmSessionId, setDeleteConfirmSessionId] = useState<string | null>(null)
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false)
-  const [searchOpen, setSearchOpen] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
   const [terminalDialogState, setTerminalDialogState] = useState<{
     groupId: string
@@ -100,14 +100,7 @@ export function Sidebar() {
     return templates.find((t) => t.id === defaultTemplateId)?.name ?? null
   }, [defaultTemplateId, templates])
 
-  // Focus search input when opened
-  useEffect(() => {
-    if (searchOpen) {
-      requestAnimationFrame(() => searchInputRef.current?.focus())
-    } else {
-      setSearchQuery('')
-    }
-  }, [searchOpen, setSearchQuery])
+
 
   const handleResetSessions = useCallback(async () => {
     setResetConfirmOpen(false)
@@ -179,7 +172,7 @@ export function Sidebar() {
       // Cmd+F: toggle search
       if (e.metaKey && !e.shiftKey && e.key === 'f') {
         e.preventDefault()
-        setSearchOpen((prev) => !prev)
+        searchInputRef.current?.focus()
       }
       // Cmd+Shift+Delete: reset all sessions
       if (e.metaKey && e.shiftKey && e.key === 'Backspace') {
@@ -801,79 +794,66 @@ export function Sidebar() {
     <div className="flex flex-col h-full bg-surface-50 border-r border-border-subtle">
       {/* Action bar with traffic-light offset — top padding is draggable */}
       <div
-        className="pt-11 px-3 pb-2 flex items-center gap-2 flex-shrink-0"
+        className="pt-11 px-3 pb-2 flex items-center gap-1.5 flex-shrink-0"
         style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
       >
-        {searchOpen ? (
-          /* Expanded search — takes over the full row */
-          <div
-            className="flex-1 relative flex items-center gap-1.5"
-            style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
-          >
-            <MagnifyingGlassIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-tertiary pointer-events-none" />
-            <input
-              ref={searchInputRef}
-              type="text"
-              placeholder="Search..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Escape') setSearchOpen(false)
-              }}
-              className="w-full h-8 pl-8 pr-3 rounded-lg bg-surface-100 border-none text-xs text-text-primary placeholder:text-text-tertiary outline-none focus:ring-1 focus:ring-border transition-colors"
-            />
-            <button
-              onClick={() => setSearchOpen(false)}
-              className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-surface-200 text-text-tertiary hover:text-text-primary transition-colors flex-shrink-0"
-              title="Close search"
-            >
-              <XMarkIcon className="w-4 h-4" />
-            </button>
-          </div>
-        ) : (
-          /* Collapsed — icon buttons row */
-          <div
-            className="flex-1 flex items-center gap-2"
-            style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
-          >
-            <button
-              onClick={() => setSearchOpen(true)}
-              className="w-8 h-8 flex items-center justify-center rounded-lg bg-surface-100 hover:bg-surface-200 text-text-secondary hover:text-text-primary transition-colors flex-shrink-0"
-              title="Search sessions (⌘F)"
-            >
-              <MagnifyingGlassIcon className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setResetConfirmOpen(true)}
-              disabled={sessions.length === 0}
-              className="w-8 h-8 flex items-center justify-center rounded-lg bg-surface-100 hover:bg-surface-200 text-text-secondary hover:text-text-primary transition-colors flex-shrink-0 disabled:opacity-30 disabled:pointer-events-none"
-              title="Reset sessions"
-            >
-              <ArrowPathIcon className="w-4 h-4" />
-            </button>
-            <div className="flex-1" />
-            <ClaudeToggle />
-            <DangerousToggle />
-            <button
-              onClick={handleNewSession}
-              disabled={loading}
-              className="w-8 h-8 flex items-center justify-center rounded-lg bg-surface-100 hover:bg-surface-200 text-text-secondary hover:text-text-primary transition-colors flex-shrink-0 disabled:opacity-50"
-              title="New session"
-            >
-              <PlusIcon className="w-4 h-4" />
-            </button>
-          </div>
-        )}
+        <div
+          className="flex-1 relative flex items-center"
+          style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+        >
+          <MagnifyingGlassIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-tertiary pointer-events-none" />
+          <input
+            ref={searchInputRef}
+            type="text"
+            placeholder="Search sessions..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                setSearchQuery('')
+                searchInputRef.current?.blur()
+              }
+            }}
+            className="w-full h-7 pl-8 pr-2 rounded-lg bg-surface-100 border-none text-xs text-text-primary placeholder:text-text-tertiary outline-none focus:ring-1 focus:ring-border transition-colors"
+          />
+        </div>
+        <button
+          onClick={() => setResetConfirmOpen(true)}
+          disabled={sessions.length === 0}
+          className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-surface-200 text-text-tertiary hover:text-text-primary transition-colors flex-shrink-0 disabled:opacity-30 disabled:pointer-events-none"
+          title="Reset sessions"
+          style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+        >
+          <ArrowPathIcon className="w-3.5 h-3.5" />
+        </button>
       </div>
 
       {/* Scrollable sections area */}
       <div className="flex-1 flex flex-col min-h-0">
         {/* Sessions section */}
-        <SectionHeading title="Sessions" collapsed={sessionsCollapsed} onToggle={() => setSessionsCollapsed((c) => !c)} />
+        <SectionHeading
+          title="Sessions"
+          collapsed={sessionsCollapsed}
+          onToggle={() => setSessionsCollapsed((c) => !c)}
+          actions={
+            <>
+              <ClaudeToggle compact />
+              <DangerousToggle compact />
+              <button
+                onClick={handleNewSession}
+                disabled={loading}
+                className="w-5 h-5 flex items-center justify-center rounded-md hover:bg-surface-200 text-text-tertiary hover:text-text-primary transition-colors flex-shrink-0 disabled:opacity-50"
+                title="New session"
+              >
+                <PlusIcon className="w-3 h-3" />
+              </button>
+            </>
+          }
+        />
         {!sessionsCollapsed && (
           <div
             className="overflow-y-auto px-2 space-y-2"
-            style={{ maxHeight: 'calc(75vh - 140px)' }}
+            style={{ maxHeight: 'calc(60vh - 140px)' }}
             onDragOver={handleContainerDragOver}
             onDrop={handleDrop}
           >
@@ -1043,6 +1023,27 @@ export function Sidebar() {
             ) : null}
           </div>
         )}
+
+        {/* Agents section */}
+        <SectionHeading
+          title="Agents"
+          collapsed={agentsCollapsed}
+          onToggle={() => setAgentsCollapsed((c) => !c)}
+          actions={
+            <button
+              onClick={() => {
+                const store = useSessionStore.getState()
+                store.setSettingsTab('locations')
+                store.setActiveView('settings')
+              }}
+              className="w-5 h-5 flex items-center justify-center rounded-md hover:bg-surface-200 text-text-tertiary hover:text-text-primary transition-colors flex-shrink-0"
+              title="Add location"
+            >
+              <PlusIcon className="w-3 h-3" />
+            </button>
+          }
+        />
+        <AgentsSection collapsed={agentsCollapsed} />
 
         {/* Workspace section */}
         <SectionHeading title="Workspace" collapsed={workspaceCollapsed} onToggle={() => setWorkspaceCollapsed((c) => !c)} />

@@ -6,6 +6,9 @@ import { registerUpdaterHandlers } from './updater-handlers'
 import { registerFsHandlers } from './fs-handlers'
 import { registerPtyHandlers } from './pty-handlers'
 import { registerShellHandlers } from './shell-handlers'
+import { registerLocationHandlers } from './location-handlers'
+import { registerSshHandlers } from './ssh-handlers'
+import { registerAgentHandlers } from './agent-handlers'
 
 export function registerIpcHandlers(): void {
   registerBoardHandlers()
@@ -16,4 +19,7 @@ export function registerIpcHandlers(): void {
   registerFsHandlers()
   registerPtyHandlers()
   registerShellHandlers()
+  registerLocationHandlers()
+  registerSshHandlers()
+  registerAgentHandlers()
 }

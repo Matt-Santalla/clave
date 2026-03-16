@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { useSessionStore, getDisplayOrder, isFileTabId } from '../../store/session-store'
 import { TerminalPanel } from '../terminal/TerminalPanel'
+import { RemoteTerminalPanel } from '../terminal/RemoteTerminalPanel'
 import { TerminalErrorBoundary } from '../terminal/TerminalErrorBoundary'
 import { FileViewer } from '../files/FileViewer'
 import { EmptyState } from '../ui/EmptyState'
@@ -82,7 +83,15 @@ export function TerminalGrid() {
               style={{ display: isSelected ? undefined : 'none' }}
             >
               <TerminalErrorBoundary sessionId={session.id}>
-                <TerminalPanel sessionId={session.id} />
+                {session.locationId && session.locationId !== 'local' && session.shellId ? (
+                  <RemoteTerminalPanel
+                    sessionId={session.id}
+                    shellId={session.shellId}
+                    locationId={session.locationId}
+                  />
+                ) : (
+                  <TerminalPanel sessionId={session.id} />
+                )}
               </TerminalErrorBoundary>
             </div>
           )
