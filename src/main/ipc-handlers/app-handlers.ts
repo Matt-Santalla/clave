@@ -4,7 +4,7 @@ import { execFileSync } from 'child_process'
 import * as fs from 'fs'
 import { preferencesManager, type AppIcon } from '../preferences-manager'
 
-const VALID_ICONS = ['dark', 'light', 'claude'] as const
+const VALID_ICONS = ['dark', 'light', 'claude', 'ocean', 'emerald', 'violet', 'rose'] as const
 
 const logPath = join(app.getPath('userData'), 'icon-debug.log')
 
