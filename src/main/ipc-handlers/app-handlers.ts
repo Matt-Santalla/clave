@@ -67,6 +67,24 @@ function setAppBundleIcon(icon: string): void {
       timeout: 5000
     })
     debugLog(`  result=${result.trim()}`)
+
+    // Bust macOS Dock icon cache: touch the .app to update mtime,
+    // then force Launch Services to re-read app metadata.
+    // Without this, the Dock shows a stale cached icon after auto-updates
+    // replace the .app bundle (which wipes the custom icon extended attribute).
+    const now = new Date()
+    fs.utimesSync(appPath, now, now)
+
+    const lsregister =
+      '/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister'
+    if (fs.existsSync(lsregister)) {
+      try {
+        execFileSync(lsregister, ['-f', appPath], { timeout: 5000 })
+        debugLog(`  lsregister: refreshed`)
+      } catch (lsErr) {
+        debugLog(`  lsregister ERROR: ${lsErr}`)
+      }
+    }
   } catch (err) {
     debugLog(`  ERROR: ${err}`)
   }
