@@ -159,25 +159,24 @@ export function SessionItem({
         {/* Session icon with status badge */}
         <span className="relative flex-shrink-0 w-4 h-4">
           {session.sessionType === 'agent' ? (
-            <BoltIcon className="w-4 h-4 text-text-tertiary" />
+            <BoltIcon className={cn('w-4 h-4 transition-colors duration-300', session.hasUnseenActivity ? 'text-accent' : 'text-text-tertiary')} />
           ) : session.sessionType === 'remote-terminal' || session.sessionType === 'remote-claude' ? (
-            <GlobeAltIcon className="w-4 h-4 text-text-tertiary" />
+            <GlobeAltIcon className={cn('w-4 h-4 transition-colors duration-300', session.hasUnseenActivity ? 'text-accent' : 'text-text-tertiary')} />
           ) : session.dangerousMode ? (
-            <FireIcon className="w-4 h-4 text-text-tertiary" />
+            <FireIcon className={cn('w-4 h-4 transition-colors duration-300', session.hasUnseenActivity ? 'text-accent' : 'text-text-tertiary')} />
           ) : session.claudeMode ? (
-            <SparklesIcon className="w-4 h-4 text-text-tertiary" />
+            <SparklesIcon className={cn('w-4 h-4 transition-colors duration-300', session.hasUnseenActivity ? 'text-accent' : 'text-text-tertiary')} />
           ) : (
-            <CommandLineIcon className="w-4 h-4 text-text-tertiary" />
+            <CommandLineIcon className={cn('w-4 h-4 transition-colors duration-300', session.hasUnseenActivity ? 'text-accent' : 'text-text-tertiary')} />
           )}
           <span
             className={cn(
               'absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-surface-50',
               session.activityStatus === 'active' && 'bg-status-working',
-              session.activityStatus === 'idle' && session.promptWaiting && 'bg-status-waiting',
-              session.activityStatus === 'idle' && !session.promptWaiting && 'bg-status-ready',
+              session.activityStatus === 'idle' && 'bg-status-ready',
               session.activityStatus === 'ended' && 'bg-status-inactive'
             )}
-            style={session.activityStatus === 'active' ? { animation: 'pulse-dot 1.5s ease-in-out infinite' } : undefined}
+            style={session.activityStatus === 'active' ? { animation: 'pulse-dot 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite' } : undefined}
           />
         </span>
 

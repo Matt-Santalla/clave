@@ -71,6 +71,7 @@ interface SessionState {
   setSessionActivity: (id: string, status: ActivityStatus) => void
   setSessionPromptWaiting: (id: string, promptType: string | null) => void
   setSessionDetectedUrl: (id: string, url: string | null) => void
+  setSessionUnseenActivity: (id: string, unseen: boolean) => void
   renameSession: (id: string, name: string) => void
   setSearchQuery: (query: string) => void
   toggleClaudeMode: () => void
@@ -154,7 +155,7 @@ export const useSessionStore = create<SessionState>((set) => ({
   ),
   addSession: (session) =>
     set((state) => ({
-      sessions: [...state.sessions, { ...session, detectedUrl: session.detectedUrl ?? null }],
+      sessions: [...state.sessions, { ...session, detectedUrl: session.detectedUrl ?? null, hasUnseenActivity: session.hasUnseenActivity ?? false }],
       selectedSessionIds: [session.id],
       focusedSessionId: session.id,
       displayOrder: [...getDisplayOrder(state), session.id]
@@ -195,15 +196,19 @@ export const useSessionStore = create<SessionState>((set) => ({
     set((state) => {
       const session = state.sessions.find((s) => s.id === id)
       const targetView: ActiveView = session?.sessionType === 'agent' ? 'agents' : 'terminals'
+      // Clear unseen activity when session is selected
+      const sessions = session?.hasUnseenActivity
+        ? state.sessions.map((s) => s.id === id ? { ...s, hasUnseenActivity: false } : s)
+        : state.sessions
       if (addToSelection) {
         const isSelected = state.selectedSessionIds.includes(id)
         const newSelected = isSelected
           ? state.selectedSessionIds.filter((sid) => sid !== id)
           : [...state.selectedSessionIds, id]
         const focusedSessionId = isSelected ? (newSelected[0] ?? null) : id
-        return { selectedSessionIds: newSelected, focusedSessionId, activeView: targetView }
+        return { sessions, selectedSessionIds: newSelected, focusedSessionId, activeView: targetView }
       }
-      return { selectedSessionIds: [id], focusedSessionId: id, activeView: targetView }
+      return { sessions, selectedSessionIds: [id], focusedSessionId: id, activeView: targetView }
     }),
 
   selectSessions: (ids) =>
@@ -472,6 +477,17 @@ export const useSessionStore = create<SessionState>((set) => ({
       }
     }),
 
+  setSessionUnseenActivity: (id, unseen) =>
+    set((state) => {
+      const session = state.sessions.find((s) => s.id === id)
+      if (!session || session.hasUnseenActivity === unseen) return state
+      return {
+        sessions: state.sessions.map((s) =>
+          s.id === id ? { ...s, hasUnseenActivity: unseen } : s
+        )
+      }
+    }),
+
   renameSession: (id, name) =>
     set((state) => ({
       sessions: state.sessions.map((s) =>
@@ -586,7 +602,8 @@ export const useSessionStore = create<SessionState>((set) => ({
         locationId,
         sessionType: 'agent',
         agentId: agent.id,
-        detectedUrl: null
+        detectedUrl: null,
+        hasUnseenActivity: false
       }
       return {
         sessions: [...state.sessions, session],

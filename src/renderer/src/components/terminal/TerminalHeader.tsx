@@ -33,11 +33,10 @@ export function TerminalHeader({ sessionId }: TerminalHeaderProps) {
             className={cn(
               'w-1.5 h-1.5 rounded-full flex-shrink-0',
               session.activityStatus === 'active' && 'bg-status-working',
-              session.activityStatus === 'idle' && session.promptWaiting && 'bg-status-waiting',
-              session.activityStatus === 'idle' && !session.promptWaiting && 'bg-status-ready',
+              session.activityStatus === 'idle' && 'bg-status-ready',
               session.activityStatus === 'ended' && 'bg-status-inactive'
             )}
-            style={session.activityStatus === 'active' ? { animation: 'pulse-dot 1.5s ease-in-out infinite' } : undefined}
+            style={session.activityStatus === 'active' ? { animation: 'pulse-dot 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite' } : undefined}
           />
           <span className="text-xs font-medium text-text-secondary truncate">{session.name}</span>
         </div>

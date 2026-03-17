@@ -71,6 +71,7 @@ export interface Session {
   sessionType: SessionType
   agentId?: string
   detectedUrl: string | null
+  hasUnseenActivity: boolean
 }
 
 export interface SessionGroup {

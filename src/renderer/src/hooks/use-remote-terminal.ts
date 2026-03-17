@@ -170,19 +170,33 @@ export function useRemoteTerminal(shellId: string) {
       window.electronAPI.sshShellResize(shellId, cols, rows)
     })
 
-    const { setSessionActivity, setSessionPromptWaiting, setSessionDetectedUrl, updateSessionAlive } =
+    const { setSessionActivity, setSessionPromptWaiting, setSessionDetectedUrl, setSessionUnseenActivity, updateSessionAlive } =
       useSessionStore.getState()
 
-    // Activity tracking: debounce from active → idle after 2s of silence
+    // Activity tracking: debounce from active → idle after silence
     let activityTimer: ReturnType<typeof setTimeout> | null = null
+    let activeStartTimer: ReturnType<typeof setTimeout> | null = null
     let notificationTimer: ReturnType<typeof setTimeout> | null = null
     let outputBuffer = ''
+    let isMarkedActive = false
 
     // Wire SSH shell output -> terminal
     const cleanupData = window.electronAPI.onSshShellData(shellId, (data) => {
       terminal.write(data)
-      setSessionActivity(shellId, 'active')
-      setSessionPromptWaiting(shellId, null)
+
+      // Only mark active after sustained output (50ms) to avoid flicker
+      if (!isMarkedActive) {
+        if (!activeStartTimer) {
+          activeStartTimer = setTimeout(() => {
+            isMarkedActive = true
+            setSessionActivity(shellId, 'active')
+            setSessionPromptWaiting(shellId, null)
+            activeStartTimer = null
+          }, 50)
+        }
+      } else {
+        setSessionPromptWaiting(shellId, null)
+      }
 
       // Append stripped data to rolling buffer (max 500 chars)
       outputBuffer = (outputBuffer + stripAnsi(data)).slice(-500)
@@ -193,6 +207,12 @@ export function useRemoteTerminal(shellId: string) {
         setSessionDetectedUrl(shellId, detectedUrl)
       }
 
+      // Mark unseen activity if this session is not currently selected
+      const { selectedSessionIds } = useSessionStore.getState()
+      if (!selectedSessionIds.includes(shellId)) {
+        setSessionUnseenActivity(shellId, true)
+      }
+
       if (activityTimer) clearTimeout(activityTimer)
       if (notificationTimer) {
         clearTimeout(notificationTimer)
@@ -200,6 +220,11 @@ export function useRemoteTerminal(shellId: string) {
       }
 
       activityTimer = setTimeout(() => {
+        isMarkedActive = false
+        if (activeStartTimer) {
+          clearTimeout(activeStartTimer)
+          activeStartTimer = null
+        }
         setSessionActivity(shellId, 'idle')
 
         // Check for prompt patterns after idle detection
@@ -273,6 +298,7 @@ export function useRemoteTerminal(shellId: string) {
     return () => {
       if (resizeTimer) clearTimeout(resizeTimer)
       if (activityTimer) clearTimeout(activityTimer)
+      if (activeStartTimer) clearTimeout(activeStartTimer)
       if (notificationTimer) clearTimeout(notificationTimer)
       inputDisposable.dispose()
       resizeDisposable.dispose()

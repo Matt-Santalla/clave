@@ -177,18 +177,32 @@ export function useTerminal(sessionId: string) {
       window.electronAPI.resizeSession(sessionId, cols, rows)
     })
 
-    const { setSessionActivity, setSessionPromptWaiting, setSessionDetectedUrl, updateSessionAlive } = useSessionStore.getState()
+    const { setSessionActivity, setSessionPromptWaiting, setSessionDetectedUrl, setSessionUnseenActivity, updateSessionAlive } = useSessionStore.getState()
 
-    // Activity tracking: debounce from active → idle after 2s of silence
+    // Activity tracking: debounce from active → idle after silence
     let activityTimer: ReturnType<typeof setTimeout> | null = null
+    let activeStartTimer: ReturnType<typeof setTimeout> | null = null
     let notificationTimer: ReturnType<typeof setTimeout> | null = null
     let outputBuffer = ''
+    let isMarkedActive = false
 
     // Wire PTY output -> terminal
     const cleanupData = window.electronAPI.onSessionData(sessionId, (data) => {
       terminal.write(data)
-      setSessionActivity(sessionId, 'active')
-      setSessionPromptWaiting(sessionId, null)
+
+      // Only mark active after sustained output (50ms) to avoid flicker from cursor blinks etc.
+      if (!isMarkedActive) {
+        if (!activeStartTimer) {
+          activeStartTimer = setTimeout(() => {
+            isMarkedActive = true
+            setSessionActivity(sessionId, 'active')
+            setSessionPromptWaiting(sessionId, null)
+            activeStartTimer = null
+          }, 50)
+        }
+      } else {
+        setSessionPromptWaiting(sessionId, null)
+      }
 
       // Append stripped data to rolling buffer (max 500 chars)
       outputBuffer = (outputBuffer + stripAnsi(data)).slice(-500)
@@ -199,6 +213,12 @@ export function useTerminal(sessionId: string) {
         setSessionDetectedUrl(sessionId, detectedUrl)
       }
 
+      // Mark unseen activity if this session is not currently selected
+      const { selectedSessionIds } = useSessionStore.getState()
+      if (!selectedSessionIds.includes(sessionId)) {
+        setSessionUnseenActivity(sessionId, true)
+      }
+
       if (activityTimer) clearTimeout(activityTimer)
       if (notificationTimer) {
         clearTimeout(notificationTimer)
@@ -206,6 +226,11 @@ export function useTerminal(sessionId: string) {
       }
 
       activityTimer = setTimeout(() => {
+        isMarkedActive = false
+        if (activeStartTimer) {
+          clearTimeout(activeStartTimer)
+          activeStartTimer = null
+        }
         setSessionActivity(sessionId, 'idle')
 
         // Check for prompt patterns after idle detection
@@ -353,6 +378,7 @@ export function useTerminal(sessionId: string) {
       container.removeEventListener('drop', handleDrop, true)
       if (resizeTimer) clearTimeout(resizeTimer)
       if (activityTimer) clearTimeout(activityTimer)
+      if (activeStartTimer) clearTimeout(activeStartTimer)
       if (notificationTimer) clearTimeout(notificationTimer)
       inputDisposable.dispose()
       resizeDisposable.dispose()
