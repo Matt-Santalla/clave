@@ -2,6 +2,8 @@ export type Theme = 'dark' | 'light' | 'coffee'
 
 export type ActivityStatus = 'active' | 'idle' | 'ended'
 
+export type SessionType = 'local' | 'remote-terminal' | 'remote-claude' | 'agent'
+
 export type GroupTerminalColor =
   | 'black'
   | 'green'
@@ -64,6 +66,8 @@ export interface Session {
   claudeSessionId: string | null
   locationId?: string
   shellId?: string
+  sessionType: SessionType
+  agentId?: string
 }
 
 export interface SessionGroup {

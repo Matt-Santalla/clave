@@ -26,7 +26,8 @@ export function NewSessionButton() {
         promptWaiting: null,
         claudeMode: state.claudeMode,
         dangerousMode: state.dangerousMode,
-        claudeSessionId: sessionInfo.claudeSessionId
+        claudeSessionId: sessionInfo.claudeSessionId,
+        sessionType: 'local'
       })
     } catch (err) {
       console.error('Failed to create session:', err)

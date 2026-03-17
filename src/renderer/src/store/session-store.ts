@@ -7,11 +7,13 @@ import type {
   Session,
   SessionGroup,
   FileTab,
-  ActiveView
+  ActiveView,
+  SessionType
 } from './session-types'
+import type { Agent, AgentStatus } from '../../../shared/remote-types'
 
 // Re-export types and constants so existing imports continue to work
-export type { Theme, ActivityStatus, GroupTerminalConfig, GroupTerminalColor, Session, SessionGroup, FileTab, ActiveView }
+export type { Theme, ActivityStatus, GroupTerminalConfig, GroupTerminalColor, Session, SessionGroup, FileTab, ActiveView, SessionType }
 export { GROUP_TERMINAL_COLORS, TERMINAL_COLOR_VALUES, resolveColorHex } from './session-types'
 
 interface SessionState {
@@ -38,6 +40,7 @@ interface SessionState {
   sidePanelTab: 'files' | 'git'
   gitViewMode: 'list' | 'tree'
   gitPanelMode: 'changes' | 'log'
+  hiddenAgentIds: Set<string>
   addSession: (session: Session) => void
   removeSession: (id: string) => void
   selectSession: (id: string, addToSelection: boolean) => void
@@ -82,6 +85,11 @@ interface SessionState {
   removeFileTab: (id: string) => void
   renameFileTab: (id: string, name: string) => void
   setClaudeSessionId: (id: string, claudeSessionId: string) => void
+  addAgentSession: (agent: Agent, locationId: string) => void
+  removeAgentSessions: (locationId: string) => void
+  updateAgentSessionStatus: (agentId: string, locationId: string, status: AgentStatus) => void
+  isAgentInSidebar: (agentId: string, locationId: string) => boolean
+  hideAgentSession: (sessionId: string) => void
 }
 
 let groupCounter = 0
@@ -136,6 +144,9 @@ export const useSessionStore = create<SessionState>((set) => ({
   sidePanelTab: 'files' as const,
   gitViewMode: 'list' as const,
   gitPanelMode: 'changes' as const,
+  hiddenAgentIds: new Set<string>(
+    JSON.parse(localStorage.getItem('clave-hidden-agent-ids') || '[]')
+  ),
   addSession: (session) =>
     set((state) => ({
       sessions: [...state.sessions, session],
@@ -177,15 +188,17 @@ export const useSessionStore = create<SessionState>((set) => ({
 
   selectSession: (id, addToSelection) =>
     set((state) => {
+      const session = state.sessions.find((s) => s.id === id)
+      const targetView: ActiveView = session?.sessionType === 'agent' ? 'agents' : 'terminals'
       if (addToSelection) {
         const isSelected = state.selectedSessionIds.includes(id)
         const newSelected = isSelected
           ? state.selectedSessionIds.filter((sid) => sid !== id)
           : [...state.selectedSessionIds, id]
         const focusedSessionId = isSelected ? (newSelected[0] ?? null) : id
-        return { selectedSessionIds: newSelected, focusedSessionId, activeView: 'terminals' as ActiveView }
+        return { selectedSessionIds: newSelected, focusedSessionId, activeView: targetView }
       }
-      return { selectedSessionIds: [id], focusedSessionId: id, activeView: 'terminals' as ActiveView }
+      return { selectedSessionIds: [id], focusedSessionId: id, activeView: targetView }
     }),
 
   selectSessions: (ids) =>
@@ -531,5 +544,79 @@ export const useSessionStore = create<SessionState>((set) => ({
       sessions: state.sessions.map((s) =>
         s.id === id ? { ...s, claudeSessionId } : s
       )
-    }))
+    })),
+
+  addAgentSession: (agent, locationId) =>
+    set((state) => {
+      const sessionId = `agent-${locationId}-${agent.id}`
+      if (state.sessions.some((s) => s.id === sessionId)) return {}
+      const session: Session = {
+        id: sessionId,
+        cwd: agent.cwd ?? '',
+        folderName: agent.name,
+        name: agent.name,
+        alive: agent.status !== 'offline',
+        activityStatus: agent.status === 'busy' ? 'active' : agent.status === 'offline' ? 'ended' : 'idle',
+        promptWaiting: null,
+        claudeMode: false,
+        dangerousMode: false,
+        claudeSessionId: null,
+        locationId,
+        sessionType: 'agent',
+        agentId: agent.id
+      }
+      return {
+        sessions: [...state.sessions, session],
+        displayOrder: [...getDisplayOrder(state), sessionId]
+      }
+    }),
+
+  removeAgentSessions: (locationId) =>
+    set((state) => {
+      const agentSessionIds = new Set(
+        state.sessions.filter((s) => s.sessionType === 'agent' && s.locationId === locationId).map((s) => s.id)
+      )
+      if (agentSessionIds.size === 0) return {}
+      return {
+        sessions: state.sessions.filter((s) => !agentSessionIds.has(s.id)),
+        displayOrder: getDisplayOrder(state).filter((id) => !agentSessionIds.has(id)),
+        selectedSessionIds: state.selectedSessionIds.filter((id) => !agentSessionIds.has(id)),
+        focusedSessionId: agentSessionIds.has(state.focusedSessionId ?? '') ? null : state.focusedSessionId
+      }
+    }),
+
+  updateAgentSessionStatus: (agentId, locationId, status) =>
+    set((state) => {
+      const sessionId = `agent-${locationId}-${agentId}`
+      const alive = status !== 'offline'
+      const activityStatus: import('./session-types').ActivityStatus =
+        status === 'busy' ? 'active' : status === 'offline' ? 'ended' : 'idle'
+      return {
+        sessions: state.sessions.map((s) =>
+          s.id === sessionId ? { ...s, alive, activityStatus } : s
+        )
+      }
+    }),
+
+  isAgentInSidebar: (agentId, locationId) => {
+    const state = useSessionStore.getState()
+    return state.sessions.some((s) => s.id === `agent-${locationId}-${agentId}`)
+  },
+
+  hideAgentSession: (sessionId) =>
+    set((state) => {
+      const session = state.sessions.find((s) => s.id === sessionId)
+      if (!session?.agentId || !session.locationId) return {}
+      const compositeId = `${session.locationId}-${session.agentId}`
+      const newHidden = new Set(state.hiddenAgentIds)
+      newHidden.add(compositeId)
+      localStorage.setItem('clave-hidden-agent-ids', JSON.stringify([...newHidden]))
+      return {
+        hiddenAgentIds: newHidden,
+        sessions: state.sessions.filter((s) => s.id !== sessionId),
+        displayOrder: getDisplayOrder(state).filter((id) => id !== sessionId),
+        selectedSessionIds: state.selectedSessionIds.filter((id) => id !== sessionId),
+        focusedSessionId: state.focusedSessionId === sessionId ? null : state.focusedSessionId
+      }
+    })
 }))

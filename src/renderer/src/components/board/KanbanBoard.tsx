@@ -87,7 +87,8 @@ export function KanbanBoard() {
         promptWaiting: null,
         claudeMode: true,
         dangerousMode: state.dangerousMode,
-        claudeSessionId: sessionInfo.claudeSessionId
+        claudeSessionId: sessionInfo.claudeSessionId,
+        sessionType: 'local'
       })
 
       linkSession(task.id, sessionInfo.id)
@@ -178,7 +179,8 @@ export function KanbanBoard() {
         promptWaiting: null,
         claudeMode: true,
         dangerousMode: state.dangerousMode,
-        claudeSessionId: sessionInfo.claudeSessionId
+        claudeSessionId: sessionInfo.claudeSessionId,
+        sessionType: 'local'
       })
 
       linkSession(task.id, sessionInfo.id)

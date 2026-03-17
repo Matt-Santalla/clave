@@ -103,7 +103,8 @@ export async function applyTemplate(template: ReturnType<typeof useTemplateStore
         promptWaiting: null,
         claudeMode,
         dangerousMode,
-        claudeSessionId: sessionInfo.claudeSessionId
+        claudeSessionId: sessionInfo.claudeSessionId,
+        sessionType: 'local'
       })
 
       // Apply custom name if different from folderName

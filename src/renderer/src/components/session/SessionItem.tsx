@@ -1,7 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { cn } from '../../lib/utils'
 import { useSessionStore, type Session } from '../../store/session-store'
-import { CommandLineIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import { useLocationStore } from '../../store/location-store'
+import { CommandLineIcon, XMarkIcon, BoltIcon, GlobeAltIcon } from '@heroicons/react/24/outline'
+
+function LocationBadge({ locationId }: { locationId: string }) {
+  const location = useLocationStore((s) => s.locations.find((l) => l.id === locationId))
+  if (!location || location.type !== 'remote') return null
+  return (
+    <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium text-text-tertiary bg-surface-100 truncate max-w-[60px]">
+      {location.name}
+    </span>
+  )
+}
 
 interface SessionItemProps {
   session: Session
@@ -145,9 +156,15 @@ export function SessionItem({
           isDragging && 'opacity-30'
         )}
       >
-        {/* Terminal icon with status badge */}
+        {/* Session icon with status badge */}
         <span className="relative flex-shrink-0 w-4 h-4">
-          <CommandLineIcon className="w-4 h-4 text-text-tertiary" />
+          {session.sessionType === 'agent' ? (
+            <BoltIcon className="w-4 h-4 text-text-tertiary" />
+          ) : session.sessionType === 'remote-terminal' || session.sessionType === 'remote-claude' ? (
+            <GlobeAltIcon className="w-4 h-4 text-text-tertiary" />
+          ) : (
+            <CommandLineIcon className="w-4 h-4 text-text-tertiary" />
+          )}
           <span
             className={cn(
               'absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-surface-50',
@@ -175,6 +192,11 @@ export function SessionItem({
           <span className="flex-1 min-w-0 text-[13px] font-medium truncate" onDoubleClick={handleDoubleClick}>
             {session.name}
           </span>
+        )}
+
+        {/* Location badge for remote/agent sessions */}
+        {session.locationId && session.sessionType !== 'local' && (
+          <LocationBadge locationId={session.locationId} />
         )}
 
         {/* Close button — visible on hover */}

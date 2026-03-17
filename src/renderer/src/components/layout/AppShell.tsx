@@ -63,7 +63,8 @@ export function AppShell() {
           promptWaiting: null,
           claudeMode,
           dangerousMode,
-          claudeSessionId: sessionInfo.claudeSessionId
+          claudeSessionId: sessionInfo.claudeSessionId,
+          sessionType: 'local'
         })
       } catch (err) {
         console.error('Failed to create session:', err)
@@ -192,6 +193,49 @@ export function AppShell() {
     })
   }, [])
 
+  // Sync agent STATUS updates to existing agent sessions in the sidebar.
+  // Does NOT auto-add agents — only the picker adds agents to the sidebar.
+  // Only updates sessions array when status actually changed to avoid unnecessary re-renders.
+  const syncAgentStatus = useCallback((locationId: string, typedAgents: import('../../../../shared/remote-types').Agent[]) => {
+    useSessionStore.setState((state) => {
+      const currentAgentSessions = state.sessions.filter(
+        (s) => s.sessionType === 'agent' && s.locationId === locationId
+      )
+      if (currentAgentSessions.length === 0) return {}
+
+      const incomingMap = new Map(typedAgents.map((a) => [a.id, a]))
+      const updates: Array<{ sessionId: string; alive: boolean; activityStatus: import('../../store/session-types').ActivityStatus }> = []
+
+      for (const session of currentAgentSessions) {
+        if (!session.agentId) continue
+        const agent = incomingMap.get(session.agentId)
+        if (agent) {
+          const alive = agent.status !== 'offline'
+          const activityStatus: import('../../store/session-types').ActivityStatus =
+            agent.status === 'busy' ? 'active' : agent.status === 'offline' ? 'ended' : 'idle'
+          if (session.alive !== alive || session.activityStatus !== activityStatus) {
+            updates.push({ sessionId: session.id, alive, activityStatus })
+          }
+        } else {
+          // Agent disappeared — mark offline if not already
+          if (session.alive || session.activityStatus !== 'ended') {
+            updates.push({ sessionId: session.id, alive: false, activityStatus: 'ended' })
+          }
+        }
+      }
+
+      if (updates.length === 0) return {}
+
+      const updateMap = new Map(updates.map((u) => [u.sessionId, u]))
+      return {
+        sessions: state.sessions.map((s) => {
+          const update = updateMap.get(s.id)
+          return update ? { ...s, alive: update.alive, activityStatus: update.activityStatus } : s
+        })
+      }
+    })
+  }, [])
+
   // Subscribe to agent updates from OpenClaw connections
   useEffect(() => {
     if (!window.electronAPI?.onAgentsUpdated) return
@@ -203,8 +247,26 @@ export function AppShell() {
       if (agentIds.length > 0) {
         useAgentStore.getState().loadHistory(locationId, agentIds)
       }
+      syncAgentStatus(locationId, typedAgents)
     })
-  }, [])
+  }, [syncAgentStatus])
+
+  // One-time status sync: if agent sessions already exist and agents are loaded,
+  // update their status (e.g., after HMR or window reload)
+  useEffect(() => {
+    const agentState = useAgentStore.getState()
+    if (agentState.agents.length > 0) {
+      const byLocation = new Map<string, import('../../../../shared/remote-types').Agent[]>()
+      for (const agent of agentState.agents) {
+        const list = byLocation.get(agent.locationId) || []
+        list.push(agent)
+        byLocation.set(agent.locationId, list)
+      }
+      for (const [locationId, agents] of byLocation) {
+        syncAgentStatus(locationId, agents)
+      }
+    }
+  }, [syncAgentStatus])
 
   return (
     <div className="flex h-screen w-screen bg-surface-0 overflow-hidden transition-colors duration-200">
@@ -293,6 +355,23 @@ export function AppShell() {
           {/* Agents view — hidden but stays mounted */}
           <div className={activeView === 'agents' ? 'flex-1 flex min-h-0' : 'hidden'}>
             <AgentChatPanel />
+            <AnimatePresence initial={false}>
+              {fileTreeOpen && (
+                <motion.div
+                  initial={{ width: 0, opacity: 0 }}
+                  animate={{ width: fileTreeWidthOverride ?? fileTreeWidth, opacity: 1 }}
+                  exit={{ width: 0, opacity: 0 }}
+                  transition={sidebarTransition}
+                  className="flex-shrink-0 overflow-hidden relative"
+                >
+                  <div
+                    onMouseDown={handleTreeResizeStart}
+                    className="absolute top-0 left-0 w-1 h-full cursor-col-resize hover:bg-accent/40 active:bg-accent/60 transition-colors z-10"
+                  />
+                  <SidePanel />
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           {/* Terminal grid + file tree — hidden but stays mounted */}

@@ -45,16 +45,18 @@ export function TerminalGrid() {
     return result
   }, [sessions, groups, displayOrder])
 
-  // Separate selected items into sessions and file tabs
+  // Separate selected items into sessions, file tabs, and agent sessions
+  const agentSessionIds = new Set(sessions.filter((s) => s.sessionType === 'agent').map((s) => s.id))
   const selectedFileTabIds = selectedSessionIds.filter((id) => isFileTabId(id))
-  const selectedTerminalIds = selectedSessionIds.filter((id) => !isFileTabId(id))
+  const selectedTerminalIds = selectedSessionIds.filter((id) => !isFileTabId(id) && !agentSessionIds.has(id))
 
   if (sessions.length === 0 && fileTabs.length === 0) {
     return <EmptyState />
   }
 
+  // Don't count agent sessions in the grid layout
   const hasSelection = selectedSessionIds.length > 0
-  const visibleCount = selectedSessionIds.length
+  const visibleCount = selectedTerminalIds.length + selectedFileTabIds.length
   const { cols, rows } = computeGridLayout(visibleCount)
 
   return (
@@ -75,6 +77,8 @@ export function TerminalGrid() {
         }}
       >
         {orderedSessions.map((session) => {
+          // Agent sessions use AgentChatPanel via activeView, skip entirely
+          if (session.sessionType === 'agent') return null
           const isSelected = selectedTerminalIds.includes(session.id)
           return (
             <div
@@ -83,7 +87,14 @@ export function TerminalGrid() {
               style={{ display: isSelected ? undefined : 'none' }}
             >
               <TerminalErrorBoundary sessionId={session.id}>
-                {session.locationId && session.locationId !== 'local' && session.shellId ? (
+                {(session.sessionType === 'remote-terminal' || session.sessionType === 'remote-claude') &&
+                 session.locationId && session.shellId ? (
+                  <RemoteTerminalPanel
+                    sessionId={session.id}
+                    shellId={session.shellId}
+                    locationId={session.locationId}
+                  />
+                ) : session.locationId && session.locationId !== 'local' && session.shellId ? (
                   <RemoteTerminalPanel
                     sessionId={session.id}
                     shellId={session.shellId}

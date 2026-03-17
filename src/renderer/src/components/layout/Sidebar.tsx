@@ -16,11 +16,11 @@ import { ContextMenu } from '../ui/ContextMenu'
 import { ConfirmDialog } from '../ui/ConfirmDialog'
 import { GroupCommandDialog } from '../ui/GroupCommandDialog'
 import { cn } from '../../lib/utils'
-import { ClaudeToggle, DangerousToggle } from './SidebarToggles'
-import { SectionHeading, WorkspaceSection, AgentsSection } from './SidebarSections'
+import { SectionHeading, WorkspaceSection } from './SidebarSections'
+import { NewSessionDropdown } from './NewSessionDropdown'
+import { useAgentStore } from '../../store/agent-store'
 import {
   MagnifyingGlassIcon,
-  PlusIcon,
   PencilSquareIcon,
   TrashIcon,
   Squares2X2Icon,
@@ -80,7 +80,6 @@ export function Sidebar() {
   const setSearchQuery = useSessionStore((s) => s.setSearchQuery)
   const [sessionsCollapsed, setSessionsCollapsed] = useState(false)
   const [workspaceCollapsed, setWorkspaceCollapsed] = useState(false)
-  const [agentsCollapsed, setAgentsCollapsed] = useState(false)
   const [loading, setLoading] = useState(false)
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
   const [renamingId, setRenamingId] = useState<string | null>(null)
@@ -137,7 +136,8 @@ export function Sidebar() {
         promptWaiting: null,
         claudeMode: state.claudeMode,
         dangerousMode: state.dangerousMode,
-        claudeSessionId: sessionInfo.claudeSessionId
+        claudeSessionId: sessionInfo.claudeSessionId,
+        sessionType: 'local'
       })
     } catch (err) {
       console.error('Failed to create session:', err)
@@ -187,7 +187,7 @@ export function Sidebar() {
   }, [createGroup, ungroupSessions])
 
   const aliveSessionIds = useMemo(
-    () => new Set(sessions.filter((s) => s.alive).map((s) => s.id)),
+    () => new Set<string>(sessions.filter((s) => s.alive).map((s) => s.id)),
     [sessions]
   )
 
@@ -321,7 +321,8 @@ export function Sidebar() {
           promptWaiting: null,
           claudeMode: false,
           dangerousMode: false,
-          claudeSessionId: sessionInfo.claudeSessionId
+          claudeSessionId: sessionInfo.claudeSessionId,
+          sessionType: 'local' as const
         }
 
         const currentState = useSessionStore.getState()
@@ -368,9 +369,38 @@ export function Sidebar() {
   )
 
 
+  const hideAgentSession = useSessionStore((s) => s.hideAgentSession)
+
   const handleSessionContextMenu = useCallback(
     (e: React.MouseEvent, sessionId: string) => {
       e.preventDefault()
+      const session = sessions.find((s) => s.id === sessionId)
+
+      // Agent-specific context menu
+      if (session?.sessionType === 'agent') {
+        const items: ContextMenuState['items'] = [
+          {
+            label: 'Rename',
+            icon: <PencilSquareIcon className="w-3.5 h-3.5" />,
+            onClick: () => setRenamingId(sessionId)
+          },
+          {
+            label: 'Hide from sidebar',
+            icon: <XMarkIcon className="w-3.5 h-3.5" />,
+            onClick: () => hideAgentSession(sessionId)
+          },
+          {
+            label: 'Clear messages',
+            icon: <TrashIcon className="w-3.5 h-3.5" />,
+            onClick: () => {
+              if (session.agentId) useAgentStore.getState().clearMessages(session.agentId)
+            }
+          }
+        ]
+        setContextMenu({ x: e.clientX, y: e.clientY, items })
+        return
+      }
+
       const items: ContextMenuState['items'] = [
         {
           label: 'Rename',
@@ -395,7 +425,7 @@ export function Sidebar() {
       })
       setContextMenu({ x: e.clientX, y: e.clientY, items })
     },
-    [createGroup, handleDeleteSession]
+    [sessions, createGroup, handleDeleteSession, hideAgentSession]
   )
 
   const handleGroupContextMenu = useCallback(
@@ -477,6 +507,15 @@ export function Sidebar() {
   // Finder-style session click: Click=single, Cmd=toggle, Shift=range, Cmd+Shift=range-add
   const handleSessionClick = useCallback(
     (sessionId: string, modifiers: { metaKey: boolean; shiftKey: boolean }) => {
+      // Agent sessions → switch to chat panel
+      const session = sessions.find((s) => s.id === sessionId)
+      if (session?.sessionType === 'agent' && session.agentId) {
+        useAgentStore.getState().setActiveAgent(session.agentId)
+        selectSession(sessionId, false) // selectSession sets activeView to 'agents' for agent sessions
+        selectionAnchorRef.current = sessionId
+        return
+      }
+
       if (modifiers.shiftKey) {
         // Range select from anchor
         const anchorId = selectionAnchorRef.current
@@ -515,7 +554,7 @@ export function Sidebar() {
         selectionAnchorRef.current = sessionId
       }
     },
-    [flatSessionOrder, selectSession, selectSessions]
+    [sessions, flatSessionOrder, selectSession, selectSessions]
   )
 
   const handleGroupClick = useCallback(
@@ -836,18 +875,23 @@ export function Sidebar() {
           collapsed={sessionsCollapsed}
           onToggle={() => setSessionsCollapsed((c) => !c)}
           actions={
-            <>
-              <ClaudeToggle compact />
-              <DangerousToggle compact />
-              <button
-                onClick={handleNewSession}
-                disabled={loading}
-                className="w-5 h-5 flex items-center justify-center rounded-md hover:bg-surface-200 text-text-tertiary hover:text-text-primary transition-colors flex-shrink-0 disabled:opacity-50"
-                title="New session"
-              >
-                <PlusIcon className="w-3.5 h-3.5" />
-              </button>
-            </>
+            <NewSessionDropdown
+              onNewSession={({ claudeMode, dangerousMode }) => {
+                // Temporarily set modes and spawn
+                const store = useSessionStore.getState()
+                // Override modes for this spawn
+                const prevClaude = store.claudeMode
+                const prevDangerous = store.dangerousMode
+                if (claudeMode !== prevClaude) useSessionStore.setState({ claudeMode })
+                if (dangerousMode !== prevDangerous) useSessionStore.setState({ dangerousMode })
+                handleNewSession().finally(() => {
+                  // Restore previous modes
+                  if (claudeMode !== prevClaude) useSessionStore.setState({ claudeMode: prevClaude })
+                  if (dangerousMode !== prevDangerous) useSessionStore.setState({ dangerousMode: prevDangerous })
+                })
+              }}
+              loading={loading}
+            />
           }
         />
         {!sessionsCollapsed && (
@@ -1023,23 +1067,6 @@ export function Sidebar() {
             ) : null}
           </div>
         )}
-
-        {/* Agents section */}
-        <SectionHeading
-          title="Agents"
-          collapsed={agentsCollapsed}
-          onToggle={() => setAgentsCollapsed((c) => !c)}
-          actions={
-            <button
-              onClick={() => useSessionStore.getState().setActiveView('settings')}
-              className="w-5 h-5 flex items-center justify-center rounded-md hover:bg-surface-200 text-text-tertiary hover:text-text-primary transition-colors flex-shrink-0"
-              title="Add location"
-            >
-              <PlusIcon className="w-3.5 h-3.5" />
-            </button>
-          }
-        />
-        <AgentsSection collapsed={agentsCollapsed} />
 
         {/* Workspace section */}
         <SectionHeading title="Workspace" collapsed={workspaceCollapsed} onToggle={() => setWorkspaceCollapsed((c) => !c)} />

@@ -1,6 +1,9 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { useSessionStore } from '../../store/session-store'
+import { useAgentStore } from '../../store/agent-store'
+import { useLocationStore } from '../../store/location-store'
 import { FileTree } from '../files/FileTree'
+import { RemoteFileTree } from '../files/RemoteFileTree'
 import { GitStatusPanel, MultiRepoGitPanel } from './GitStatusPanel'
 import { useMultiRepoStatus } from '../../hooks/use-multi-repo-status'
 import { shortenPath } from '../../lib/utils'
@@ -26,6 +29,27 @@ export function SidePanel() {
 
   const focusedSession = sessions.find((s) => s.id === focusedSessionId)
   const sessionCwd = focusedSession?.cwd ?? null
+
+  // Determine if focused session is remote
+  const isRemoteSession = focusedSession?.sessionType === 'remote-terminal' ||
+    focusedSession?.sessionType === 'remote-claude' ||
+    focusedSession?.sessionType === 'agent'
+  const remoteLocationId = isRemoteSession ? focusedSession?.locationId : undefined
+
+  // For agent sessions, resolve cwd from agent store if session cwd is empty
+  const agentCwd = useMemo(() => {
+    if (focusedSession?.sessionType !== 'agent' || !focusedSession.agentId) return null
+    const agent = useAgentStore.getState().agents.find((a) => a.id === focusedSession.agentId)
+    return agent?.cwd ?? null
+  }, [focusedSession?.sessionType, focusedSession?.agentId])
+
+  const effectiveCwd = isRemoteSession ? (sessionCwd || agentCwd || '~') : sessionCwd
+
+  // Resolve location name for remote sessions
+  const locationName = useMemo(() => {
+    if (!remoteLocationId) return null
+    return useLocationStore.getState().locations.find((l) => l.id === remoteLocationId)?.name ?? null
+  }, [remoteLocationId])
 
   const [customCwd, _setCustomCwd] = useState<string | null>(null)
   const navMapRef = useRef(new Map<string, string>())
@@ -61,7 +85,9 @@ export function SidePanel() {
   const cwd = customCwd ?? sessionCwd
   const isCustom = customCwd !== null
 
-  const isGitTabActive = sidePanelTab === 'git'
+  // Force files tab for remote sessions
+  const effectiveTab = isRemoteSession ? 'files' : sidePanelTab
+  const isGitTabActive = effectiveTab === 'git'
   const multiRepo = useMultiRepoStatus(cwd, isGitTabActive)
 
   const displayPath = useMemo(() => {
@@ -156,27 +182,40 @@ export function SidePanel() {
             <path d="M4.5 9.5V10a1 1 0 0 0 1 1H9a1 1 0 0 0 1-1V4.5a1 1 0 0 0-1-1h-.5" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
-        {/* Git tab */}
-        <button
-          onClick={() => setSidePanelTab('git')}
-          className={`p-1 rounded hover:bg-surface-200 transition-colors flex-shrink-0 ${
-            sidePanelTab === 'git' ? 'text-accent' : 'text-text-tertiary hover:text-text-primary'
-          }`}
-          title="Git status"
-        >
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-            <circle cx="6" cy="1.5" r="1.25" stroke="currentColor" strokeWidth="1.1" />
-            <circle cx="3" cy="10.5" r="1.25" stroke="currentColor" strokeWidth="1.1" />
-            <circle cx="9" cy="10.5" r="1.25" stroke="currentColor" strokeWidth="1.1" />
-            <path d="M6 2.75v3.5" stroke="currentColor" strokeWidth="1.1" />
-            <path d="M6 6.25L3 9.25" stroke="currentColor" strokeWidth="1.1" />
-            <path d="M6 6.25l3 3" stroke="currentColor" strokeWidth="1.1" />
-          </svg>
-        </button>
+        {/* Git tab — hidden for remote sessions */}
+        {!isRemoteSession && (
+          <button
+            onClick={() => setSidePanelTab('git')}
+            className={`p-1 rounded hover:bg-surface-200 transition-colors flex-shrink-0 ${
+              sidePanelTab === 'git' ? 'text-accent' : 'text-text-tertiary hover:text-text-primary'
+            }`}
+            title="Git status"
+          >
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+              <circle cx="6" cy="1.5" r="1.25" stroke="currentColor" strokeWidth="1.1" />
+              <circle cx="3" cy="10.5" r="1.25" stroke="currentColor" strokeWidth="1.1" />
+              <circle cx="9" cy="10.5" r="1.25" stroke="currentColor" strokeWidth="1.1" />
+              <path d="M6 2.75v3.5" stroke="currentColor" strokeWidth="1.1" />
+              <path d="M6 6.25L3 9.25" stroke="currentColor" strokeWidth="1.1" />
+              <path d="M6 6.25l3 3" stroke="currentColor" strokeWidth="1.1" />
+            </svg>
+          </button>
+        )}
 
-        {/* Path display — breadcrumb when navigated into subfolder, dropdown otherwise */}
+        {/* Path display — location badge for remote, breadcrumb/dropdown for local */}
         <div className="relative flex-1 min-w-0">
-          {isNavigatedSubfolder ? (
+          {isRemoteSession && locationName ? (
+            <div className="flex items-center gap-1.5 text-xs font-medium text-text-secondary truncate">
+              <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" />
+              <span className="truncate">{locationName}</span>
+              {effectiveCwd && (
+                <>
+                  <span className="text-text-tertiary">:</span>
+                  <span className="text-text-tertiary truncate">{effectiveCwd}</span>
+                </>
+              )}
+            </div>
+          ) : isNavigatedSubfolder ? (
             <div
               className="flex items-center gap-0.5 text-xs font-medium min-w-0 overflow-hidden"
               onDoubleClick={() => setCustomCwd(null)}
@@ -264,7 +303,13 @@ export function SidePanel() {
       </div>
 
       {/* Active tab content */}
-      {sidePanelTab === 'files' ? (
+      {isRemoteSession && remoteLocationId && effectiveCwd && effectiveCwd !== '' && effectiveCwd !== '~' && effectiveCwd.startsWith('/') ? (
+        <RemoteFileTree locationId={remoteLocationId} cwd={effectiveCwd} />
+      ) : isRemoteSession ? (
+        <div className="flex-1 flex items-center justify-center px-3">
+          <span className="text-xs text-text-tertiary text-center">No working directory</span>
+        </div>
+      ) : (sidePanelTab === 'files' || isRemoteSession) ? (
         <FileTree
           cwd={cwd}
           isCustom={isCustom}
