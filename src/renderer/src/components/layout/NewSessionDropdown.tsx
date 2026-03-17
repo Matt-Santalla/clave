@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useAgentStore } from '../../store/agent-store'
+import { useLocationStore } from '../../store/location-store'
 import {
   PlusIcon,
   CommandLineIcon,
   ShieldExclamationIcon,
-  BoltIcon
+  BoltIcon,
+  GlobeAltIcon
 } from '@heroicons/react/24/outline'
 import { AgentPickerPopover } from '../agents/AgentPickerPopover'
 
@@ -22,7 +24,7 @@ function ClaudeLogo({ className }: { className?: string }) {
 }
 
 interface NewSessionDropdownProps {
-  onNewSession: (options: { claudeMode: boolean; dangerousMode: boolean }) => void
+  onNewSession: (options: { claudeMode: boolean; dangerousMode: boolean; locationId?: string }) => void
   loading: boolean
 }
 
@@ -32,7 +34,12 @@ export function NewSessionDropdown({ onNewSession, loading }: NewSessionDropdown
   const btnRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
   const agents = useAgentStore((s) => s.agents)
+  const locations = useLocationStore((s) => s.locations)
 
+  const connectedRemoteLocations = locations.filter(
+    (l) => l.type === 'remote' && l.status === 'connected'
+  )
+  const hasRemoteLocations = connectedRemoteLocations.length > 0
   const hasAgentLocations = agents.length > 0
 
   // Close on outside click or Escape
@@ -58,9 +65,9 @@ export function NewSessionDropdown({ onNewSession, loading }: NewSessionDropdown
   }, [open])
 
   const handleOption = useCallback(
-    (claudeMode: boolean, dangerousMode: boolean) => {
+    (claudeMode: boolean, dangerousMode: boolean, locationId?: string) => {
       setOpen(false)
-      onNewSession({ claudeMode, dangerousMode })
+      onNewSession({ claudeMode, dangerousMode, locationId })
     },
     [onNewSession]
   )
@@ -80,12 +87,19 @@ export function NewSessionDropdown({ onNewSession, loading }: NewSessionDropdown
       {open && (
         <div
           ref={menuRef}
-          className="fixed z-50 min-w-[200px] py-1 bg-surface-100 border border-border rounded-lg shadow-xl"
+          className="fixed z-50 min-w-[220px] py-1 bg-surface-100 border border-border rounded-lg shadow-xl"
           style={{
             top: (btnRef.current?.getBoundingClientRect().bottom ?? 0) + 4,
             left: btnRef.current?.getBoundingClientRect().left ?? 0
           }}
         >
+          {/* Local section header — only shown when remote locations exist */}
+          {hasRemoteLocations && (
+            <div className="px-3 py-1 text-[11px] font-medium text-text-tertiary uppercase tracking-wide">
+              This Mac
+            </div>
+          )}
+
           <DropdownItem
             icon={<CommandLineIcon className="w-3.5 h-3.5" />}
             label="Terminal"
@@ -104,6 +118,30 @@ export function NewSessionDropdown({ onNewSession, loading }: NewSessionDropdown
             shortcut={'\u2318D'}
             onClick={() => handleOption(true, true)}
           />
+
+          {/* Remote location sections */}
+          {connectedRemoteLocations.map((loc) => (
+            <div key={loc.id}>
+              <div className="my-1 border-t border-border-subtle" />
+              <div className="px-3 py-1 flex items-center gap-1.5 text-[11px] font-medium text-text-tertiary uppercase tracking-wide">
+                <span className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0" />
+                <span className="truncate">{loc.name}</span>
+                {loc.host && (
+                  <span className="text-text-tertiary/60 font-normal normal-case">({loc.host})</span>
+                )}
+              </div>
+              <DropdownItem
+                icon={<CommandLineIcon className="w-3.5 h-3.5" />}
+                label="Terminal"
+                onClick={() => handleOption(false, false, loc.id)}
+              />
+              <DropdownItem
+                icon={<ClaudeLogo className="w-3.5 h-3.5" />}
+                label="Claude Code"
+                onClick={() => handleOption(true, false, loc.id)}
+              />
+            </div>
+          ))}
 
           {hasAgentLocations && (
             <>

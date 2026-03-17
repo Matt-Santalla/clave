@@ -200,6 +200,8 @@ const electronAPI = {
     ipcRenderer.send('ssh:shell-write', shellId, data),
   sshShellResize: (shellId: string, cols: number, rows: number) =>
     ipcRenderer.send('ssh:shell-resize', shellId, cols, rows),
+  sshExec: (locationId: string, command: string) =>
+    ipcRenderer.invoke('ssh:exec', locationId, command),
   sshShellClose: (shellId: string) => ipcRenderer.invoke('ssh:shell-close', shellId),
   onSshShellData: (shellId: string, callback: (data: string) => void) => {
     const channel = `ssh:shell-data:${shellId}`
@@ -210,6 +212,12 @@ const electronAPI = {
   onSshShellExit: (shellId: string, callback: (exitCode: number) => void) => {
     const channel = `ssh:shell-exit:${shellId}`
     const listener = (_event: Electron.IpcRendererEvent, exitCode: number): void => callback(exitCode)
+    ipcRenderer.on(channel, listener)
+    return (): void => { ipcRenderer.removeListener(channel, listener) }
+  },
+  onSshConnectionClosed: (callback: (locationId: string) => void) => {
+    const channel = 'ssh:connection-closed'
+    const listener = (_event: Electron.IpcRendererEvent, locationId: string): void => callback(locationId)
     ipcRenderer.on(channel, listener)
     return (): void => { ipcRenderer.removeListener(channel, listener) }
   },

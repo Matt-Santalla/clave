@@ -22,6 +22,19 @@ interface ConnectionEntry {
 type MessageCallback = (locationId: string, message: ChatMessage) => void
 type AgentsCallback = (locationId: string, agents: Agent[]) => void
 
+/**
+ * Infer the default workspace path from the agent sessions file path.
+ * Sessions path pattern: /home/user/.openclaw/agents/<id>/sessions/sessions.json
+ * Default workspace:     /home/user/.openclaw/workspace
+ */
+function inferWorkspaceFromSessionsPath(sessionsPath?: string): string | undefined {
+  if (!sessionsPath) return undefined
+  // Find the .openclaw directory in the path
+  const idx = sessionsPath.indexOf('/.openclaw/')
+  if (idx === -1) return undefined
+  return sessionsPath.slice(0, idx) + '/.openclaw/workspace'
+}
+
 class OpenClawClient {
   private connections = new Map<string, ConnectionEntry>()
   private messageCallbacks = new Set<MessageCallback>()
@@ -134,13 +147,14 @@ class OpenClawClient {
   /** Request agents list from the gateway via health RPC */
   requestAgents(locationId: string): void {
     this.request(locationId, 'health', {}).then((payload) => {
-      const raw = payload as { agents?: Array<{ agentId: string; name?: string; isDefault?: boolean }> }
+      const raw = payload as { agents?: Array<{ agentId: string; name?: string; isDefault?: boolean; workspace?: string; sessions?: { path?: string } }> }
       if (!raw?.agents) return
       const agents: Agent[] = raw.agents.map((a) => ({
         id: a.agentId,
         name: a.name || a.agentId,
         status: 'online',
-        locationId
+        locationId,
+        cwd: a.workspace || inferWorkspaceFromSessionsPath(a.sessions?.path)
       }))
       for (const cb of this.agentCallbacks) {
         cb(locationId, agents)
@@ -291,13 +305,14 @@ class OpenClawClient {
 
       // Health events — refresh agent list
       if (event === 'health') {
-        const p = parsed.payload as { agents?: Array<{ agentId: string; name?: string }> }
+        const p = parsed.payload as { agents?: Array<{ agentId: string; name?: string; workspace?: string; sessions?: { path?: string } }> }
         if (p?.agents) {
           const agents: Agent[] = p.agents.map((a) => ({
             id: a.agentId,
             name: a.name || a.agentId,
             status: 'online',
-            locationId
+            locationId,
+            cwd: a.workspace || inferWorkspaceFromSessionsPath(a.sessions?.path)
           }))
           for (const cb of this.agentCallbacks) {
             cb(locationId, agents)

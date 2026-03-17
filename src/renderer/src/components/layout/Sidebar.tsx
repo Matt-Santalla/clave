@@ -18,7 +18,9 @@ import { GroupCommandDialog } from '../ui/GroupCommandDialog'
 import { cn } from '../../lib/utils'
 import { SectionHeading, WorkspaceSection } from './SidebarSections'
 import { NewSessionDropdown } from './NewSessionDropdown'
+import { RemoteDirectoryPicker } from '../ui/RemoteDirectoryPicker'
 import { useAgentStore } from '../../store/agent-store'
+import { useLocationStore } from '../../store/location-store'
 import {
   MagnifyingGlassIcon,
   PencilSquareIcon,
@@ -90,6 +92,51 @@ export function Sidebar() {
     groupId: string
     terminalId: string | null // null = adding new
   } | null>(null)
+
+  // Remote session picker state
+  const [remotePickerState, setRemotePickerState] = useState<{
+    locationId: string
+    locationName: string
+    claudeMode: boolean
+  } | null>(null)
+
+  const spawnRemoteSession = useCallback(async (
+    locationId: string, cwd: string, claudeMode: boolean
+  ) => {
+    setLoading(true)
+    try {
+      const shellId = await window.electronAPI.sshOpenShell(locationId, cwd)
+
+      if (claudeMode) {
+        // Write claude command after shell initializes (login shell needs time)
+        setTimeout(() => {
+          window.electronAPI.sshShellWrite(shellId, 'claude\r')
+        }, 500)
+      }
+
+      const folderName = cwd.split('/').filter(Boolean).pop() || cwd
+
+      addSession({
+        id: shellId,
+        cwd,
+        folderName,
+        name: folderName,
+        alive: true,
+        activityStatus: 'idle',
+        promptWaiting: null,
+        claudeMode,
+        dangerousMode: false,
+        claudeSessionId: null,
+        locationId,
+        shellId,
+        sessionType: claudeMode ? 'remote-claude' : 'remote-terminal'
+      })
+    } catch (err) {
+      console.error('Failed to create remote session:', err)
+    } finally {
+      setLoading(false)
+    }
+  }, [addSession])
 
   const defaultTemplateId = useTemplateStore((s) => s.defaultTemplateId)
   const templates = useTemplateStore((s) => s.templates)
@@ -876,19 +923,23 @@ export function Sidebar() {
           onToggle={() => setSessionsCollapsed((c) => !c)}
           actions={
             <NewSessionDropdown
-              onNewSession={({ claudeMode, dangerousMode }) => {
-                // Temporarily set modes and spawn
-                const store = useSessionStore.getState()
-                // Override modes for this spawn
-                const prevClaude = store.claudeMode
-                const prevDangerous = store.dangerousMode
-                if (claudeMode !== prevClaude) useSessionStore.setState({ claudeMode })
-                if (dangerousMode !== prevDangerous) useSessionStore.setState({ dangerousMode })
-                handleNewSession().finally(() => {
-                  // Restore previous modes
-                  if (claudeMode !== prevClaude) useSessionStore.setState({ claudeMode: prevClaude })
-                  if (dangerousMode !== prevDangerous) useSessionStore.setState({ dangerousMode: prevDangerous })
-                })
+              onNewSession={({ claudeMode, dangerousMode, locationId }) => {
+                if (locationId) {
+                  // Remote: open directory picker
+                  const loc = useLocationStore.getState().locations.find((l) => l.id === locationId)
+                  setRemotePickerState({ locationId, locationName: loc?.name ?? '', claudeMode })
+                } else {
+                  // Local: existing flow (temporary mode override -> handleNewSession)
+                  const store = useSessionStore.getState()
+                  const prevClaude = store.claudeMode
+                  const prevDangerous = store.dangerousMode
+                  if (claudeMode !== prevClaude) useSessionStore.setState({ claudeMode })
+                  if (dangerousMode !== prevDangerous) useSessionStore.setState({ dangerousMode })
+                  handleNewSession().finally(() => {
+                    if (claudeMode !== prevClaude) useSessionStore.setState({ claudeMode: prevClaude })
+                    if (dangerousMode !== prevDangerous) useSessionStore.setState({ dangerousMode: prevDangerous })
+                  })
+                }
               }}
               loading={loading}
             />
@@ -1169,6 +1220,19 @@ export function Sidebar() {
             : undefined
         }
       />
+
+      {/* Remote directory picker */}
+      {remotePickerState && (
+        <RemoteDirectoryPicker
+          locationId={remotePickerState.locationId}
+          locationName={remotePickerState.locationName}
+          onSelect={(path) => {
+            spawnRemoteSession(remotePickerState.locationId, path, remotePickerState.claudeMode)
+            setRemotePickerState(null)
+          }}
+          onCancel={() => setRemotePickerState(null)}
+        />
+      )}
     </div>
   )
 }

@@ -15,6 +15,10 @@ export function registerSshHandlers(): void {
     locationManager.setLocationStatus(locationId, 'disconnected')
   })
 
+  ipcMain.handle('ssh:exec', async (_event, locationId: string, command: string) => {
+    return sshManager.exec(locationId, command)
+  })
+
   ipcMain.handle('ssh:open-shell', async (_event, locationId: string, cwd?: string) => {
     const { shellId, channel } = await sshManager.openShell(locationId, cwd)
 
@@ -86,5 +90,18 @@ export function registerSshHandlers(): void {
         })
       })
     })
+  })
+
+  // SSH connection lifecycle — forward close/error to renderer
+  sshManager.onClose((locationId) => {
+    const win = BrowserWindow.getAllWindows()[0]
+    win?.webContents.send('ssh:connection-closed', locationId)
+    locationManager.setLocationStatus(locationId, 'disconnected')
+  })
+
+  sshManager.onError((locationId) => {
+    const win = BrowserWindow.getAllWindows()[0]
+    win?.webContents.send('ssh:connection-closed', locationId)
+    locationManager.setLocationStatus(locationId, 'error')
   })
 }

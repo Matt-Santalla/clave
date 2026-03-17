@@ -225,12 +225,14 @@ export interface ElectronAPI {
   // SSH / Remote Terminal
   sshConnect: (locationId: string) => Promise<void>
   sshDisconnect: (locationId: string) => Promise<void>
+  sshExec: (locationId: string, command: string) => Promise<{ stdout: string; stderr: string; code: number }>
   sshOpenShell: (locationId: string, cwd?: string) => Promise<string>
   sshShellWrite: (shellId: string, data: string) => void
   sshShellResize: (shellId: string, cols: number, rows: number) => void
   sshShellClose: (shellId: string) => Promise<void>
   onSshShellData: (shellId: string, callback: (data: string) => void) => () => void
   onSshShellExit: (shellId: string, callback: (exitCode: number) => void) => () => void
+  onSshConnectionClosed: (callback: (locationId: string) => void) => () => void
 
   // Remote FS (SFTP)
   sftpReadDir: (locationId: string, dirPath: string) => Promise<import('../shared/remote-types').RemoteDirEntry[]>

@@ -193,6 +193,26 @@ export function AppShell() {
     })
   }, [])
 
+  // Handle SSH connection closed → mark remote sessions as ended
+  useEffect(() => {
+    if (!window.electronAPI?.onSshConnectionClosed) return
+    return window.electronAPI.onSshConnectionClosed((locationId) => {
+      useSessionStore.setState((state) => {
+        const remoteSessions = state.sessions.filter(
+          (s) => s.locationId === locationId && (s.sessionType === 'remote-terminal' || s.sessionType === 'remote-claude')
+        )
+        if (remoteSessions.length === 0) return {}
+        return {
+          sessions: state.sessions.map((s) =>
+            s.locationId === locationId && (s.sessionType === 'remote-terminal' || s.sessionType === 'remote-claude')
+              ? { ...s, alive: false, activityStatus: 'ended' as const }
+              : s
+          )
+        }
+      })
+    })
+  }, [])
+
   // Sync agent STATUS updates to existing agent sessions in the sidebar.
   // Does NOT auto-add agents — only the picker adds agents to the sidebar.
   // Only updates sessions array when status actually changed to avoid unnecessary re-renders.
@@ -204,7 +224,7 @@ export function AppShell() {
       if (currentAgentSessions.length === 0) return {}
 
       const incomingMap = new Map(typedAgents.map((a) => [a.id, a]))
-      const updates: Array<{ sessionId: string; alive: boolean; activityStatus: import('../../store/session-types').ActivityStatus }> = []
+      const updates: Array<{ sessionId: string; alive: boolean; activityStatus: import('../../store/session-types').ActivityStatus; cwd?: string }> = []
 
       for (const session of currentAgentSessions) {
         if (!session.agentId) continue
@@ -213,8 +233,9 @@ export function AppShell() {
           const alive = agent.status !== 'offline'
           const activityStatus: import('../../store/session-types').ActivityStatus =
             agent.status === 'busy' ? 'active' : agent.status === 'offline' ? 'ended' : 'idle'
-          if (session.alive !== alive || session.activityStatus !== activityStatus) {
-            updates.push({ sessionId: session.id, alive, activityStatus })
+          const cwd = agent.cwd
+          if (session.alive !== alive || session.activityStatus !== activityStatus || (cwd && session.cwd !== cwd)) {
+            updates.push({ sessionId: session.id, alive, activityStatus, cwd })
           }
         } else {
           // Agent disappeared — mark offline if not already
@@ -230,7 +251,7 @@ export function AppShell() {
       return {
         sessions: state.sessions.map((s) => {
           const update = updateMap.get(s.id)
-          return update ? { ...s, alive: update.alive, activityStatus: update.activityStatus } : s
+          return update ? { ...s, alive: update.alive, activityStatus: update.activityStatus, ...(update.cwd ? { cwd: update.cwd } : {}) } : s
         })
       }
     })

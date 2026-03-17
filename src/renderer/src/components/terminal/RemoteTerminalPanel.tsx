@@ -17,7 +17,9 @@ export function RemoteTerminalPanel({ sessionId, shellId, locationId }: RemoteTe
   const focusedSessionId = useSessionStore((s) => s.focusedSessionId)
   const setFocusedSession = useSessionStore((s) => s.setFocusedSession)
   const location = useLocationStore((s) => s.locations.find((l) => l.id === locationId))
+  const session = useSessionStore((s) => s.sessions.find((s) => s.id === sessionId))
   const isFocused = focusedSessionId === sessionId
+  const isClaudeMode = session?.sessionType === 'remote-claude' || session?.claudeMode
 
   const handleClick = useCallback(() => {
     if (focusedSessionId !== sessionId) {
@@ -39,7 +41,7 @@ export function RemoteTerminalPanel({ sessionId, shellId, locationId }: RemoteTe
         <div className="flex items-center gap-2 px-3 py-1 bg-accent/5 border-b border-border-subtle text-xs text-text-tertiary">
           <GlobeAltIcon className="w-3.5 h-3.5" />
           <span>
-            Connected to {location.name} &middot; {location.host} via SSH
+            {isClaudeMode ? 'Claude Code on' : 'Connected to'} {location.name} &middot; {location.host} via SSH
           </span>
         </div>
       )}
