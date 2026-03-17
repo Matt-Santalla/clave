@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { cn } from '../../lib/utils'
 import { useSessionStore, type Session } from '../../store/session-store'
 import { useLocationStore } from '../../store/location-store'
-import { CommandLineIcon, XMarkIcon, BoltIcon, GlobeAltIcon } from '@heroicons/react/24/outline'
+import { CommandLineIcon, XMarkIcon, BoltIcon, GlobeAltIcon, SparklesIcon, FireIcon } from '@heroicons/react/24/outline'
 
 function LocationBadge({ locationId }: { locationId: string }) {
   const location = useLocationStore((s) => s.locations.find((l) => l.id === locationId))
@@ -145,7 +145,7 @@ export function SessionItem({
         title={session.cwd.replace(/^\/Users\/[^/]+/, '~')}
         className={cn(
           'group w-full flex items-center gap-2.5 py-1.5 rounded-lg text-left transition-all outline-none',
-          grouped ? 'pl-4 pr-2' : 'px-2.5',
+          grouped ? 'pl-1 pr-2' : 'px-2.5',
           groupSelected
             ? 'text-text-primary'
             : isSelected
@@ -162,6 +162,10 @@ export function SessionItem({
             <BoltIcon className="w-4 h-4 text-text-tertiary" />
           ) : session.sessionType === 'remote-terminal' || session.sessionType === 'remote-claude' ? (
             <GlobeAltIcon className="w-4 h-4 text-text-tertiary" />
+          ) : session.dangerousMode ? (
+            <FireIcon className="w-4 h-4 text-text-tertiary" />
+          ) : session.claudeMode ? (
+            <SparklesIcon className="w-4 h-4 text-text-tertiary" />
           ) : (
             <CommandLineIcon className="w-4 h-4 text-text-tertiary" />
           )}

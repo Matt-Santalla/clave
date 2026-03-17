@@ -7,7 +7,6 @@ import {
   resolveColorHex
 } from '../../store/session-store'
 import {
-  FolderIcon,
   ChevronRightIcon,
   CommandLineIcon,
   PlusIcon
@@ -168,12 +167,6 @@ export function SessionGroupItem({
             className={cn('w-3 h-3 transition-transform', group.collapsed ? '' : 'rotate-90')}
           />
         </span>
-
-        {/* Folder icon */}
-        <FolderIcon
-          className="flex-shrink-0 w-4 h-4 text-text-tertiary"
-          style={group.color ? { color: resolveColorHex(group.color) } : undefined}
-        />
 
         {/* Group name */}
         {editing ? (

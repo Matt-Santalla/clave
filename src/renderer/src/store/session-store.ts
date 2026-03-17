@@ -70,6 +70,7 @@ interface SessionState {
   updateSessionAlive: (id: string, alive: boolean) => void
   setSessionActivity: (id: string, status: ActivityStatus) => void
   setSessionPromptWaiting: (id: string, promptType: string | null) => void
+  setSessionDetectedUrl: (id: string, url: string | null) => void
   renameSession: (id: string, name: string) => void
   setSearchQuery: (query: string) => void
   toggleClaudeMode: () => void
@@ -153,7 +154,7 @@ export const useSessionStore = create<SessionState>((set) => ({
   ),
   addSession: (session) =>
     set((state) => ({
-      sessions: [...state.sessions, session],
+      sessions: [...state.sessions, { ...session, detectedUrl: session.detectedUrl ?? null }],
       selectedSessionIds: [session.id],
       focusedSessionId: session.id,
       displayOrder: [...getDisplayOrder(state), session.id]
@@ -460,6 +461,17 @@ export const useSessionStore = create<SessionState>((set) => ({
       )
     })),
 
+  setSessionDetectedUrl: (id, url) =>
+    set((state) => {
+      const session = state.sessions.find((s) => s.id === id)
+      if (!session || session.detectedUrl === url) return state
+      return {
+        sessions: state.sessions.map((s) =>
+          s.id === id ? { ...s, detectedUrl: url } : s
+        )
+      }
+    }),
+
   renameSession: (id, name) =>
     set((state) => ({
       sessions: state.sessions.map((s) =>
@@ -573,7 +585,8 @@ export const useSessionStore = create<SessionState>((set) => ({
         claudeSessionId: null,
         locationId,
         sessionType: 'agent',
-        agentId: agent.id
+        agentId: agent.id,
+        detectedUrl: null
       }
       return {
         sessions: [...state.sessions, session],

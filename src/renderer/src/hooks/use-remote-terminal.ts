@@ -11,6 +11,14 @@ function stripAnsi(str: string): string {
   return str.replace(ANSI_RE, '')
 }
 
+// eslint-disable-next-line no-control-regex
+const LOCALHOST_URL_RE = /https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d{1,5})(?:\/\S*)?/i
+
+function detectLocalhostUrl(buffer: string): string | null {
+  const match = buffer.match(LOCALHOST_URL_RE)
+  return match ? match[0] : null
+}
+
 function detectPrompt(buffer: string): string | null {
   const tail = buffer.slice(-500)
   if (/Esc.*cancel/i.test(tail)) return 'is asking for permission'
@@ -162,7 +170,7 @@ export function useRemoteTerminal(shellId: string) {
       window.electronAPI.sshShellResize(shellId, cols, rows)
     })
 
-    const { setSessionActivity, setSessionPromptWaiting, updateSessionAlive } =
+    const { setSessionActivity, setSessionPromptWaiting, setSessionDetectedUrl, updateSessionAlive } =
       useSessionStore.getState()
 
     // Activity tracking: debounce from active → idle after 2s of silence
@@ -178,6 +186,12 @@ export function useRemoteTerminal(shellId: string) {
 
       // Append stripped data to rolling buffer (max 500 chars)
       outputBuffer = (outputBuffer + stripAnsi(data)).slice(-500)
+
+      // Detect localhost URLs in output
+      const detectedUrl = detectLocalhostUrl(outputBuffer)
+      if (detectedUrl) {
+        setSessionDetectedUrl(shellId, detectedUrl)
+      }
 
       if (activityTimer) clearTimeout(activityTimer)
       if (notificationTimer) {
@@ -217,6 +231,7 @@ export function useRemoteTerminal(shellId: string) {
         notificationTimer = null
       }
       updateSessionAlive(shellId, false)
+      setSessionDetectedUrl(shellId, null)
 
       const session = useSessionStore.getState().sessions.find((s) => s.id === shellId)
       const title = session?.name ?? session?.folderName ?? 'Clave'

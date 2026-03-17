@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react'
+import { ArrowTopRightOnSquareIcon } from '@heroicons/react/24/outline'
 import { useSessionStore } from '../../store/session-store'
 import { cn } from '../../lib/utils'
 import { ConfirmDialog } from '../ui/ConfirmDialog'
@@ -41,20 +42,33 @@ export function TerminalHeader({ sessionId }: TerminalHeaderProps) {
           <span className="text-xs font-medium text-text-secondary truncate">{session.name}</span>
         </div>
 
-        <button
-          onClick={() => setShowConfirm(true)}
-          className="p-1 rounded hover:bg-surface-300 text-text-tertiary hover:text-text-primary transition-colors flex-shrink-0"
-          title="Kill session"
-        >
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-            <path
-              d="M2.5 2.5l7 7M9.5 2.5l-7 7"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-            />
-          </svg>
-        </button>
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          {session.detectedUrl && (
+            <button
+              onClick={() => window.electronAPI.openExternal(session.detectedUrl!)}
+              className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium text-accent hover:bg-accent/10 transition-colors"
+              title={`Open ${session.detectedUrl}`}
+            >
+              <ArrowTopRightOnSquareIcon className="w-3 h-3" />
+              <span>{`:${new URL(session.detectedUrl).port}`}</span>
+            </button>
+          )}
+
+          <button
+            onClick={() => setShowConfirm(true)}
+            className="p-1 rounded hover:bg-surface-300 text-text-tertiary hover:text-text-primary transition-colors"
+            title="Kill session"
+          >
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+              <path
+                d="M2.5 2.5l7 7M9.5 2.5l-7 7"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+              />
+            </svg>
+          </button>
+        </div>
       </div>
 
       <ConfirmDialog

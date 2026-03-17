@@ -70,6 +70,7 @@ export interface Session {
   shellId?: string
   sessionType: SessionType
   agentId?: string
+  detectedUrl: string | null
 }
 
 export interface SessionGroup {

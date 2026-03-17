@@ -29,7 +29,8 @@ import {
   FolderMinusIcon,
   CommandLineIcon,
   ArrowPathIcon,
-  XMarkIcon
+  XMarkIcon,
+  DocumentDuplicateIcon
 } from '@heroicons/react/24/outline'
 
 interface ContextMenuState {
@@ -418,6 +419,80 @@ export function Sidebar() {
 
   const hideAgentSession = useSessionStore((s) => s.hideAgentSession)
 
+  const handleDuplicateSession = useCallback(
+    async (sessionId: string) => {
+      const state = useSessionStore.getState()
+      const session = state.sessions.find((s) => s.id === sessionId)
+      if (!session) return
+
+      // Find if session belongs to a group
+      const parentGroup = state.groups.find((g) => g.sessionIds.includes(sessionId))
+
+      let newSessionId: string | null = null
+
+      if (session.sessionType === 'remote-terminal' || session.sessionType === 'remote-claude') {
+        if (session.locationId) {
+          // spawnRemoteSession calls addSession internally, so we need to track the new ID
+          const shellId = await window.electronAPI.sshOpenShell(session.locationId, session.cwd)
+          if (session.claudeMode) {
+            setTimeout(() => {
+              window.electronAPI.sshShellWrite(shellId, 'claude\r')
+            }, 500)
+          }
+          const folderName = session.cwd.split('/').filter(Boolean).pop() || session.cwd
+          addSession({
+            id: shellId,
+            cwd: session.cwd,
+            folderName,
+            name: folderName,
+            alive: true,
+            activityStatus: 'idle',
+            promptWaiting: null,
+            claudeMode: session.claudeMode,
+            dangerousMode: false,
+            claudeSessionId: null,
+            locationId: session.locationId,
+            shellId,
+            sessionType: session.sessionType,
+            detectedUrl: null
+          })
+          newSessionId = shellId
+        }
+      } else {
+        // Local session
+        try {
+          const sessionInfo = await window.electronAPI.spawnSession(session.cwd, {
+            claudeMode: session.claudeMode,
+            dangerousMode: session.dangerousMode
+          })
+          addSession({
+            id: sessionInfo.id,
+            cwd: sessionInfo.cwd,
+            folderName: sessionInfo.folderName,
+            name: sessionInfo.folderName,
+            alive: sessionInfo.alive,
+            activityStatus: 'idle',
+            promptWaiting: null,
+            claudeMode: session.claudeMode,
+            dangerousMode: session.dangerousMode,
+            claudeSessionId: sessionInfo.claudeSessionId,
+            sessionType: 'local',
+            detectedUrl: null
+          })
+          newSessionId = sessionInfo.id
+        } catch (err) {
+          console.error('Failed to duplicate session:', err)
+        }
+      }
+
+      // Move new session into the same group, right after the original
+      if (newSessionId && parentGroup) {
+        useSessionStore.getState().moveItems([newSessionId], sessionId, 'after')
+      }
+    },
+    [addSession]
+  )
+
   const handleSessionContextMenu = useCallback(
     (e: React.MouseEvent, sessionId: string) => {
       e.preventDefault()
@@ -453,6 +528,11 @@ export function Sidebar() {
           label: 'Rename',
           icon: <PencilSquareIcon className="w-3.5 h-3.5" />,
           onClick: () => setRenamingId(sessionId)
+        },
+        {
+          label: 'Duplicate',
+          icon: <DocumentDuplicateIcon className="w-3.5 h-3.5" />,
+          onClick: () => handleDuplicateSession(sessionId)
         }
       ]
       const state = useSessionStore.getState()
@@ -472,7 +552,7 @@ export function Sidebar() {
       })
       setContextMenu({ x: e.clientX, y: e.clientY, items })
     },
-    [sessions, createGroup, handleDeleteSession, hideAgentSession]
+    [sessions, createGroup, handleDeleteSession, handleDuplicateSession, hideAgentSession]
   )
 
   const handleGroupContextMenu = useCallback(
@@ -1056,61 +1136,66 @@ export function Sidebar() {
                         dropIndicator={getDropIndicator(group.id)}
                         isDragging={draggingIds.includes(group.id)}
                       />
-                      {!group.collapsed && (
-                        <div className="px-1 pb-1 space-y-0.5">
-                          {group.sessionIds.map((sid) => {
-                            // Check if this is a file tab
-                            const fileTab = fileTabs.find((f) => f.id === sid)
-                            if (fileTab) {
+                      <div
+                        className="grid transition-[grid-template-rows] duration-200 ease-out"
+                        style={{ gridTemplateRows: group.collapsed ? '0fr' : '1fr' }}
+                      >
+                        <div className="overflow-hidden">
+                          <div className="px-1 pb-1 space-y-0.5">
+                            {group.sessionIds.map((sid) => {
+                              // Check if this is a file tab
+                              const fileTab = fileTabs.find((f) => f.id === sid)
+                              if (fileTab) {
+                                return (
+                                  <FileTabItem
+                                    key={fileTab.id}
+                                    fileTab={fileTab}
+                                    isSelected={selectedSessionIds.includes(fileTab.id)}
+                                    onClick={(modifiers) => handleSessionClick(fileTab.id, modifiers)}
+                                    onContextMenu={(e) => handleFileTabContextMenu(e, fileTab.id)}
+                                    grouped
+                                    groupSelected={allGroupSelected}
+                                    forceEditing={renamingId === fileTab.id}
+                                    onEditingDone={clearRenaming}
+                                    onDragStart={(e) => handleDragStart(e, fileTab.id, false)}
+                                    onDragOver={(e) => handleDragOver(e, fileTab.id, false)}
+                                    onDrop={handleDrop}
+                                    onDragEnd={handleDragEnd}
+                                    dropIndicator={
+                                      getDropIndicator(fileTab.id) as 'before' | 'after' | null
+                                    }
+                                    isDragging={draggingIds.includes(fileTab.id)}
+                                  />
+                                )
+                              }
+                              const session = sessions.find((s) => s.id === sid)
+                              if (!session) return null
                               return (
-                                <FileTabItem
-                                  key={fileTab.id}
-                                  fileTab={fileTab}
-                                  isSelected={selectedSessionIds.includes(fileTab.id)}
-                                  onClick={(modifiers) => handleSessionClick(fileTab.id, modifiers)}
-                                  onContextMenu={(e) => handleFileTabContextMenu(e, fileTab.id)}
+                                <SessionItem
+                                  key={session.id}
+                                  session={session}
+                                  isSelected={selectedSessionIds.includes(session.id)}
+                                  onClick={(modifiers) => handleSessionClick(session.id, modifiers)}
+                                  onContextMenu={(e) => handleSessionContextMenu(e, session.id)}
                                   grouped
                                   groupSelected={allGroupSelected}
-                                  forceEditing={renamingId === fileTab.id}
+                                  forceEditing={renamingId === session.id}
                                   onEditingDone={clearRenaming}
-                                  onDragStart={(e) => handleDragStart(e, fileTab.id, false)}
-                                  onDragOver={(e) => handleDragOver(e, fileTab.id, false)}
+                                  onDragStart={(e) => handleDragStart(e, session.id, false)}
+                                  onDragOver={(e) => handleDragOver(e, session.id, false)}
                                   onDrop={handleDrop}
                                   onDragEnd={handleDragEnd}
                                   dropIndicator={
-                                    getDropIndicator(fileTab.id) as 'before' | 'after' | null
+                                    getDropIndicator(session.id) as 'before' | 'after' | null
                                   }
-                                  isDragging={draggingIds.includes(fileTab.id)}
+                                  isDragging={draggingIds.includes(session.id)}
+                                  onDelete={() => setDeleteConfirmSessionId(session.id)}
                                 />
                               )
-                            }
-                            const session = sessions.find((s) => s.id === sid)
-                            if (!session) return null
-                            return (
-                              <SessionItem
-                                key={session.id}
-                                session={session}
-                                isSelected={selectedSessionIds.includes(session.id)}
-                                onClick={(modifiers) => handleSessionClick(session.id, modifiers)}
-                                onContextMenu={(e) => handleSessionContextMenu(e, session.id)}
-                                grouped
-                                groupSelected={allGroupSelected}
-                                forceEditing={renamingId === session.id}
-                                onEditingDone={clearRenaming}
-                                onDragStart={(e) => handleDragStart(e, session.id, false)}
-                                onDragOver={(e) => handleDragOver(e, session.id, false)}
-                                onDrop={handleDrop}
-                                onDragEnd={handleDragEnd}
-                                dropIndicator={
-                                  getDropIndicator(session.id) as 'before' | 'after' | null
-                                }
-                                isDragging={draggingIds.includes(session.id)}
-                                onDelete={() => setDeleteConfirmSessionId(session.id)}
-                              />
-                            )
-                          })}
+                            })}
+                          </div>
                         </div>
-                      )}
+                      </div>
                     </div>
                   )
                 }
