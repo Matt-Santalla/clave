@@ -87,6 +87,8 @@ const electronAPI = {
     }
   },
 
+  setAppIcon: (icon: string) => ipcRenderer.invoke('app:set-icon', icon),
+
   installUpdate: () => ipcRenderer.invoke('updater:install'),
   startDownload: () => ipcRenderer.invoke('updater:start-download'),
   cancelDownload: () => ipcRenderer.invoke('updater:cancel-download'),

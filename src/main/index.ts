@@ -10,7 +10,7 @@ import { locationManager } from './location-manager'
 import { openclawClient } from './openclaw-client'
 
 function createWindow(): void {
-  const icon = nativeImage.createFromPath(join(__dirname, '../../resources/icon.png'))
+  const icon = nativeImage.createFromPath(join(__dirname, '../../resources/icon-dark.png'))
 
   const mainWindow = new BrowserWindow({
     width: 1400,

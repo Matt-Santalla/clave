@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import type {
   Theme,
+  AppIcon,
   ActivityStatus,
   GroupTerminalConfig,
   GroupTerminalColor,
@@ -13,7 +14,7 @@ import type {
 import type { Agent, AgentStatus } from '../../../shared/remote-types'
 
 // Re-export types and constants so existing imports continue to work
-export type { Theme, ActivityStatus, GroupTerminalConfig, GroupTerminalColor, Session, SessionGroup, FileTab, ActiveView, SessionType }
+export type { Theme, AppIcon, ActivityStatus, GroupTerminalConfig, GroupTerminalColor, Session, SessionGroup, FileTab, ActiveView, SessionType }
 export { GROUP_TERMINAL_COLORS, TERMINAL_COLOR_VALUES, resolveColorHex } from './session-types'
 
 interface SessionState {
@@ -26,6 +27,7 @@ interface SessionState {
   sidebarOpen: boolean
   sidebarWidth: number
   theme: Theme
+  appIcon: AppIcon
   searchQuery: string
   claudeMode: boolean
   dangerousMode: boolean
@@ -64,6 +66,7 @@ interface SessionState {
   toggleSidebar: () => void
   setSidebarWidth: (width: number) => void
   setTheme: (theme: Theme) => void
+  setAppIcon: (icon: AppIcon) => void
   updateSessionAlive: (id: string, alive: boolean) => void
   setSessionActivity: (id: string, status: ActivityStatus) => void
   setSessionPromptWaiting: (id: string, promptType: string | null) => void
@@ -130,6 +133,7 @@ export const useSessionStore = create<SessionState>((set) => ({
   sidebarOpen: true,
   sidebarWidth: 260,
   theme: (localStorage.getItem('clave-theme') as Theme) || 'coffee',
+  appIcon: (localStorage.getItem('clave-app-icon') as AppIcon) || 'dark',
   searchQuery: '',
   claudeMode: true,
   dangerousMode: false,
@@ -425,6 +429,12 @@ export const useSessionStore = create<SessionState>((set) => ({
   setTheme: (theme) => {
     localStorage.setItem('clave-theme', theme)
     set({ theme })
+  },
+
+  setAppIcon: (appIcon) => {
+    localStorage.setItem('clave-app-icon', appIcon)
+    set({ appIcon })
+    window.electronAPI?.setAppIcon(appIcon)
   },
 
   updateSessionAlive: (id, alive) =>

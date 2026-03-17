@@ -1,9 +1,38 @@
 import { useEffect, useState } from 'react'
-import { type Theme, useSessionStore } from '../../store/session-store'
+import { type Theme, type AppIcon, useSessionStore } from '../../store/session-store'
 import { useTemplateStore } from '../../store/template-store'
 import { StarIcon as StarOutline, TrashIcon, PlusIcon } from '@heroicons/react/24/outline'
 import { StarIcon as StarSolid } from '@heroicons/react/24/solid'
 import { LocationsTab } from './LocationsTab'
+
+const cLogoPath = 'M742,232 L322,232 A100,100 0 0 0 222,332 L222,732 A100,100 0 0 0 322,832 L742,832 L742,680 L424,680 A50,50 0 0 1 374,630 L374,434 A50,50 0 0 1 424,384 L742,384 Z'
+const cDepthBack = 'M802,172 L382,172 A100,100 0 0 0 282,272 L282,672 A100,100 0 0 0 382,772 L802,772 L802,620 L484,620 A50,50 0 0 1 434,570 L434,374 A50,50 0 0 1 484,324 L802,324 Z'
+const cDepthTopA = 'M316,238 L748,238 L802,172 L382,172 Z'
+const cDepthTopB = 'M418,686 L748,686 L802,620 L484,620 Z'
+const cDepthRightA = 'M736,686 L802,620 L802,772 L736,838 Z'
+const cDepthRightB = 'M368,440 L434,374 L434,570 L368,636 Z'
+const cDepthRightC = 'M736,238 L802,172 L802,324 L736,390 Z'
+
+function IconPreview({ bg, face, depthBack, depthLight, depthDark }: { bg: string; face: string; depthBack: string; depthLight: string; depthDark: string }) {
+  return (
+    <svg viewBox="0 0 1024 1024" className="w-full h-full">
+      <rect width="1024" height="1024" rx="220" ry="220" fill={bg} />
+      <path d={cDepthBack} fill={depthBack} />
+      <path d={cDepthTopA} fill={depthLight} />
+      <path d={cDepthTopB} fill={depthLight} />
+      <path d={cDepthRightA} fill={depthDark} />
+      <path d={cDepthRightB} fill={depthDark} />
+      <path d={cDepthRightC} fill={depthDark} />
+      <path d={cLogoPath} fill={face} />
+    </svg>
+  )
+}
+
+const appIcons: { id: AppIcon; label: string; colors: { bg: string; face: string; depthBack: string; depthLight: string; depthDark: string } }[] = [
+  { id: 'dark', label: 'Dark', colors: { bg: '#0a0a0a', face: '#ffffff', depthBack: '#2D2D2D', depthLight: '#3A3A3A', depthDark: '#222222' } },
+  { id: 'light', label: 'Light', colors: { bg: '#f5f5f5', face: '#1a1a1a', depthBack: '#555555', depthLight: '#666666', depthDark: '#444444' } },
+  { id: 'claude', label: 'Claude', colors: { bg: '#da7756', face: '#ffffff', depthBack: '#A45A41', depthLight: '#B96549', depthDark: '#914F39' } }
+]
 
 const themes: { id: Theme; label: string; colors: { bg: string; surface: string; text: string; border: string } }[] = [
   {
@@ -26,6 +55,8 @@ const themes: { id: Theme; label: string; colors: { bg: string; surface: string;
 export function SettingsPanel() {
   const theme = useSessionStore((s) => s.theme)
   const setTheme = useSessionStore((s) => s.setTheme)
+  const appIcon = useSessionStore((s) => s.appIcon)
+  const setAppIcon = useSessionStore((s) => s.setAppIcon)
   const sessions = useSessionStore((s) => s.sessions)
 
   const templates = useTemplateStore((s) => s.templates)
@@ -116,6 +147,31 @@ export function SettingsPanel() {
                 </div>
                 <div className="text-xs font-medium text-text-primary text-center pb-1">
                   {t.label}
+                </div>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section className="mt-8">
+          <h3 className="text-xs font-semibold text-text-tertiary uppercase tracking-widest mb-3">
+            App Icon
+          </h3>
+          <div className="flex gap-3">
+            {appIcons.map((icon) => (
+              <button
+                key={icon.id}
+                onClick={() => setAppIcon(icon.id)}
+                className="rounded-xl p-1.5 transition-all duration-200"
+                style={{
+                  boxShadow: appIcon === icon.id
+                    ? '0 0 0 2px var(--color-accent)'
+                    : '0 0 0 1px var(--border-color)',
+                  background: 'var(--surface-100)'
+                }}
+              >
+                <div className="rounded-lg overflow-hidden" style={{ width: 48, height: 48 }}>
+                  <IconPreview {...icon.colors} />
                 </div>
               </button>
             ))}

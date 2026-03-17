@@ -173,6 +173,7 @@ export interface ElectronAPI {
   onUpdateDownloaded: (callback: (version: string) => void) => () => void
   onDownloadProgress: (callback: (progress: DownloadProgress) => void) => () => void
   onDownloadError: (callback: (message: string) => void) => () => void
+  setAppIcon: (icon: string) => Promise<void>
   installUpdate: () => Promise<void>
   startDownload: () => Promise<void>
   cancelDownload: () => Promise<void>

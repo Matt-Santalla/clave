@@ -1,3 +1,4 @@
+import { registerAppHandlers } from './app-handlers'
 import { registerBoardHandlers } from './board-handlers'
 import { registerTemplateHandlers } from './template-handlers'
 import { registerUsageHandlers } from './usage-handlers'
@@ -11,6 +12,7 @@ import { registerSshHandlers } from './ssh-handlers'
 import { registerAgentHandlers } from './agent-handlers'
 
 export function registerIpcHandlers(): void {
+  registerAppHandlers()
   registerBoardHandlers()
   registerTemplateHandlers()
   registerUsageHandlers()

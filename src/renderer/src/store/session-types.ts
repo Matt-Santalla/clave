@@ -1,5 +1,7 @@
 export type Theme = 'dark' | 'light' | 'coffee'
 
+export type AppIcon = 'dark' | 'light' | 'claude'
+
 export type ActivityStatus = 'active' | 'idle' | 'ended'
 
 export type SessionType = 'local' | 'remote-terminal' | 'remote-claude' | 'agent'
