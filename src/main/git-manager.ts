@@ -377,12 +377,14 @@ class GitManager {
   }
 
   async generateCommitMessage(cwd: string): Promise<string> {
+    console.log('[git] generateCommitMessage called for:', cwd)
     const git = simpleGit(cwd)
 
     // Get staged diff (what will actually be committed)
     const diff = await git.diff(['--cached', '--stat']).then(async (stat) => {
-      if (!stat.trim()) throw new Error('No staged changes')
+      if (!stat.trim()) throw new Error('No staged changes — stage files first')
       const fullDiff = await git.diff(['--cached'])
+      console.log('[git] Staged diff length:', fullDiff.length)
       // Truncate to ~12k chars to stay within reasonable prompt size
       return fullDiff.length > 12000 ? fullDiff.slice(0, 12000) + '\n... (diff truncated)' : fullDiff
     })
@@ -408,6 +410,7 @@ ${diff}`
     // Remove CLAUDECODE to avoid "nested session" detection
     delete env.CLAUDECODE
 
+    console.log('[git] Spawning claude CLI for commit message generation...')
     return new Promise<string>((resolve, reject) => {
       const child = execFile('claude', ['-p', '--model', 'haiku'], {
         env,
@@ -416,14 +419,17 @@ ${diff}`
         timeout: 30000
       }, (err, stdout, stderr) => {
         if (err) {
+          console.error('[git] claude CLI error:', err.message, stderr)
           reject(new Error(stderr || err.message))
           return
         }
         const message = stdout.trim()
         if (!message) {
+          console.error('[git] claude CLI returned empty output')
           reject(new Error('Empty response from Claude'))
           return
         }
+        console.log('[git] Generated commit message:', message.slice(0, 80))
         resolve(message)
       })
       child.stdin?.write(prompt)

@@ -100,6 +100,7 @@ export function CommitBar({
 }) {
   const commitMessage = useSessionStore((s) => s.commitMessages[cwd] ?? '')
   const generating = useSessionStore((s) => s.generatingCommitCwds.has(cwd))
+  const [generateError, setGenerateError] = useState<string | null>(null)
   const setCommitMessage = useCallback(
     (msg: string) => useSessionStore.getState().setCommitMessage(cwd, msg),
     [cwd]
@@ -107,6 +108,7 @@ export function CommitBar({
 
   const handleGenerateMessage = useCallback(async () => {
     if (totalFileCount === 0 || generating) return
+    setGenerateError(null)
     const store = useSessionStore.getState()
     store.setGeneratingCommit(cwd, true)
     try {
@@ -118,7 +120,9 @@ export function CommitBar({
       // Write to store directly so it persists even if component unmounted
       useSessionStore.getState().setCommitMessage(cwd, message)
     } catch (err) {
-      console.error('Failed to generate commit message:', err)
+      const msg = err instanceof Error ? err.message : String(err)
+      console.error('Failed to generate commit message:', msg)
+      setGenerateError(msg)
     } finally {
       useSessionStore.getState().setGeneratingCommit(cwd, false)
     }
@@ -155,7 +159,7 @@ export function CommitBar({
         <textarea
           className="w-full bg-surface-100 text-text-primary text-xs rounded px-2 py-1.5 pr-7 resize-none outline-none border border-transparent focus:border-accent placeholder:text-text-tertiary"
           rows={2}
-          placeholder="Commit message..."
+          placeholder={generating ? 'Generating commit message...' : 'Commit message...'}
           value={commitMessage}
           onChange={(e) => setCommitMessage(e.target.value as string)}
           onKeyDown={handleKeyDown}
@@ -179,6 +183,11 @@ export function CommitBar({
           )}
         </button>
       </div>
+      {generateError && (
+        <div className="text-[10px] text-red-400 px-1 truncate" title={generateError}>
+          {generateError}
+        </div>
+      )}
       <div className="flex items-center gap-1.5">
         <button
           className="flex-1 text-xs font-medium px-2 py-1 rounded bg-accent text-white disabled:opacity-40 transition-opacity"
