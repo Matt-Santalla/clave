@@ -25,6 +25,7 @@ export function FilePreview() {
   const previewFile = useSessionStore((s) => s.previewFile)
   const previewCwd = useSessionStore((s) => s.previewCwd)
   const previewSource = useSessionStore((s) => s.previewSource)
+  const previewLocationId = useSessionStore((s) => s.previewLocationId)
   const setPreviewFile = useSessionStore((s) => s.setPreviewFile)
   const focusedSessionId = useSessionStore((s) => s.focusedSessionId)
   const sessions = useSessionStore((s) => s.sessions)
@@ -54,7 +55,7 @@ export function FilePreview() {
 
   // Load file content
   useEffect(() => {
-    if (!previewFile || !cwd) {
+    if (!previewFile || (!cwd && !previewLocationId)) {
       setFileData(null)
       setLoadError(false)
       return
@@ -68,7 +69,14 @@ export function FilePreview() {
     let cancelled = false
     const load = async (): Promise<void> => {
       try {
-        const result = await window.electronAPI?.readFile(cwd, previewFile)
+        let result: FileReadResult | undefined
+        if (previewLocationId) {
+          const text = await window.electronAPI?.sftpReadFile(previewLocationId, previewFile)
+          if (text === undefined) return
+          result = { content: text, truncated: false, size: text.length, binary: false }
+        } else {
+          result = await window.electronAPI?.readFile(cwd!, previewFile)
+        }
         if (cancelled || !result) return
         setFileData(result)
         setLoadError(false)
@@ -81,7 +89,7 @@ export function FilePreview() {
     return () => {
       cancelled = true
     }
-  }, [previewFile, cwd, isImage])
+  }, [previewFile, cwd, previewLocationId, isImage])
 
   // Reset edit state when file changes
   useEffect(() => {

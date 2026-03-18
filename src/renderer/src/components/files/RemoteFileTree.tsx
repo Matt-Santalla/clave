@@ -24,7 +24,7 @@ export function RemoteFileTree({ locationId, cwd }: RemoteFileTreeProps) {
         return
       }
       // Store in preview — reuse existing preview system
-      setPreviewFile(node.path, 'tree', cwd)
+      setPreviewFile(node.path, 'tree', cwd, locationId)
     },
     [locationId, cwd, toggleExpand, setPreviewFile]
   )

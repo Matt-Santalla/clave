@@ -38,6 +38,7 @@ interface SessionState {
   previewFile: string | null
   previewCwd: string | null
   previewSource: 'palette' | 'tree' | null
+  previewLocationId: string | null
   activeView: ActiveView
   sidePanelTab: 'files' | 'git'
   gitViewMode: 'list' | 'tree'
@@ -85,7 +86,7 @@ interface SessionState {
   setSidePanelTab: (tab: 'files' | 'git') => void
   setGitViewMode: (mode: 'list' | 'tree') => void
   setGitPanelMode: (mode: 'changes' | 'log') => void
-  setPreviewFile: (path: string | null, source?: 'palette' | 'tree', cwd?: string | null) => void
+  setPreviewFile: (path: string | null, source?: 'palette' | 'tree', cwd?: string | null, locationId?: string | null) => void
   addFileTab: (tab: FileTab) => void
   removeFileTab: (id: string) => void
   renameFileTab: (id: string, name: string) => void
@@ -146,6 +147,7 @@ export const useSessionStore = create<SessionState>((set) => ({
   previewFile: null,
   previewCwd: null,
   previewSource: null,
+  previewLocationId: null,
   activeView: 'terminals' as ActiveView,
   sidePanelTab: 'files' as const,
   gitViewMode: 'list' as const,
@@ -519,8 +521,8 @@ export const useSessionStore = create<SessionState>((set) => ({
 
   setGitPanelMode: (mode) => set({ gitPanelMode: mode }),
 
-  setPreviewFile: (path, source, cwd) =>
-    set({ previewFile: path, previewCwd: cwd ?? null, previewSource: source ?? (path ? null : null) }),
+  setPreviewFile: (path, source, cwd, locationId) =>
+    set({ previewFile: path, previewCwd: cwd ?? null, previewSource: source ?? (path ? null : null), previewLocationId: locationId ?? null }),
 
   addFileTab: (tab) =>
     set((state) => {
