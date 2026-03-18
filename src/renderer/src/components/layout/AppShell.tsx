@@ -14,6 +14,7 @@ import { useLaunchTemplate } from '../../hooks/use-launch-template'
 import { FilePalette } from '../files/FilePalette'
 import { SidePanel } from '../git/SidePanel'
 import { FilePreview } from '../files/FilePreview'
+import { GitDiffPreview } from '../git/GitDiffPreview'
 import { Bars3BottomLeftIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline'
 
 const sidebarTransition = {
@@ -422,6 +423,7 @@ export function AppShell() {
 
       <FilePalette />
       {previewFile && previewSource === 'tree' && <FilePreview />}
+      <GitDiffPreview />
       <UpdateToast />
       <UpdateOverlay />
     </div>

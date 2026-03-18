@@ -4,9 +4,8 @@ import { useGitStatus } from '../../hooks/use-git-status'
 import { ConfirmDialog } from '../ui/ConfirmDialog'
 import { buildGitTree, compactTree, collectAllDirPaths } from '../../lib/git-file-tree'
 import { GitLogView } from './GitLogView'
-import { GitDiffView } from './GitDiffView'
 import { FileRow, GitTreeSection } from './GitFileRows'
-import { SectionHeader, BranchHeader, ErrorBanner, PanelModeToggle, ViewModeToggle } from './GitPanelControls'
+import { SectionHeader, BranchHeader, ErrorBanner, PanelModeToggle, ViewModeToggle, CollapseAllButton } from './GitPanelControls'
 import { CommitBar } from './GitCommitBar'
 import type { GitFileStatus, GitStatusResult } from '../../../../preload/index.d'
 
@@ -19,76 +18,82 @@ function RepoSection({
   status,
   filterPrefix,
   refresh,
-  fillHeight = true,
-  onDiffOpen,
-  onDiffClose
+  fillHeight = true
 }: {
   cwd: string
   status: GitStatusResult
   filterPrefix?: string | null
   refresh: () => void
   fillHeight?: boolean
-  onDiffOpen?: () => void
-  onDiffClose?: () => void
 }) {
-  const setFileTreeWidthOverride = useSessionStore((s) => s.setFileTreeWidthOverride)
   const gitViewMode = useSessionStore((s) => s.gitViewMode)
+  const setDiffPreview = useSessionStore((s) => s.setDiffPreview)
+  const collapseAllTrigger = useSessionStore((s) => s.collapseAllTrigger)
   const [operating, setOperating] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [selectedFile, setSelectedFile] = useState<GitFileStatus | null>(null)
-  const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set())
+  const [stagedExpanded, setStagedExpanded] = useState<Set<string>>(new Set())
+  const [unstagedExpanded, setUnstagedExpanded] = useState<Set<string>>(new Set())
+  const [untrackedExpanded, setUntrackedExpanded] = useState<Set<string>>(new Set())
   const [confirmDiscard, setConfirmDiscard] = useState<{
     files: Array<{ path: string; status: string; staged: boolean }>
     label: string
   } | null>(null)
   const prevViewMode = useRef(gitViewMode)
 
-  // Width override for diff view
+  const openDiffPreview = useCallback(
+    (file: GitFileStatus) => {
+      setDiffPreview({
+        file: file.path,
+        cwd,
+        type: 'working',
+        staged: file.staged,
+        fileStatus: file.status,
+        hash: null
+      })
+    },
+    [cwd, setDiffPreview]
+  )
+
+  // Collapse all when trigger fires
   useEffect(() => {
-    if (selectedFile) {
-      const currentWidth = useSessionStore.getState().fileTreeWidth
-      setFileTreeWidthOverride(Math.max(currentWidth, Math.floor(window.innerWidth * 0.5)))
-      onDiffOpen?.()
-    } else {
-      setFileTreeWidthOverride(null)
-      onDiffClose?.()
+    if (collapseAllTrigger > 0) {
+      setStagedExpanded(new Set())
+      setUnstagedExpanded(new Set())
+      setUntrackedExpanded(new Set())
     }
-  }, [selectedFile, setFileTreeWidthOverride, onDiffOpen, onDiffClose])
-
-  useEffect(() => {
-    return () => setFileTreeWidthOverride(null)
-  }, [setFileTreeWidthOverride])
-
-  // Auto-clear selectedFile when it disappears from the status list
-  useEffect(() => {
-    if (!selectedFile || !status?.files) return
-    const stillExists = status.files.some(
-      (f) => f.path === selectedFile.path && f.staged === selectedFile.staged
-    )
-    if (!stillExists) setSelectedFile(null)
-  }, [status?.files, selectedFile])
+  }, [collapseAllTrigger])
 
   // Auto-expand all dirs when switching to tree mode
   useEffect(() => {
     if (gitViewMode === 'tree' && prevViewMode.current === 'list' && status?.files) {
       const allFiles = status.files
       const tree = compactTree(buildGitTree(allFiles))
-      setExpandedPaths(collectAllDirPaths(tree))
+      const allPaths = collectAllDirPaths(tree)
+      setStagedExpanded(allPaths)
+      setUnstagedExpanded(allPaths)
+      setUntrackedExpanded(allPaths)
     }
     prevViewMode.current = gitViewMode
   }, [gitViewMode, status?.files])
 
-  const toggleExpanded = useCallback((path: string) => {
-    setExpandedPaths((prev) => {
-      const next = new Set(prev)
-      if (next.has(path)) {
-        next.delete(path)
-      } else {
-        next.add(path)
-      }
-      return next
-    })
-  }, [])
+  const makeToggle = useCallback(
+    (setter: React.Dispatch<React.SetStateAction<Set<string>>>) => (path: string) => {
+      setter((prev) => {
+        const next = new Set(prev)
+        if (next.has(path)) {
+          next.delete(path)
+        } else {
+          next.add(path)
+        }
+        return next
+      })
+    },
+    []
+  )
+
+  const toggleStagedExpanded = useCallback(makeToggle(setStagedExpanded), [makeToggle])
+  const toggleUnstagedExpanded = useCallback(makeToggle(setUnstagedExpanded), [makeToggle])
+  const toggleUntrackedExpanded = useCallback(makeToggle(setUntrackedExpanded), [makeToggle])
 
   // Compute relative filter prefix from the repo root
   const relativeFilterPrefix = useMemo(() => {
@@ -191,28 +196,6 @@ function RepoSection({
 
   const totalFiltered = staged.length + unstaged.length + untracked.length
 
-  // Diff view
-  if (selectedFile) {
-    const diffView = (
-      <GitDiffView
-        file={selectedFile}
-        cwd={cwd}
-        onBack={() => setSelectedFile(null)}
-        onStageToggle={() => {
-          if (selectedFile.staged) {
-            unstageFile(selectedFile.path)
-          } else {
-            stageFile(selectedFile.path)
-          }
-        }}
-        operating={operating}
-      />
-    )
-    return fillHeight ? diffView : (
-      <div className="flex flex-col h-[50vh]">{diffView}</div>
-    )
-  }
-
   // Clean state
   if (status.files.length === 0 || (relativeFilterPrefix && totalFiltered === 0)) {
     return (
@@ -263,9 +246,9 @@ function RepoSection({
             {gitViewMode === 'tree' ? (
               <GitTreeSection
                 files={staged}
-                expandedPaths={expandedPaths}
-                onToggleExpanded={toggleExpanded}
-                onClickFile={setSelectedFile}
+                expandedPaths={stagedExpanded}
+                onToggleExpanded={toggleStagedExpanded}
+                onClickFile={openDiffPreview}
                 onStageToggle={(f) => unstageFile(f.path)}
                 onDiscard={promptDiscardFile}
                 disabled={operating}
@@ -275,7 +258,7 @@ function RepoSection({
                 <FileRow
                   key={`s-${f.path}`}
                   file={f}
-                  onClickName={() => setSelectedFile(f)}
+                  onClickName={() => openDiffPreview(f)}
                   onStageToggle={() => unstageFile(f.path)}
                   onDiscard={() => promptDiscardFile(f)}
                   disabled={operating}
@@ -298,9 +281,9 @@ function RepoSection({
             {gitViewMode === 'tree' ? (
               <GitTreeSection
                 files={unstaged}
-                expandedPaths={expandedPaths}
-                onToggleExpanded={toggleExpanded}
-                onClickFile={setSelectedFile}
+                expandedPaths={unstagedExpanded}
+                onToggleExpanded={toggleUnstagedExpanded}
+                onClickFile={openDiffPreview}
                 onStageToggle={(f) => stageFile(f.path)}
                 onDiscard={promptDiscardFile}
                 disabled={operating}
@@ -310,7 +293,7 @@ function RepoSection({
                 <FileRow
                   key={`u-${f.path}`}
                   file={f}
-                  onClickName={() => setSelectedFile(f)}
+                  onClickName={() => openDiffPreview(f)}
                   onStageToggle={() => stageFile(f.path)}
                   onDiscard={() => promptDiscardFile(f)}
                   disabled={operating}
@@ -333,9 +316,9 @@ function RepoSection({
             {gitViewMode === 'tree' ? (
               <GitTreeSection
                 files={untracked}
-                expandedPaths={expandedPaths}
-                onToggleExpanded={toggleExpanded}
-                onClickFile={setSelectedFile}
+                expandedPaths={untrackedExpanded}
+                onToggleExpanded={toggleUntrackedExpanded}
+                onClickFile={openDiffPreview}
                 onStageToggle={(f) => stageFile(f.path)}
                 onDiscard={promptDiscardFile}
                 disabled={operating}
@@ -345,7 +328,7 @@ function RepoSection({
                 <FileRow
                   key={`t-${f.path}`}
                   file={f}
-                  onClickName={() => setSelectedFile(f)}
+                  onClickName={() => openDiffPreview(f)}
                   onStageToggle={() => stageFile(f.path)}
                   onDiscard={() => promptDiscardFile(f)}
                   disabled={operating}
@@ -446,6 +429,7 @@ function MultiRepoSection({
   refresh: () => void
 }) {
   const gitPanelMode = useSessionStore((s) => s.gitPanelMode)
+  const collapseAllTrigger = useSessionStore((s) => s.collapseAllTrigger)
   const changeCount = status.files.length
   const hasChanges = changeCount > 0
   const hasRemoteChanges = status.behind > 0
@@ -460,6 +444,13 @@ function MultiRepoSection({
       setExpanded(shouldExpand)
     }
   }, [shouldExpand])
+
+  // Collapse all when trigger fires
+  useEffect(() => {
+    if (collapseAllTrigger > 0) {
+      setExpanded(false)
+    }
+  }, [collapseAllTrigger])
 
   return (
     <div className="border-b border-border-subtle">
@@ -555,9 +546,10 @@ export function MultiRepoGitPanel({
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
-      <div className="flex items-center justify-end gap-1.5 px-3 py-1 border-b border-border-subtle flex-shrink-0">
+      <div className="flex items-center justify-end gap-0.5 px-3 py-1 border-b border-border-subtle flex-shrink-0">
         <PanelModeToggle />
         {gitPanelMode === 'changes' && <ViewModeToggle />}
+        <CollapseAllButton />
       </div>
       <div className="flex-1 overflow-y-auto">
         {/* Root repo */}

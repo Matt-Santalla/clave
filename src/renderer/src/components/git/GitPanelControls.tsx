@@ -47,6 +47,22 @@ export function SectionHeader({
   )
 }
 
+export function CollapseAllButton() {
+  const triggerCollapseAll = useSessionStore((s) => s.triggerCollapseAll)
+  return (
+    <button
+      onClick={triggerCollapseAll}
+      className="p-1 rounded text-text-tertiary hover:text-text-primary hover:bg-surface-200 transition-colors flex-shrink-0"
+      title="Collapse all"
+    >
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+        <path d="M2 8l4-3 4 3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M2 5l4-3 4 3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </button>
+  )
+}
+
 export function ViewModeToggle() {
   const gitViewMode = useSessionStore((s) => s.gitViewMode)
   const setGitViewMode = useSessionStore((s) => s.setGitViewMode)
@@ -119,7 +135,7 @@ export function BranchHeader({
 }) {
   const gitPanelMode = useSessionStore((s) => s.gitPanelMode)
   return (
-    <div className="flex items-center gap-1.5 px-3 py-1.5 border-b border-border-subtle text-xs flex-shrink-0">
+    <div className="flex items-center gap-1.5 px-3 py-1 border-b border-border-subtle text-xs flex-shrink-0">
       {/* Branch icon */}
       <svg
         width="12"
@@ -133,7 +149,7 @@ export function BranchHeader({
         <path d="M6 4v4" stroke="currentColor" strokeWidth="1.2" />
       </svg>
       <span className="text-text-primary font-medium truncate">{branch}</span>
-      <span className="ml-auto flex-shrink-0 flex items-center gap-1.5">
+      <span className="ml-auto flex-shrink-0 flex items-center gap-0.5">
         {(ahead > 0 || behind > 0) && (
           <span className="text-text-tertiary">
             {ahead > 0 && (
@@ -153,6 +169,7 @@ export function BranchHeader({
         )}
         <PanelModeToggle />
         {gitPanelMode === 'changes' && <ViewModeToggle />}
+        <CollapseAllButton />
       </span>
     </div>
   )

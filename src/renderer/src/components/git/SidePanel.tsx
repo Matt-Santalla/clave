@@ -169,38 +169,41 @@ export function SidePanel() {
     <div className="flex flex-col h-full bg-surface-50 border-l border-border">
       {/* Tabbed header */}
       <div className="flex items-center gap-1.5 px-3 py-2 border-b border-border-subtle flex-shrink-0">
-        {/* File tree tab */}
-        <button
-          onClick={() => setSidePanelTab('files')}
-          className={`p-1 rounded hover:bg-surface-200 transition-colors flex-shrink-0 ${
-            sidePanelTab === 'files' ? 'text-accent' : 'text-text-tertiary hover:text-text-primary'
-          }`}
-          title="File tree"
-        >
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-            <path d="M6.5 1H3a1 1 0 0 0-1 1v6.5a1 1 0 0 0 1 1h4.5a1 1 0 0 0 1-1V2.5L6.5 1Z" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round" />
-            <path d="M4.5 9.5V10a1 1 0 0 0 1 1H9a1 1 0 0 0 1-1V4.5a1 1 0 0 0-1-1h-.5" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
-        {/* Git tab — hidden for remote sessions */}
-        {!isRemoteSession && (
+        <div className="flex items-center gap-px flex-shrink-0">
           <button
-            onClick={() => setSidePanelTab('git')}
+            onClick={() => setSidePanelTab('files')}
             className={`p-1 rounded hover:bg-surface-200 transition-colors flex-shrink-0 ${
-              sidePanelTab === 'git' ? 'text-accent' : 'text-text-tertiary hover:text-text-primary'
+              sidePanelTab === 'files' ? 'text-accent' : 'text-text-tertiary hover:text-text-primary'
             }`}
-            title="Git status"
+            title="File tree"
           >
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-              <circle cx="6" cy="1.5" r="1.25" stroke="currentColor" strokeWidth="1.1" />
-              <circle cx="3" cy="10.5" r="1.25" stroke="currentColor" strokeWidth="1.1" />
-              <circle cx="9" cy="10.5" r="1.25" stroke="currentColor" strokeWidth="1.1" />
-              <path d="M6 2.75v3.5" stroke="currentColor" strokeWidth="1.1" />
-              <path d="M6 6.25L3 9.25" stroke="currentColor" strokeWidth="1.1" />
-              <path d="M6 6.25l3 3" stroke="currentColor" strokeWidth="1.1" />
+            <svg width="14" height="14" viewBox="0 0 12 12" fill="none">
+              <path d="M6.5 1H3a1 1 0 0 0-1 1v6.5a1 1 0 0 0 1 1h4.5a1 1 0 0 0 1-1V2.5L6.5 1Z" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round" />
+              <path d="M4.5 9.5V10a1 1 0 0 0 1 1H9a1 1 0 0 0 1-1V4.5a1 1 0 0 0-1-1h-.5" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
-        )}
+          {!isRemoteSession && (
+            <>
+              <div className="w-px h-3.5 bg-border-subtle" />
+              <button
+                onClick={() => setSidePanelTab('git')}
+                className={`p-1 rounded hover:bg-surface-200 transition-colors flex-shrink-0 ${
+                  sidePanelTab === 'git' ? 'text-accent' : 'text-text-tertiary hover:text-text-primary'
+                }`}
+                title="Git status"
+              >
+                <svg width="14" height="14" viewBox="0 0 12 12" fill="none">
+                  <circle cx="6" cy="1.5" r="1.25" stroke="currentColor" strokeWidth="1.1" />
+                  <circle cx="3" cy="10.5" r="1.25" stroke="currentColor" strokeWidth="1.1" />
+                  <circle cx="9" cy="10.5" r="1.25" stroke="currentColor" strokeWidth="1.1" />
+                  <path d="M6 2.75v3.5" stroke="currentColor" strokeWidth="1.1" />
+                  <path d="M6 6.25L3 9.25" stroke="currentColor" strokeWidth="1.1" />
+                  <path d="M6 6.25l3 3" stroke="currentColor" strokeWidth="1.1" />
+                </svg>
+              </button>
+            </>
+          )}
+        </div>
 
         {/* Path display — location badge for remote, breadcrumb/dropdown for local */}
         <div className="relative flex-1 min-w-0">

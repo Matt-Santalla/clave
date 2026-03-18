@@ -39,6 +39,9 @@ interface SessionState {
   previewCwd: string | null
   previewSource: 'palette' | 'tree' | null
   previewLocationId: string | null
+  diffPreview: { file: string, cwd: string, type: 'working' | 'commit', staged: boolean, fileStatus: string, hash: string | null } | null
+  gitRefreshTrigger: number
+  collapseAllTrigger: number
   activeView: ActiveView
   sidePanelTab: 'files' | 'git'
   gitViewMode: 'list' | 'tree'
@@ -91,6 +94,9 @@ interface SessionState {
   setCommitMessage: (cwd: string, message: string) => void
   setGeneratingCommit: (cwd: string, generating: boolean) => void
   setPreviewFile: (path: string | null, source?: 'palette' | 'tree', cwd?: string | null, locationId?: string | null) => void
+  setDiffPreview: (preview: SessionState['diffPreview']) => void
+  triggerGitRefresh: () => void
+  triggerCollapseAll: () => void
   addFileTab: (tab: FileTab) => void
   removeFileTab: (id: string) => void
   renameFileTab: (id: string, name: string) => void
@@ -152,6 +158,9 @@ export const useSessionStore = create<SessionState>((set) => ({
   previewCwd: null,
   previewSource: null,
   previewLocationId: null,
+  diffPreview: null,
+  gitRefreshTrigger: 0,
+  collapseAllTrigger: 0,
   activeView: 'terminals' as ActiveView,
   sidePanelTab: 'files' as const,
   gitViewMode: 'list' as const,
@@ -570,7 +579,14 @@ export const useSessionStore = create<SessionState>((set) => ({
     }),
 
   setPreviewFile: (path, source, cwd, locationId) =>
-    set({ previewFile: path, previewCwd: cwd ?? null, previewSource: source ?? (path ? null : null), previewLocationId: locationId ?? null }),
+    set((state) => ({ previewFile: path, previewCwd: cwd ?? null, previewSource: source ?? null, previewLocationId: locationId ?? null, diffPreview: path ? null : state.diffPreview })),
+
+  setDiffPreview: (preview) =>
+    set({ diffPreview: preview, ...(preview ? { previewFile: null, previewCwd: null, previewSource: null, previewLocationId: null } : {}) }),
+
+  triggerGitRefresh: () => set((state) => ({ gitRefreshTrigger: state.gitRefreshTrigger + 1 })),
+
+  triggerCollapseAll: () => set((state) => ({ collapseAllTrigger: state.collapseAllTrigger + 1 })),
 
   addFileTab: (tab) =>
     set((state) => {

@@ -141,7 +141,14 @@ export function FileTree({ cwd, isCustom, onChangeFolder, onResetFolder, onNavig
   const setPreviewFile = useSessionStore((s) => s.setPreviewFile)
   const addFileTab = useSessionStore((s) => s.addFileTab)
 
-  const { flatList, loading, filter, setFilter, toggleDir, refreshDir } = useFileTree(cwd)
+  const { flatList, loading, filter, setFilter, toggleDir, refreshDir, collapseAll } = useFileTree(cwd)
+  const collapseAllTrigger = useSessionStore((s) => s.collapseAllTrigger)
+
+  useEffect(() => {
+    if (collapseAllTrigger > 0) {
+      collapseAll()
+    }
+  }, [collapseAllTrigger, collapseAll])
 
   const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set())
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
@@ -360,13 +367,13 @@ export function FileTree({ cwd, isCustom, onChangeFolder, onResetFolder, onNavig
   return (
     <div className="flex flex-col flex-1 min-h-0">
       {/* Filter input + folder actions */}
-      <div className="flex items-center gap-1.5 px-3 py-1.5 border-b border-border-subtle flex-shrink-0">
+      <div className="flex items-center gap-0.5 px-3 py-1 border-b border-border-subtle flex-shrink-0">
         <input
           type="text"
           placeholder="Filter..."
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
-          className="flex-1 h-6 px-2 rounded bg-surface-100 text-xs text-text-primary placeholder:text-text-tertiary outline-none focus:ring-1 focus:ring-border transition-colors min-w-0"
+          className="flex-1 h-[20px] px-2 rounded bg-surface-100 text-[11px] text-text-primary placeholder:text-text-tertiary outline-none focus:ring-1 focus:ring-border transition-colors min-w-0"
         />
         {isCustom && (
           <button
@@ -393,6 +400,16 @@ export function FileTree({ cwd, isCustom, onChangeFolder, onResetFolder, onNavig
               strokeWidth="1.2"
               strokeLinejoin="round"
             />
+          </svg>
+        </button>
+        <button
+          onClick={collapseAll}
+          className="p-1 rounded hover:bg-surface-200 text-text-tertiary hover:text-text-primary transition-colors flex-shrink-0"
+          title="Collapse all"
+        >
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <path d="M2 8l4-3 4 3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M2 5l4-3 4 3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
       </div>

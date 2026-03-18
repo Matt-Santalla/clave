@@ -106,6 +106,20 @@ function mergeNodeChildren(
   })
 }
 
+/** Recursively collapse all nodes */
+function collapseAllNodes(nodes: TreeNode[]): TreeNode[] {
+  return nodes.map((node) => {
+    if (node.type === 'directory') {
+      return {
+        ...node,
+        expanded: false,
+        children: node.children ? collapseAllNodes(node.children) : undefined
+      }
+    }
+    return node
+  })
+}
+
 export function useFileTree(cwd: string | null) {
   const [rootNodes, setRootNodes] = useState<TreeNode[]>([])
   const [loading, setLoading] = useState(false)
@@ -352,6 +366,12 @@ export function useFileTree(cwd: string | null) {
     [cwd, loadChildren]
   )
 
+  const collapseAll = useCallback(() => {
+    if (!cwd) return
+    expansionCache.current.delete(cwd)
+    setRootNodes((prev) => collapseAllNodes(prev))
+  }, [cwd])
+
   const flatList = useMemo(() => {
     if (!filter) return flattenTree(rootNodes)
 
@@ -389,6 +409,6 @@ export function useFileTree(cwd: string | null) {
     return matches
   }, [rootNodes, filter, allFiles])
 
-  return { rootNodes, flatList, loading, filter, setFilter, toggleDir, refreshDir }
+  return { rootNodes, flatList, loading, filter, setFilter, toggleDir, refreshDir, collapseAll }
 }
 
