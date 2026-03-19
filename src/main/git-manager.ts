@@ -116,7 +116,7 @@ function mapFiles(status: StatusResult): GitFileStatus[] {
 class GitManager {
   async discoverRepos(cwd: string): Promise<Array<{ name: string; path: string }>> {
     const SKIP = new Set(['.git', 'node_modules'])
-    const MAX_DEPTH = 2
+    const MAX_DEPTH = 5
     const repos: Array<{ name: string; path: string }> = []
 
     const scan = async (dir: string, depth: number): Promise<void> => {
