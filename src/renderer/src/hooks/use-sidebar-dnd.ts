@@ -28,6 +28,8 @@ const DRAG_THRESHOLD = 5
 const AUTO_SCROLL_ZONE = 40
 const AUTO_SCROLL_SPEED = 10
 const GAP_HEIGHT = 36
+const SETTLE_DURATION = 150 // ms for drop settle animation
+const INDICATOR_DEBOUNCE = 32 // ms — absorbs layout-induced oscillation
 
 export { GAP_HEIGHT }
 
@@ -45,6 +47,7 @@ export function useSidebarDnd(opts: {
 
   const dragRef = useRef<DragRef | null>(null)
   const overlayRef = useRef<HTMLDivElement | null>(null)
+  const indicatorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Create/destroy overlay element
   const createOverlay = useCallback((sourceEl: HTMLElement) => {
@@ -98,16 +101,37 @@ export function useSidebarDnd(opts: {
       const items = container.querySelectorAll<HTMLElement>('[data-sidebar-item-id]')
       if (items.length === 0) return
 
+      // Compensate for the active gap pushing items down.
+      // Without this, the gap shifts bounding rects, which changes the hit-test
+      // result, which moves the gap, causing oscillation/flicker.
+      let gapOffset = 0
+      let gapTop = Infinity
+      const gapEl = container.querySelector<HTMLElement>('.sidebar-drop-gap-active')
+      if (gapEl) {
+        const gapRect = gapEl.getBoundingClientRect()
+        gapOffset = gapRect.height
+        gapTop = gapRect.top
+      }
+
       let newIndicator: DropIndicatorState | null = null
 
       // Check each item
       for (const itemEl of items) {
-        const rect = itemEl.getBoundingClientRect()
+        const rawRect = itemEl.getBoundingClientRect()
+
+        // Adjust rect: items below the gap are shifted down by gapOffset,
+        // so subtract it to get their "gap-less" position.
+        const rect = rawRect.top >= gapTop
+          ? { left: rawRect.left, right: rawRect.right, top: rawRect.top - gapOffset, bottom: rawRect.bottom - gapOffset, height: rawRect.height }
+          : { left: rawRect.left, right: rawRect.right, top: rawRect.top, bottom: rawRect.bottom, height: rawRect.height }
+
+        // Also adjust cursor Y for comparison: if cursor is below the gap, compensate
+        const adjustedY = clientY >= gapTop + gapOffset ? clientY - gapOffset : clientY
 
         // Skip if cursor is not within horizontal bounds
         if (clientX < rect.left || clientX > rect.right) continue
         // Skip if cursor is not within vertical bounds (with some tolerance)
-        if (clientY < rect.top - 2 || clientY > rect.bottom + 2) continue
+        if (adjustedY < rect.top - 2 || adjustedY > rect.bottom + 2) continue
 
         const itemId = itemEl.dataset.sidebarItemId!
         const isGroup = itemEl.dataset.sidebarItemType === 'group'
@@ -115,7 +139,7 @@ export function useSidebarDnd(opts: {
         // Don't allow dropping on self
         if (drag.ids.includes(itemId)) continue
 
-        const y = clientY - rect.top
+        const y = adjustedY - rect.top
         const height = rect.height
 
         let position: 'before' | 'after' | 'inside'
@@ -127,11 +151,13 @@ export function useSidebarDnd(opts: {
           const isExpanded = group && !group.collapsed
 
           if (isExpanded) {
-            if (y < height * 0.25) position = 'before'
+            // Expanded group: generous top edge for "before", rest = "inside"
+            if (y < height * 0.35) position = 'before'
             else position = 'inside'
           } else {
-            if (y < height * 0.25) position = 'before'
-            else if (y > height * 0.75) position = 'after'
+            // Collapsed group: wider before/after edges, narrower inside target
+            if (y < height * 0.3) position = 'before'
+            else if (y > height * 0.7) position = 'after'
             else position = 'inside'
           }
 
@@ -161,7 +187,8 @@ export function useSidebarDnd(opts: {
 
             if (!isDraggingGroup && !isDraggingWithinGroup) {
               if (isFirst && isLast) {
-                if (y <= height * 0.75) {
+                // Single-child group: larger escape zone (bottom 35%)
+                if (y <= height * 0.65) {
                   targetId = parentGroup.id
                   position = 'inside'
                 } else {
@@ -169,21 +196,24 @@ export function useSidebarDnd(opts: {
                   position = 'after'
                 }
               } else if (isFirst) {
+                // First child: top half → group inside
                 if (y < height * 0.5) {
                   targetId = parentGroup.id
                   position = 'inside'
                 }
               } else if (isLast) {
-                if (y > height * 0.5 && y <= height * 0.75) {
+                // Last child: larger escape zone (bottom 35%)
+                if (y > height * 0.4 && y <= height * 0.65) {
                   targetId = parentGroup.id
                   position = 'inside'
-                } else if (y > height * 0.75) {
+                } else if (y > height * 0.65) {
                   targetId = parentGroup.id
                   position = 'after'
                 }
               }
             } else {
-              if (isLast && y > height * 0.75) {
+              // Reordering within group or dragging a group: escape zone only
+              if (isLast && y > height * 0.65) {
                 targetId = parentGroup.id
                 position = 'after'
               }
@@ -195,13 +225,18 @@ export function useSidebarDnd(opts: {
         break
       }
 
-      // If no item hit, check container edges and gaps between items
+      // If no item hit, check container edges and gaps between items.
+      // Use gap-compensated positions for consistency with the main hit-test.
       if (!newIndicator && items.length > 0) {
         const containerRect = container.getBoundingClientRect()
         if (clientX >= containerRect.left && clientX <= containerRect.right) {
-          const firstRect = items[0].getBoundingClientRect()
+          // Compensated first/last rects
+          const firstRawRect = items[0].getBoundingClientRect()
+          const firstTop = firstRawRect.top >= gapTop ? firstRawRect.top - gapOffset : firstRawRect.top
           const lastItem = items[items.length - 1]
-          const lastRect = lastItem.getBoundingClientRect()
+          const lastRawRect = lastItem.getBoundingClientRect()
+          const lastBottom = lastRawRect.top >= gapTop ? lastRawRect.bottom - gapOffset : lastRawRect.bottom
+          const adjustedY = clientY >= gapTop + gapOffset ? clientY - gapOffset : clientY
 
           // Helper: if the resolved item is inside a group, redirect "after" to the
           // group level so the drop lands outside the group, not appended inside it.
@@ -210,31 +245,29 @@ export function useSidebarDnd(opts: {
             const state = useSessionStore.getState()
             const parentGroup = state.groups.find((g) => g.sessionIds.includes(itemId))
             if (parentGroup) {
-              // Escape to after the entire group
               return { targetId: parentGroup.id, position: 'after' }
             }
             return { targetId: itemId, position: 'after' }
           }
 
-          if (clientY < firstRect.top) {
-            // Above all items
+          if (adjustedY < firstTop) {
             const firstId = items[0].dataset.sidebarItemId!
             if (!drag.ids.includes(firstId)) {
               newIndicator = { targetId: firstId, position: 'before' }
             }
-          } else if (clientY > lastRect.bottom) {
-            // Below all items
+          } else if (adjustedY > lastBottom) {
             const lastId = lastItem.dataset.sidebarItemId!
             newIndicator = resolveAfter(lastId)
           } else {
-            // Check gaps between items — find the closest item above the cursor
+            // Check gaps between items — find closest item above cursor (compensated)
             let closestAbove: HTMLElement | null = null
             let closestAboveBottom = -Infinity
             for (const itemEl of items) {
-              const rect = itemEl.getBoundingClientRect()
-              if (rect.bottom <= clientY && rect.bottom > closestAboveBottom) {
+              const rawRect = itemEl.getBoundingClientRect()
+              const bottom = rawRect.top >= gapTop ? rawRect.bottom - gapOffset : rawRect.bottom
+              if (bottom <= adjustedY && bottom > closestAboveBottom) {
                 closestAbove = itemEl
-                closestAboveBottom = rect.bottom
+                closestAboveBottom = bottom
               }
             }
             if (closestAbove) {
@@ -245,17 +278,28 @@ export function useSidebarDnd(opts: {
         }
       }
 
-      // Update indicator only if changed
-      if (
+      // Update indicator only if changed, with debounce to prevent layout-induced flicker.
+      // The ref updates immediately (so drop always uses the latest), but the React
+      // state update (which triggers gap rendering) is debounced.
+      const changed =
         !drag.currentIndicator && !newIndicator
           ? false
           : !drag.currentIndicator ||
             !newIndicator ||
             drag.currentIndicator.targetId !== newIndicator.targetId ||
             drag.currentIndicator.position !== newIndicator.position
-      ) {
+
+      if (changed) {
         drag.currentIndicator = newIndicator
-        setDndState((prev) => ({ ...prev, dropIndicator: newIndicator }))
+
+        // Clear any pending debounced update
+        if (indicatorTimerRef.current) {
+          clearTimeout(indicatorTimerRef.current)
+        }
+        indicatorTimerRef.current = setTimeout(() => {
+          indicatorTimerRef.current = null
+          setDndState((prev) => ({ ...prev, dropIndicator: newIndicator }))
+        }, INDICATOR_DEBOUNCE)
       }
     },
     [containerRef]
@@ -381,17 +425,66 @@ export function useSidebarDnd(opts: {
         cancelAnimationFrame(drag.scrollAnimFrame)
       }
 
-      if (drag.started && drag.currentIndicator) {
-        moveItems(drag.ids, drag.currentIndicator.targetId, drag.currentIndicator.position)
+      // Flush any pending debounced indicator so the gap is rendered for settle animation
+      if (indicatorTimerRef.current) {
+        clearTimeout(indicatorTimerRef.current)
+        indicatorTimerRef.current = null
+        if (drag.currentIndicator) {
+          setDndState((prev) => ({ ...prev, dropIndicator: drag.currentIndicator }))
+        }
       }
 
-      dragRef.current = null
-      destroyOverlay()
-      setDndState({
-        isDragging: false,
-        draggedIds: [],
-        dropIndicator: null
-      })
+      if (drag.started && drag.currentIndicator) {
+        const indicator = drag.currentIndicator
+        const overlay = overlayRef.current
+
+        // Find the gap element to animate toward
+        const container = containerRef.current
+        const gapEl = container?.querySelector<HTMLElement>('.sidebar-drop-gap-active')
+        const gapRect = gapEl?.getBoundingClientRect()
+
+        if (overlay && gapRect && gapRect.height > 0) {
+          // Animate overlay settling into the gap position
+          Object.assign(overlay.style, {
+            transition: `left ${SETTLE_DURATION}ms ease-out, top ${SETTLE_DURATION}ms ease-out, transform ${SETTLE_DURATION}ms ease-out, opacity ${SETTLE_DURATION}ms ease-out`,
+            left: `${gapRect.left}px`,
+            top: `${gapRect.top}px`,
+            transform: 'scale(1)',
+            opacity: '0.6'
+          })
+
+          // Commit after animation completes
+          dragRef.current = null
+          setTimeout(() => {
+            moveItems(drag.ids, indicator.targetId, indicator.position)
+            destroyOverlay()
+            setDndState({
+              isDragging: false,
+              draggedIds: [],
+              dropIndicator: null
+            })
+          }, SETTLE_DURATION)
+        } else {
+          // No gap visible (e.g. "inside" drop) — commit immediately
+          dragRef.current = null
+          moveItems(drag.ids, indicator.targetId, indicator.position)
+          destroyOverlay()
+          setDndState({
+            isDragging: false,
+            draggedIds: [],
+            dropIndicator: null
+          })
+        }
+      } else {
+        // Drag didn't start or no valid target — just clean up
+        dragRef.current = null
+        destroyOverlay()
+        setDndState({
+          isDragging: false,
+          draggedIds: [],
+          dropIndicator: null
+        })
+      }
     }
 
     // ESC to cancel drag
@@ -400,6 +493,10 @@ export function useSidebarDnd(opts: {
         e.preventDefault()
         if (dragRef.current.scrollAnimFrame) {
           cancelAnimationFrame(dragRef.current.scrollAnimFrame)
+        }
+        if (indicatorTimerRef.current) {
+          clearTimeout(indicatorTimerRef.current)
+          indicatorTimerRef.current = null
         }
         dragRef.current = null
         destroyOverlay()
@@ -420,7 +517,7 @@ export function useSidebarDnd(opts: {
       document.removeEventListener('pointerup', handlePointerUp)
       document.removeEventListener('keydown', handleKeyDown)
     }
-  }, [createOverlay, destroyOverlay, hitTest, autoScroll, moveItems])
+  }, [createOverlay, destroyOverlay, hitTest, autoScroll, moveItems, containerRef])
 
   return {
     isDragging: dndState.isDragging,

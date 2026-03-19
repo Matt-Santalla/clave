@@ -58,7 +58,10 @@ function GroupColorPickerHeader({ groupId, initialColor }: { groupId: string; in
 function DropGap({ active }: { active: boolean }) {
   return (
     <div
-      className="transition-[height,opacity] duration-200 ease-out overflow-hidden"
+      className={cn(
+        'transition-[height,opacity] duration-200 ease-out overflow-hidden',
+        active && 'sidebar-drop-gap-active'
+      )}
       style={{ height: active ? GAP_HEIGHT : 0, opacity: active ? 1 : 0 }}
     >
       {active && (
