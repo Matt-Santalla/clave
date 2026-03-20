@@ -1,4 +1,5 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import * as DropdownMenuPrimitive from '@radix-ui/react-dropdown-menu'
+import { cn } from '../../lib/utils'
 
 interface ContextMenuItem {
   label: string
@@ -18,77 +19,62 @@ interface ContextMenuProps {
 }
 
 export function ContextMenu({ items, x, y, onClose, header }: ContextMenuProps) {
-  const ref = useRef<HTMLDivElement>(null)
-  const [adjustedPos, setAdjustedPos] = useState({ left: x, top: y })
-
-  useLayoutEffect(() => {
-    if (!ref.current) return
-    const rect = ref.current.getBoundingClientRect()
-    const padding = 8
-    let left = x
-    let top = y
-
-    if (x + rect.width > window.innerWidth - padding) {
-      left = x - rect.width
-    }
-    if (y + rect.height > window.innerHeight - padding) {
-      top = y - rect.height
-    }
-    // Clamp to viewport
-    left = Math.max(padding, left)
-    top = Math.max(padding, top)
-
-    setAdjustedPos({ left, top })
-  }, [x, y])
-
-  useEffect(() => {
-    const handleClick = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        onClose()
-      }
-    }
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
-    document.addEventListener('mousedown', handleClick)
-    document.addEventListener('keydown', handleKeyDown)
-    return () => {
-      document.removeEventListener('mousedown', handleClick)
-      document.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [onClose])
-
   return (
-    <div
-      ref={ref}
-      className="fixed z-50 min-w-[160px] py-1 bg-surface-100 border border-border rounded-lg shadow-xl"
-      style={{ left: adjustedPos.left, top: adjustedPos.top }}
-    >
-      {header && (
-        <>
-          <div className="px-3 py-1.5">{header}</div>
-          <div className="border-t border-border-subtle" />
-        </>
-      )}
-      {items.map((item) => (
-        <button
-          key={item.label}
-          onClick={() => {
-            if (!item.disabled) {
-              item.onClick()
-              onClose()
-            }
-          }}
-          disabled={item.disabled}
-          className={`w-full flex items-center justify-between px-3 py-1.5 text-sm font-medium hover:bg-surface-200 disabled:opacity-40 disabled:cursor-default transition-colors ${item.danger ? 'text-red-400 hover:text-red-300' : 'text-text-primary'}`}
+    <DropdownMenuPrimitive.Root open onOpenChange={(open) => { if (!open) onClose() }}>
+      <DropdownMenuPrimitive.Trigger
+        style={{
+          position: 'fixed',
+          left: x,
+          top: y,
+          width: 0,
+          height: 0,
+          padding: 0,
+          margin: 0,
+          border: 'none',
+          opacity: 0,
+          pointerEvents: 'none'
+        }}
+      />
+      <DropdownMenuPrimitive.Portal>
+        <DropdownMenuPrimitive.Content
+          side="bottom"
+          align="start"
+          sideOffset={0}
+          alignOffset={0}
+          className="z-50 min-w-[160px] overflow-hidden rounded-lg border border-border bg-surface-100 py-1 shadow-xl data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95"
+          onCloseAutoFocus={(e) => e.preventDefault()}
         >
-          <span className="flex items-center gap-2">
-            {item.icon && <span className="w-4 h-4 flex items-center justify-center">{item.icon}</span>}
-            {item.label}
-          </span>
-          {item.shortcut && <span className="ml-4 text-text-tertiary">{item.shortcut}</span>}
-        </button>
-      ))}
-    </div>
+          {header && (
+            <>
+              <div className="px-3 py-1.5">{header}</div>
+              <DropdownMenuPrimitive.Separator className="h-px bg-border-subtle" />
+            </>
+          )}
+          {items.map((item) => (
+            <DropdownMenuPrimitive.Item
+              key={item.label}
+              disabled={item.disabled}
+              onSelect={() => {
+                item.onClick()
+                onClose()
+              }}
+              className={cn(
+                'relative flex cursor-pointer select-none items-center justify-between px-3 py-1.5 text-sm font-medium outline-none transition-colors',
+                'data-[disabled]:pointer-events-none data-[disabled]:opacity-40',
+                item.danger
+                  ? 'text-red-400 hover:text-red-300 focus:bg-surface-200'
+                  : 'text-text-primary hover:bg-surface-200 focus:bg-surface-200'
+              )}
+            >
+              <span className="flex items-center gap-2">
+                {item.icon && <span className="w-4 h-4 flex items-center justify-center">{item.icon}</span>}
+                {item.label}
+              </span>
+              {item.shortcut && <span className="ml-4 text-text-tertiary">{item.shortcut}</span>}
+            </DropdownMenuPrimitive.Item>
+          ))}
+        </DropdownMenuPrimitive.Content>
+      </DropdownMenuPrimitive.Portal>
+    </DropdownMenuPrimitive.Root>
   )
 }

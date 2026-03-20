@@ -25,6 +25,7 @@ import { usePinnedStore, pinGroupFromCurrent, removePinnedGroupWithCleanup, resy
 import { PinnedGroupsGrid } from '../session/PinnedGroupsGrid'
 import { useSidebarDnd, GAP_HEIGHT } from '../../hooks/use-sidebar-dnd'
 import { SidebarFooter } from './SidebarFooter'
+import { ScrollArea } from '../ui/scroll-area'
 import {
   MagnifyingGlassIcon,
   PencilSquareIcon,
@@ -849,9 +850,9 @@ export function Sidebar() {
       </div>
 
       {/* Single scrollable area for all sections */}
-      <div
-        ref={scrollContainerRef}
-        className="flex-1 overflow-y-auto min-h-0"
+      <ScrollArea
+        viewportRef={scrollContainerRef}
+        className="flex-1 min-h-0"
       >
         {/* Pinned groups section */}
         <PinnedSection
@@ -1097,7 +1098,7 @@ export function Sidebar() {
         {/* Board section */}
         <SectionHeading title="Board" collapsed={boardCollapsed} onToggle={() => setBoardCollapsed((c) => !c)} />
         <BoardSection collapsed={boardCollapsed} />
-      </div>
+      </ScrollArea>
 
       {/* User footer */}
       <SidebarFooter />

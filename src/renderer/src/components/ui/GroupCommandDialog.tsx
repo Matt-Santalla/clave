@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import * as DialogPrimitive from '@radix-ui/react-dialog'
 import { motion, AnimatePresence } from 'framer-motion'
 import { type GroupTerminalColor } from '../../store/session-store'
 import ColorPicker from './ColorPicker'
@@ -36,18 +37,6 @@ export function GroupCommandDialog({
     }
   }, [isOpen, initialCommand, initialMode, initialColor])
 
-  useEffect(() => {
-    if (!isOpen) return
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault()
-        onCancel()
-      }
-    }
-    window.addEventListener('keydown', handleEscape)
-    return () => window.removeEventListener('keydown', handleEscape)
-  }, [isOpen, onCancel])
-
   const handleSave = () => {
     const trimmed = command.trim()
     if (trimmed) {
@@ -56,114 +45,123 @@ export function GroupCommandDialog({
   }
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.12 }}
-            className="fixed inset-0 bg-white/5 backdrop-blur-sm z-50"
-            onClick={onCancel}
-          />
-          <motion.div
-            initial={{ opacity: 0, scale: 0.97 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.97 }}
-            transition={{ duration: 0.12, ease: [0.2, 0, 0, 1] }}
-            className="fixed z-50 left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[320px]"
-          >
-            <div className="bg-surface-0 rounded-xl border border-border shadow-2xl overflow-hidden">
-              <div className="px-4 pt-4 pb-3">
-                <h2 className="text-[13px] font-semibold text-text-primary">
-                  {onDelete ? 'Edit terminal' : 'Add terminal'}
-                </h2>
-                <p className="mt-1 text-xs text-text-secondary">
-                  Set a command to run in this group&apos;s terminal.
-                </p>
+    <DialogPrimitive.Root open={isOpen} onOpenChange={(open) => { if (!open) onCancel() }}>
+      <AnimatePresence>
+        {isOpen && (
+          <DialogPrimitive.Portal forceMount>
+            <DialogPrimitive.Overlay asChild>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.12 }}
+                className="fixed inset-0 bg-white/5 backdrop-blur-sm z-50"
+              />
+            </DialogPrimitive.Overlay>
+            <DialogPrimitive.Content
+              asChild
+              onOpenAutoFocus={(e) => e.preventDefault()}
+              onCloseAutoFocus={(e) => e.preventDefault()}
+            >
+              <motion.div
+                initial={{ opacity: 0, scale: 0.97 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.97 }}
+                transition={{ duration: 0.12, ease: [0.2, 0, 0, 1] }}
+                className="fixed z-50 left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[320px]"
+              >
+                <div className="bg-surface-0 rounded-xl border border-border shadow-2xl overflow-hidden">
+                  <div className="px-4 pt-4 pb-3">
+                    <DialogPrimitive.Title className="text-[13px] font-semibold text-text-primary">
+                      {onDelete ? 'Edit terminal' : 'Add terminal'}
+                    </DialogPrimitive.Title>
+                    <DialogPrimitive.Description className="mt-1 text-xs text-text-secondary">
+                      Set a command to run in this group&apos;s terminal.
+                    </DialogPrimitive.Description>
 
-                <input
-                  ref={inputRef}
-                  type="text"
-                  value={command}
-                  onChange={(e) => setCommand(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault()
-                      handleSave()
-                    }
-                  }}
-                  placeholder="e.g., npm run dev"
-                  className="mt-3 w-full h-8 px-3 rounded-lg bg-surface-100 border border-border-subtle text-xs text-text-primary placeholder:text-text-tertiary outline-none focus:ring-1 focus:ring-accent transition-colors"
-                />
+                    <input
+                      ref={inputRef}
+                      type="text"
+                      value={command}
+                      onChange={(e) => setCommand(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault()
+                          handleSave()
+                        }
+                      }}
+                      placeholder="e.g., npm run dev"
+                      className="mt-3 w-full h-8 px-3 rounded-lg bg-surface-100 border border-border-subtle text-xs text-text-primary placeholder:text-text-tertiary outline-none focus:ring-1 focus:ring-accent transition-colors"
+                    />
 
-                <div className="mt-3 flex items-center gap-3">
-                  <span className="text-xs text-text-secondary">Mode:</span>
-                  <div className="flex rounded-lg overflow-hidden border border-border-subtle">
+                    <div className="mt-3 flex items-center gap-3">
+                      <span className="text-xs text-text-secondary">Mode:</span>
+                      <div className="flex rounded-lg overflow-hidden border border-border-subtle">
+                        <button
+                          type="button"
+                          onClick={() => setMode('prefill')}
+                          className={`px-3 py-1 text-[11px] font-medium transition-colors ${
+                            mode === 'prefill'
+                              ? 'bg-surface-200 text-text-primary'
+                              : 'bg-surface-100 text-text-tertiary hover:text-text-secondary'
+                          }`}
+                        >
+                          Pre-fill
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setMode('auto')}
+                          className={`px-3 py-1 text-[11px] font-medium transition-colors border-l border-border-subtle ${
+                            mode === 'auto'
+                              ? 'bg-surface-200 text-text-primary'
+                              : 'bg-surface-100 text-text-tertiary hover:text-text-secondary'
+                          }`}
+                        >
+                          Auto-execute
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 flex flex-col gap-2">
+                      <span className="text-xs text-text-secondary">Color:</span>
+                      <ColorPicker
+                        value={color}
+                        onChange={(c) => setColor(c ?? 'blue')}
+                        showNoColor={false}
+                      />
+                    </div>
+                  </div>
+                  <div className="border-t border-border-subtle flex">
+                    {onDelete && (
+                      <button
+                        type="button"
+                        onClick={onDelete}
+                        className="flex-1 py-2.5 text-[13px] font-medium text-red-400 hover:text-red-300 hover:bg-surface-100 transition-colors border-r border-border-subtle"
+                      >
+                        Delete
+                      </button>
+                    )}
                     <button
                       type="button"
-                      onClick={() => setMode('prefill')}
-                      className={`px-3 py-1 text-[11px] font-medium transition-colors ${
-                        mode === 'prefill'
-                          ? 'bg-surface-200 text-text-primary'
-                          : 'bg-surface-100 text-text-tertiary hover:text-text-secondary'
-                      }`}
+                      onClick={onCancel}
+                      className="flex-1 py-2.5 text-[13px] font-medium text-text-secondary hover:text-text-primary hover:bg-surface-100 transition-colors border-r border-border-subtle"
                     >
-                      Pre-fill
+                      Cancel
                     </button>
                     <button
                       type="button"
-                      onClick={() => setMode('auto')}
-                      className={`px-3 py-1 text-[11px] font-medium transition-colors border-l border-border-subtle ${
-                        mode === 'auto'
-                          ? 'bg-surface-200 text-text-primary'
-                          : 'bg-surface-100 text-text-tertiary hover:text-text-secondary'
-                      }`}
+                      onClick={handleSave}
+                      className="flex-1 py-2.5 text-[13px] font-medium text-accent hover:brightness-110 hover:bg-surface-100 transition-colors outline-none"
                     >
-                      Auto-execute
+                      Save
                     </button>
                   </div>
                 </div>
-
-                <div className="mt-3 flex flex-col gap-2">
-                  <span className="text-xs text-text-secondary">Color:</span>
-                  <ColorPicker
-                    value={color}
-                    onChange={(c) => setColor(c ?? 'blue')}
-                    showNoColor={false}
-                  />
-                </div>
-              </div>
-              <div className="border-t border-border-subtle flex">
-                {onDelete && (
-                  <button
-                    type="button"
-                    onClick={onDelete}
-                    className="flex-1 py-2.5 text-[13px] font-medium text-red-400 hover:text-red-300 hover:bg-surface-100 transition-colors border-r border-border-subtle"
-                  >
-                    Delete
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={onCancel}
-                  className="flex-1 py-2.5 text-[13px] font-medium text-text-secondary hover:text-text-primary hover:bg-surface-100 transition-colors border-r border-border-subtle"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSave}
-                  className="flex-1 py-2.5 text-[13px] font-medium text-accent hover:brightness-110 hover:bg-surface-100 transition-colors outline-none"
-                >
-                  Save
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+              </motion.div>
+            </DialogPrimitive.Content>
+          </DialogPrimitive.Portal>
+        )}
+      </AnimatePresence>
+    </DialogPrimitive.Root>
   )
 }

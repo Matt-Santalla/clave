@@ -3,6 +3,7 @@ import { getMainWindow } from '../window-utils'
 import { join } from 'path'
 import { execFileSync } from 'child_process'
 import * as fs from 'fs'
+import * as os from 'os'
 import { preferencesManager, type AppIcon } from '../preferences-manager'
 
 const VALID_ICONS = ['dark', 'light', 'claude'] as const
@@ -98,6 +99,22 @@ export function applyPersistedIcon(): void {
 }
 
 export function registerAppHandlers(): void {
+  ipcMain.handle('app:get-username', () => {
+    try {
+      const info = os.userInfo()
+      // Return the full name from the OS (macOS: dscl), falling back to login username
+      if (process.platform === 'darwin') {
+        try {
+          const fullName = execFileSync('id', ['-F'], { encoding: 'utf-8', timeout: 2000 }).trim()
+          if (fullName) return fullName
+        } catch { /* fall through */ }
+      }
+      return info.username
+    } catch {
+      return null
+    }
+  })
+
   ipcMain.handle('app:set-icon', (_event, icon: string) => {
     if (!VALID_ICONS.includes(icon as (typeof VALID_ICONS)[number])) return
 

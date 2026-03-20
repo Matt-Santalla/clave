@@ -50,3 +50,13 @@ export const useUserStore = create<UserState>((set) => ({
     set({ avatarPath })
   }
 }))
+
+// If no custom name has been saved, resolve the OS username as the default
+const profile = loadProfile()
+if (profile.name === 'User' && window.electronAPI?.getUsername) {
+  window.electronAPI.getUsername().then((osName) => {
+    if (osName) {
+      useUserStore.getState().setName(osName)
+    }
+  }).catch(() => {})
+}

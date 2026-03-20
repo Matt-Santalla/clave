@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { useAgentStore } from '../../store/agent-store'
 import { useLocationStore } from '../../store/location-store'
 import {
@@ -8,8 +8,16 @@ import {
   BoltIcon
 } from '@heroicons/react/24/outline'
 import { AgentPickerPopover } from '../agents/AgentPickerPopover'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuShortcut
+} from '../ui/dropdown-menu'
 
-// Inline Claude logo SVG for the dropdown
 function ClaudeLogo({ className }: { className?: string }) {
   return (
     <svg className={className} width="14" height="14" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -30,8 +38,7 @@ interface NewSessionDropdownProps {
 export function NewSessionDropdown({ onNewSession, loading }: NewSessionDropdownProps) {
   const [open, setOpen] = useState(false)
   const [agentPickerOpen, setAgentPickerOpen] = useState(false)
-  const btnRef = useRef<HTMLButtonElement>(null)
-  const menuRef = useRef<HTMLDivElement>(null)
+  const btnRef = { current: null as HTMLButtonElement | null }
   const agents = useAgentStore((s) => s.agents)
   const locations = useLocationStore((s) => s.locations)
 
@@ -40,28 +47,6 @@ export function NewSessionDropdown({ onNewSession, loading }: NewSessionDropdown
   )
   const hasRemoteLocations = connectedRemoteLocations.length > 0
   const hasAgentLocations = agents.length > 0
-
-  // Close on outside click or Escape
-  useEffect(() => {
-    if (!open) return
-    const handleClick = (e: MouseEvent) => {
-      if (
-        menuRef.current && !menuRef.current.contains(e.target as Node) &&
-        btnRef.current && !btnRef.current.contains(e.target as Node)
-      ) {
-        setOpen(false)
-      }
-    }
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false)
-    }
-    document.addEventListener('mousedown', handleClick)
-    document.addEventListener('keydown', handleKeyDown)
-    return () => {
-      document.removeEventListener('mousedown', handleClick)
-      document.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [open])
 
   const handleOption = useCallback(
     (claudeMode: boolean, dangerousMode: boolean, locationId?: string) => {
@@ -73,122 +58,83 @@ export function NewSessionDropdown({ onNewSession, loading }: NewSessionDropdown
 
   return (
     <div className="relative">
-      <button
-        ref={btnRef}
-        onClick={() => setOpen((v) => !v)}
-        disabled={loading}
-        className="w-5 h-5 flex items-center justify-center rounded-md hover:bg-surface-200 text-text-tertiary hover:text-text-primary transition-colors flex-shrink-0 disabled:opacity-50"
-        title="New session"
-      >
-        <PlusIcon className="w-3.5 h-3.5" />
-      </button>
+      <DropdownMenu open={open} onOpenChange={setOpen}>
+        <DropdownMenuTrigger asChild>
+          <button
+            ref={(el) => { btnRef.current = el }}
+            disabled={loading}
+            className="w-5 h-5 flex items-center justify-center rounded-md hover:bg-surface-200 text-text-tertiary hover:text-text-primary transition-colors flex-shrink-0 disabled:opacity-50"
+            title="New session"
+          >
+            <PlusIcon className="w-3.5 h-3.5" />
+          </button>
+        </DropdownMenuTrigger>
 
-      {open && (
-        <div
-          ref={menuRef}
-          className="fixed z-50 min-w-[220px] py-1 bg-surface-100 border border-border rounded-lg shadow-xl"
-          style={{
-            top: (btnRef.current?.getBoundingClientRect().bottom ?? 0) + 4,
-            left: btnRef.current?.getBoundingClientRect().left ?? 0
-          }}
-        >
-          {/* Local section header — only shown when remote locations exist */}
+        <DropdownMenuContent align="start">
           {hasRemoteLocations && (
-            <div className="px-3 py-1 text-[11px] font-medium text-text-tertiary uppercase tracking-wide">
-              This Mac
-            </div>
+            <DropdownMenuLabel>This Mac</DropdownMenuLabel>
           )}
 
-          <DropdownItem
-            icon={<CommandLineIcon className="w-3.5 h-3.5" />}
-            label="Terminal"
-            shortcut={'\u2318T'}
-            onClick={() => handleOption(false, false)}
-          />
-          <DropdownItem
-            icon={<ClaudeLogo className="w-3.5 h-3.5" />}
-            label="Claude Code"
-            shortcut={'\u2318N'}
-            onClick={() => handleOption(true, false)}
-          />
-          <DropdownItem
-            icon={<ShieldExclamationIcon className="w-3.5 h-3.5" />}
-            label="Claude Code (skip permissions)"
-            shortcut={'\u2318D'}
-            onClick={() => handleOption(true, true)}
-          />
+          <DropdownMenuItem onSelect={() => handleOption(false, false)}>
+            <CommandLineIcon className="w-3.5 h-3.5 flex-shrink-0 text-text-tertiary" />
+            <span className="flex-1">Terminal</span>
+            <DropdownMenuShortcut>{'\u2318T'}</DropdownMenuShortcut>
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => handleOption(true, false)}>
+            <ClaudeLogo className="w-3.5 h-3.5 flex-shrink-0 text-text-tertiary" />
+            <span className="flex-1">Claude Code</span>
+            <DropdownMenuShortcut>{'\u2318N'}</DropdownMenuShortcut>
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => handleOption(true, true)}>
+            <ShieldExclamationIcon className="w-3.5 h-3.5 flex-shrink-0 text-text-tertiary" />
+            <span className="flex-1">Claude Code (skip permissions)</span>
+            <DropdownMenuShortcut>{'\u2318D'}</DropdownMenuShortcut>
+          </DropdownMenuItem>
 
-          {/* Remote location sections */}
           {connectedRemoteLocations.map((loc) => (
             <div key={loc.id}>
-              <div className="my-1 border-t border-border-subtle" />
-              <div className="px-3 py-1 flex items-center gap-1.5 text-[11px] font-medium text-text-tertiary uppercase tracking-wide">
-                <span className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0" />
-                <span className="truncate">{loc.name}</span>
-                {loc.host && (
-                  <span className="text-text-tertiary/60 font-normal normal-case">({loc.host})</span>
-                )}
-              </div>
-              <DropdownItem
-                icon={<CommandLineIcon className="w-3.5 h-3.5" />}
-                label="Terminal"
-                onClick={() => handleOption(false, false, loc.id)}
-              />
-              <DropdownItem
-                icon={<ClaudeLogo className="w-3.5 h-3.5" />}
-                label="Claude Code"
-                onClick={() => handleOption(true, false, loc.id)}
-              />
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0" />
+                  <span className="truncate">{loc.name}</span>
+                  {loc.host && (
+                    <span className="text-text-tertiary/60 font-normal normal-case">({loc.host})</span>
+                  )}
+                </span>
+              </DropdownMenuLabel>
+              <DropdownMenuItem onSelect={() => handleOption(false, false, loc.id)}>
+                <CommandLineIcon className="w-3.5 h-3.5 flex-shrink-0 text-text-tertiary" />
+                <span className="flex-1">Terminal</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => handleOption(true, false, loc.id)}>
+                <ClaudeLogo className="w-3.5 h-3.5 flex-shrink-0 text-text-tertiary" />
+                <span className="flex-1">Claude Code</span>
+              </DropdownMenuItem>
             </div>
           ))}
 
           {hasAgentLocations && (
             <>
-              <div className="my-1 border-t border-border-subtle" />
-              <DropdownItem
-                icon={<BoltIcon className="w-3.5 h-3.5" />}
-                label="OpenClaw Agent..."
-                onClick={() => {
-                  setOpen(false)
-                  setAgentPickerOpen(true)
-                }}
-              />
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={() => {
+                setOpen(false)
+                setAgentPickerOpen(true)
+              }}>
+                <BoltIcon className="w-3.5 h-3.5 flex-shrink-0 text-text-tertiary" />
+                <span className="flex-1">OpenClaw Agent...</span>
+              </DropdownMenuItem>
             </>
           )}
-        </div>
-      )}
+        </DropdownMenuContent>
+      </DropdownMenu>
 
       {agentPickerOpen && (
         <AgentPickerPopover
-          anchorRef={btnRef}
+          anchorRef={{ current: btnRef.current }}
           onClose={() => setAgentPickerOpen(false)}
         />
       )}
     </div>
-  )
-}
-
-function DropdownItem({
-  icon,
-  label,
-  shortcut,
-  onClick
-}: {
-  icon: React.ReactNode
-  label: string
-  shortcut?: string
-  onClick: () => void
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className="w-full flex items-center gap-2 px-3 py-1.5 text-[13px] font-medium text-text-primary hover:bg-surface-200 transition-colors"
-    >
-      <span className="flex-shrink-0 text-text-tertiary">{icon}</span>
-      <span className="flex-1 text-left">{label}</span>
-      {shortcut && (
-        <span className="text-[11px] text-text-tertiary">{shortcut}</span>
-      )}
-    </button>
   )
 }

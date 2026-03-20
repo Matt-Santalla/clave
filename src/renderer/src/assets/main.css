@@ -21,6 +21,19 @@
   --color-accent: oklch(0.65 0.2 265);
   --color-accent-hover: oklch(0.7 0.22 265);
 
+  /* shadcn semantic aliases */
+  --color-background: var(--surface-0);
+  --color-foreground: var(--text-primary);
+  --color-popover: var(--surface-100);
+  --color-popover-foreground: var(--text-primary);
+  --color-muted: var(--surface-200);
+  --color-muted-foreground: var(--text-secondary);
+  --color-accent-shadcn: var(--surface-200);
+  --color-accent-foreground: var(--text-primary);
+  --color-destructive: #ef4444;
+  --color-ring: oklch(0.65 0.2 265);
+  --radius: 0.5rem;
+
   --color-status-working: #3b82f6;
   --color-status-ready: #22c55e;
   --color-status-waiting: #f59e0b;
