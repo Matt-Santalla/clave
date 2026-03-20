@@ -143,6 +143,11 @@ export function TaskCard({
               <span className="text-[11px] text-text-tertiary truncate max-w-[180px]" title={task.cwd}>
                 {shortenCwd(task.cwd)}
               </span>
+              {task.dangerousMode && (
+                <span className="text-[10px] text-red-400 font-medium" title="--dangerously-skip-permissions">
+                  skip-perms
+                </span>
+              )}
               {task.status === 'processing' && linkedSession && (
                 <span className="text-[11px] text-green-500 truncate">
                   {linkedSession.name}

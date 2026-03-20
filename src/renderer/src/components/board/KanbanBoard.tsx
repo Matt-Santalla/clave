@@ -71,9 +71,9 @@ export function KanbanBoard() {
     async (task: BoardTask) => {
       if (!window.electronAPI?.spawnSession) return
 
-      const state = useSessionStore.getState()
+      const dangerousMode = task.dangerousMode ?? false
       const sessionInfo = await window.electronAPI.spawnSession(task.cwd, {
-        dangerousMode: state.dangerousMode,
+        dangerousMode,
         claudeMode: true
       })
 
@@ -86,7 +86,7 @@ export function KanbanBoard() {
         activityStatus: 'idle',
         promptWaiting: null,
         claudeMode: true,
-        dangerousMode: state.dangerousMode,
+        dangerousMode,
         claudeSessionId: sessionInfo.claudeSessionId,
         sessionType: 'local'
       })
@@ -162,9 +162,9 @@ export function KanbanBoard() {
         removeSession(task.sessionId)
       }
 
-      const state = useSessionStore.getState()
+      const dangerousMode = task.dangerousMode ?? false
       const sessionInfo = await window.electronAPI.spawnSession(task.cwd, {
-        dangerousMode: state.dangerousMode,
+        dangerousMode,
         claudeMode: true,
         resumeSessionId: task.claudeSessionId
       })
@@ -178,7 +178,7 @@ export function KanbanBoard() {
         activityStatus: 'idle',
         promptWaiting: null,
         claudeMode: true,
-        dangerousMode: state.dangerousMode,
+        dangerousMode,
         claudeSessionId: sessionInfo.claudeSessionId,
         sessionType: 'local'
       })

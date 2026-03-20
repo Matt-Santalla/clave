@@ -5,7 +5,7 @@ import { useBoardStore } from '../../store/board-store'
 interface TaskFormProps {
   isOpen: boolean
   onClose: () => void
-  editTask?: { id: string; title: string; prompt: string; cwd: string } | null
+  editTask?: { id: string; title: string; prompt: string; cwd: string; dangerousMode: boolean } | null
 }
 
 export function TaskForm({ isOpen, onClose, editTask }: TaskFormProps) {
@@ -15,6 +15,7 @@ export function TaskForm({ isOpen, onClose, editTask }: TaskFormProps) {
   const [title, setTitle] = useState('')
   const [prompt, setPrompt] = useState('')
   const [cwd, setCwd] = useState('')
+  const [dangerousMode, setDangerousMode] = useState(false)
   const titleRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -23,10 +24,12 @@ export function TaskForm({ isOpen, onClose, editTask }: TaskFormProps) {
         setTitle(editTask.title)
         setPrompt(editTask.prompt)
         setCwd(editTask.cwd)
+        setDangerousMode(editTask.dangerousMode)
       } else {
         setTitle('')
         setPrompt('')
         setCwd('')
+        setDangerousMode(false)
       }
       setTimeout(() => titleRef.current?.focus(), 50)
     }
@@ -55,13 +58,13 @@ export function TaskForm({ isOpen, onClose, editTask }: TaskFormProps) {
       if (!title.trim() || !cwd.trim()) return
 
       if (editTask) {
-        updateTask(editTask.id, { title: title.trim(), prompt: prompt.trim(), cwd: cwd.trim() })
+        updateTask(editTask.id, { title: title.trim(), prompt: prompt.trim(), cwd: cwd.trim(), dangerousMode })
       } else {
-        addTask({ title: title.trim(), prompt: prompt.trim(), cwd: cwd.trim() })
+        addTask({ title: title.trim(), prompt: prompt.trim(), cwd: cwd.trim(), dangerousMode })
       }
       onClose()
     },
-    [title, prompt, cwd, editTask, addTask, updateTask, onClose]
+    [title, prompt, cwd, dangerousMode, editTask, addTask, updateTask, onClose]
   )
 
   const handleKeyDown = useCallback(
@@ -148,6 +151,21 @@ export function TaskForm({ isOpen, onClose, editTask }: TaskFormProps) {
                       </button>
                     </div>
                   </div>
+
+                  <label className="flex items-center gap-2 cursor-pointer group">
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={dangerousMode}
+                      onClick={() => setDangerousMode(!dangerousMode)}
+                      className={`relative w-8 h-[18px] rounded-full transition-colors flex-shrink-0 ${dangerousMode ? 'bg-red-500' : 'bg-surface-300'}`}
+                    >
+                      <span className={`absolute top-[2px] left-[2px] w-[14px] h-[14px] rounded-full bg-white transition-transform ${dangerousMode ? 'translate-x-[14px]' : ''}`} />
+                    </button>
+                    <span className={`text-xs transition-colors ${dangerousMode ? 'text-red-400' : 'text-text-secondary group-hover:text-text-primary'}`}>
+                      Skip permissions
+                    </span>
+                  </label>
                 </div>
 
                 <div className="px-5 py-3 border-t border-border-subtle flex items-center justify-between">

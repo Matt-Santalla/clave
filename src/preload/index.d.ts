@@ -31,6 +31,7 @@ export interface BoardTask {
   title: string
   prompt: string
   cwd: string
+  dangerousMode: boolean
   status: 'todo' | 'processing' | 'done'
   sessionId: string | null
   claudeSessionId: string | null

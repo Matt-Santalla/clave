@@ -8,7 +8,7 @@ interface BoardState {
 
   loadBoard: () => Promise<void>
   addTask: (task: Omit<BoardTask, 'id' | 'createdAt' | 'updatedAt' | 'order' | 'status' | 'sessionId' | 'claudeSessionId'>) => void
-  updateTask: (id: string, updates: Partial<Pick<BoardTask, 'title' | 'prompt' | 'cwd'>>) => void
+  updateTask: (id: string, updates: Partial<Pick<BoardTask, 'title' | 'prompt' | 'cwd' | 'dangerousMode'>>) => void
   deleteTask: (id: string) => void
   moveTask: (id: string, status: BoardTask['status']) => void
   linkSession: (taskId: string, sessionId: string) => void
@@ -48,6 +48,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
       title: partial.title,
       prompt: partial.prompt,
       cwd: partial.cwd,
+      dangerousMode: partial.dangerousMode,
       status: 'todo',
       sessionId: null,
       claudeSessionId: null,
