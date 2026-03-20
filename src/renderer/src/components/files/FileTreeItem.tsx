@@ -1,6 +1,8 @@
-import { useCallback } from 'react'
+import { useCallback, useRef } from 'react'
 import { FileIcon } from './file-icons'
 import type { FlatTreeNode } from '../../hooks/use-file-tree'
+
+const DOUBLE_CLICK_MS = 300
 
 interface FileTreeItemProps {
   node: FlatTreeNode
@@ -23,26 +25,30 @@ export function FileTreeItem({
   onContextMenu,
   onDragStart
 }: FileTreeItemProps) {
+  const lastClickRef = useRef<{ time: number; path: string }>({ time: 0, path: '' })
+
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
+      const now = Date.now()
+      const last = lastClickRef.current
+      if (last.path === node.path && now - last.time < DOUBLE_CLICK_MS) {
+        // Fast double-click
+        lastClickRef.current = { time: 0, path: '' }
+        if (node.type === 'file') {
+          onDoubleClickFile(node.path)
+        } else {
+          onDoubleClickDir(node.path)
+        }
+        return
+      }
+      lastClickRef.current = { time: now, path: node.path }
       if (node.type === 'directory') {
         onToggleDir(node.path)
       } else {
         onClickFile(node.path, e.metaKey)
       }
     },
-    [node, onClickFile, onToggleDir]
-  )
-
-  const handleDoubleClick = useCallback(
-    () => {
-      if (node.type === 'file') {
-        onDoubleClickFile(node.path)
-      } else {
-        onDoubleClickDir(node.path)
-      }
-    },
-    [node, onDoubleClickFile, onDoubleClickDir]
+    [node, onClickFile, onToggleDir, onDoubleClickFile, onDoubleClickDir]
   )
 
   const handleDragStart = useCallback(
@@ -69,7 +75,6 @@ export function FileTreeItem({
       style={{ paddingLeft: `${8 + node.depth * 12}px` }}
       title={node.name}
       onClick={handleClick}
-      onDoubleClick={handleDoubleClick}
       onContextMenu={handleContextMenu}
       draggable
       onDragStart={handleDragStart}
