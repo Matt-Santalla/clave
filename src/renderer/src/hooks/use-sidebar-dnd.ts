@@ -10,6 +10,7 @@ interface DndRenderState {
   isDragging: boolean
   draggedIds: string[]
   dropIndicator: DropIndicatorState | null
+  isOverPinnedZone: boolean
 }
 
 interface DragRef {
@@ -22,6 +23,7 @@ interface DragRef {
   currentIndicator: DropIndicatorState | null
   scrollAnimFrame: number | null
   overlayWidth: number
+  overPinnedZone: boolean
 }
 
 const DRAG_THRESHOLD = 5
@@ -36,13 +38,16 @@ export { GAP_HEIGHT }
 export function useSidebarDnd(opts: {
   containerRef: React.RefObject<HTMLElement | null>
   moveItems: (ids: string[], targetId: string, position: 'before' | 'after' | 'inside') => void
+  pinnedZoneRef?: React.RefObject<HTMLElement | null>
+  onPinnedDrop?: (groupId: string) => void
 }) {
-  const { containerRef, moveItems } = opts
+  const { containerRef, moveItems, pinnedZoneRef, onPinnedDrop } = opts
 
   const [dndState, setDndState] = useState<DndRenderState>({
     isDragging: false,
     draggedIds: [],
-    dropIndicator: null
+    dropIndicator: null,
+    isOverPinnedZone: false
   })
 
   const dragRef = useRef<DragRef | null>(null)
@@ -67,6 +72,13 @@ export function useSidebarDnd(opts: {
       overlay.style.width = `${button.getBoundingClientRect().width}px`
     }
 
+    // Try to pick up the group's background color from the parent container
+    let overlayBg = 'var(--color-surface-100)'
+    const groupContainer = sourceEl.closest<HTMLElement>('.rounded-xl.border')
+    if (groupContainer?.style.backgroundColor) {
+      overlayBg = groupContainer.style.backgroundColor
+    }
+
     Object.assign(overlay.style, {
       position: 'fixed',
       zIndex: '99999',
@@ -74,7 +86,7 @@ export function useSidebarDnd(opts: {
       opacity: '0.9',
       transform: 'scale(1.02)',
       borderRadius: '8px',
-      background: 'var(--color-surface-100)',
+      background: overlayBg,
       boxShadow: '0 8px 24px rgba(0,0,0,0.15), 0 2px 8px rgba(0,0,0,0.1)',
       transition: 'opacity 150ms, transform 150ms',
       willChange: 'left, top'
@@ -258,6 +270,12 @@ export function useSidebarDnd(opts: {
           } else if (adjustedY > lastBottom) {
             const lastId = lastItem.dataset.sidebarItemId!
             newIndicator = resolveAfter(lastId)
+            // If the last item is being dragged, try the second-to-last
+            if (!newIndicator && items.length > 1) {
+              const prevItem = items[items.length - 2]
+              const prevId = prevItem.dataset.sidebarItemId!
+              newIndicator = resolveAfter(prevId)
+            }
           } else {
             // Check gaps between items — find closest item above cursor (compensated)
             let closestAbove: HTMLElement | null = null
@@ -366,7 +384,8 @@ export function useSidebarDnd(opts: {
         sourceEl: e.currentTarget as HTMLElement,
         currentIndicator: null,
         scrollAnimFrame: null,
-        overlayWidth: 0
+        overlayWidth: 0,
+        overPinnedZone: false
       }
     },
     []
@@ -391,7 +410,8 @@ export function useSidebarDnd(opts: {
         setDndState({
           isDragging: true,
           draggedIds: drag.ids,
-          dropIndicator: null
+          dropIndicator: null,
+          isOverPinnedZone: false
         })
 
         // Prevent the click event that would fire on pointer up
@@ -408,6 +428,32 @@ export function useSidebarDnd(opts: {
       if (overlayRef.current) {
         overlayRef.current.style.left = `${e.clientX - drag.overlayWidth / 2}px`
         overlayRef.current.style.top = `${e.clientY - 20}px`
+      }
+
+      // Check if hovering over pinned zone (only for group drags)
+      if (drag.isGroup && pinnedZoneRef?.current) {
+        const pinnedRect = pinnedZoneRef.current.getBoundingClientRect()
+        const over =
+          e.clientX >= pinnedRect.left &&
+          e.clientX <= pinnedRect.right &&
+          e.clientY >= pinnedRect.top &&
+          e.clientY <= pinnedRect.bottom
+        if (over !== drag.overPinnedZone) {
+          drag.overPinnedZone = over
+          setDndState((prev) => ({ ...prev, isOverPinnedZone: over }))
+        }
+        if (over) {
+          // Clear normal drop indicator when over pinned zone
+          if (drag.currentIndicator) {
+            drag.currentIndicator = null
+            if (indicatorTimerRef.current) {
+              clearTimeout(indicatorTimerRef.current)
+              indicatorTimerRef.current = null
+            }
+            setDndState((prev) => ({ ...prev, dropIndicator: null }))
+          }
+          return // skip normal hit-test and auto-scroll
+        }
       }
 
       // Hit test
@@ -432,6 +478,20 @@ export function useSidebarDnd(opts: {
         if (drag.currentIndicator) {
           setDndState((prev) => ({ ...prev, dropIndicator: drag.currentIndicator }))
         }
+      }
+
+      // Handle drop on pinned zone
+      if (drag.started && drag.isGroup && drag.overPinnedZone && onPinnedDrop) {
+        dragRef.current = null
+        onPinnedDrop(drag.ids[0])
+        destroyOverlay()
+        setDndState({
+          isDragging: false,
+          draggedIds: [],
+          dropIndicator: null,
+          isOverPinnedZone: false
+        })
+        return
       }
 
       if (drag.started && drag.currentIndicator) {
@@ -461,7 +521,8 @@ export function useSidebarDnd(opts: {
             setDndState({
               isDragging: false,
               draggedIds: [],
-              dropIndicator: null
+              dropIndicator: null,
+              isOverPinnedZone: false
             })
           }, SETTLE_DURATION)
         } else {
@@ -472,7 +533,8 @@ export function useSidebarDnd(opts: {
           setDndState({
             isDragging: false,
             draggedIds: [],
-            dropIndicator: null
+            dropIndicator: null,
+            isOverPinnedZone: false
           })
         }
       } else {
@@ -482,7 +544,8 @@ export function useSidebarDnd(opts: {
         setDndState({
           isDragging: false,
           draggedIds: [],
-          dropIndicator: null
+          dropIndicator: null,
+          isOverPinnedZone: false
         })
       }
     }
@@ -503,7 +566,8 @@ export function useSidebarDnd(opts: {
         setDndState({
           isDragging: false,
           draggedIds: [],
-          dropIndicator: null
+          dropIndicator: null,
+          isOverPinnedZone: false
         })
       }
     }
@@ -517,12 +581,13 @@ export function useSidebarDnd(opts: {
       document.removeEventListener('pointerup', handlePointerUp)
       document.removeEventListener('keydown', handleKeyDown)
     }
-  }, [createOverlay, destroyOverlay, hitTest, autoScroll, moveItems, containerRef])
+  }, [createOverlay, destroyOverlay, hitTest, autoScroll, moveItems, containerRef, pinnedZoneRef, onPinnedDrop])
 
   return {
     isDragging: dndState.isDragging,
     draggedIds: dndState.draggedIds,
     dropIndicator: dndState.dropIndicator,
+    isOverPinnedZone: dndState.isOverPinnedZone,
     handlePointerDown
   }
 }

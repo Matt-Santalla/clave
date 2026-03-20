@@ -49,7 +49,7 @@ export function WorkspaceSection({ collapsed }: { collapsed: boolean }) {
       style={{ gridTemplateRows: collapsed ? '0fr' : '1fr', opacity: collapsed ? 0 : 1, transform: collapsed ? 'translateY(-4px)' : 'translateY(0)' }}
     >
       <div className="overflow-hidden">
-        <div className="px-2 pt-0.5 space-y-0.5">
+        <div className="px-2 pt-0.5 pb-2 space-y-0.5">
           {items.map(({ view, icon: Icon, label, badge }) => (
             <SidebarItem
               key={view}

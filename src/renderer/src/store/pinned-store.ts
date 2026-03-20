@@ -287,24 +287,8 @@ export function getHiddenGroupIds(): Set<string> {
   return ids
 }
 
-/** Remove a pinned group, optionally killing its active sessions */
-export async function removePinnedGroupWithCleanup(pinnedId: string): Promise<void> {
-  const pg = usePinnedStore.getState().pinnedGroups.find((p) => p.id === pinnedId)
-  if (!pg) return
-
-  // If active, kill sessions and remove group
-  if (pg.activeGroupId) {
-    const sessionState = useSessionStore.getState()
-    const group = sessionState.groups.find((g) => g.id === pg.activeGroupId)
-    if (group) {
-      // Kill all PTYs
-      await Promise.allSettled(
-        group.sessionIds.map((sid) => window.electronAPI.killSession(sid).catch(() => {}))
-      )
-      useSessionStore.getState().deleteGroup(group.id)
-    }
-  }
-
+/** Remove a pinned group — only removes the pin, never kills running sessions */
+export function removePinnedGroupWithCleanup(pinnedId: string): void {
   usePinnedStore.getState().removePinnedGroup(pinnedId)
 }
 

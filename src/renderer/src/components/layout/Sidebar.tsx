@@ -188,12 +188,31 @@ export function Sidebar() {
 
   // Scroll container ref for DnD
   const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const pinnedZoneRef = useRef<HTMLDivElement>(null)
+
+  // Handle drop on pinned zone
+  const handlePinnedDrop = useCallback((groupId: string) => {
+    const existing = findPinnedByGroupId(groupId)
+    if (!existing) {
+      pinGroupFromCurrent(groupId)
+    }
+    // If already pinned, do nothing (visual highlight was already shown)
+  }, [])
 
   // Pointer-based DnD
-  const { isDragging, draggedIds, dropIndicator, handlePointerDown } = useSidebarDnd({
+  const { isDragging, draggedIds, dropIndicator, isOverPinnedZone, handlePointerDown } = useSidebarDnd({
     containerRef: scrollContainerRef,
-    moveItems
+    moveItems,
+    pinnedZoneRef,
+    onPinnedDrop: handlePinnedDrop
   })
+
+  // Determine if dragging a group (for pinned zone drop target)
+  const draggedGroupId = useMemo(() => {
+    if (!isDragging || draggedIds.length !== 1) return null
+    const isGroup = groups.some((g) => g.id === draggedIds[0])
+    return isGroup ? draggedIds[0] : null
+  }, [isDragging, draggedIds, groups])
 
   const handleNewSession = useCallback(async () => {
     setLoading(true)
@@ -831,7 +850,12 @@ export function Sidebar() {
       {/* Scrollable sections area */}
       <div className="flex-1 flex flex-col min-h-0">
         {/* Pinned groups section */}
-        <PinnedSection setContextMenu={setContextMenu} />
+        <PinnedSection
+          setContextMenu={setContextMenu}
+          pinnedZoneRef={pinnedZoneRef}
+          isOverPinnedZone={isOverPinnedZone}
+          draggedGroupId={draggedGroupId}
+        />
 
         {/* Sessions section */}
         <SectionHeading
@@ -1185,7 +1209,17 @@ export function Sidebar() {
   )
 }
 
-function PinnedSection({ setContextMenu }: { setContextMenu: (menu: ContextMenuState | null) => void }) {
+function PinnedSection({
+  setContextMenu,
+  pinnedZoneRef,
+  isOverPinnedZone,
+  draggedGroupId
+}: {
+  setContextMenu: (menu: ContextMenuState | null) => void
+  pinnedZoneRef: React.RefObject<HTMLDivElement | null>
+  isOverPinnedZone: boolean
+  draggedGroupId: string | null
+}) {
   const pinnedGroups = usePinnedStore((s) => s.pinnedGroups)
   const pinnedCollapsed = usePinnedStore((s) => s.pinnedCollapsed)
   const togglePinnedCollapsed = usePinnedStore((s) => s.togglePinnedCollapsed)
@@ -1218,7 +1252,10 @@ function PinnedSection({ setContextMenu }: { setContextMenu: (menu: ContextMenuS
     [setContextMenu]
   )
 
-  if (pinnedGroups.length === 0) return null
+  // Show pinned section when there are pins OR when dragging a group (drop target)
+  const showSection = pinnedGroups.length > 0 || !!draggedGroupId
+
+  if (!showSection) return null
 
   return (
     <>
@@ -1228,8 +1265,11 @@ function PinnedSection({ setContextMenu }: { setContextMenu: (menu: ContextMenuS
         onToggle={togglePinnedCollapsed}
       />
       <PinnedGroupsGrid
+        ref={pinnedZoneRef}
         collapsed={pinnedCollapsed}
         onContextMenu={handleContextMenu}
+        isOverPinnedZone={isOverPinnedZone}
+        draggedGroupId={draggedGroupId}
       />
     </>
   )
