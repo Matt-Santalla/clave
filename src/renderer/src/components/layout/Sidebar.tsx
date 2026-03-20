@@ -863,14 +863,13 @@ export function Sidebar() {
           }
         />
         <div
-          className="grid transition-[grid-template-rows,opacity,transform] duration-250 ease-out"
+          className="flex-1 min-h-0 grid transition-[grid-template-rows,opacity,transform] duration-250 ease-out"
           style={{ gridTemplateRows: sessionsCollapsed ? '0fr' : '1fr', opacity: sessionsCollapsed ? 0 : 1, transform: sessionsCollapsed ? 'translateY(-4px)' : 'translateY(0)' }}
         >
-          <div className="overflow-hidden">
+          <div className="overflow-hidden flex flex-col min-h-0">
           <div
             ref={scrollContainerRef}
-            className="overflow-y-auto px-2 space-y-2"
-            style={{ maxHeight: 'calc(60vh - 140px)' }}
+            className="overflow-y-auto px-2 space-y-2 flex-1"
           >
             {filteredSessions ? (
               filteredSessions.length === 0 ? (
@@ -1074,8 +1073,6 @@ export function Sidebar() {
         <SectionHeading title="Workspace" collapsed={workspaceCollapsed} onToggle={() => setWorkspaceCollapsed((c) => !c)} />
         <WorkspaceSection collapsed={workspaceCollapsed} />
 
-        {/* Fills remaining space */}
-        <div className="flex-1" />
       </div>
 
       {/* Context menu */}
