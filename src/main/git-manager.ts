@@ -209,11 +209,16 @@ class GitManager {
       return
     }
 
-    // strategy === 'auto': try ff-only, then fall back to merge
+    // strategy === 'auto': try ff-only, then fall back to rebase
     try {
       await git.pull(['--ff-only'])
     } catch {
-      await git.pull(['--no-rebase', '--autostash'])
+      try {
+        await git.pull(['--rebase', '--autostash'])
+      } catch (err) {
+        try { await git.rebase(['--abort']) } catch { /* abort may fail if rebase didn't start */ }
+        throw err
+      }
     }
   }
 
