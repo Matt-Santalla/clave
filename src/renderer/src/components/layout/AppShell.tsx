@@ -7,7 +7,6 @@ import { TerminalGrid } from './TerminalGrid'
 import { KanbanBoard } from '../board/KanbanBoard'
 import { UsagePanel } from '../usage/UsagePanel'
 import { SettingsPanel } from '../settings/SettingsPanel'
-import { UpdateToast } from '../ui/UpdateToast'
 import { UpdateOverlay } from '../ui/UpdateOverlay'
 import { AgentChatPanel } from '../agents/AgentChatPanel'
 import { useLaunchTemplate } from '../../hooks/use-launch-template'
@@ -426,7 +425,6 @@ export function AppShell() {
       <FilePalette />
       {previewFile && previewSource === 'tree' && <FilePreview />}
       <GitDiffPreview />
-      <UpdateToast />
       <UpdateOverlay />
     </div>
   )
