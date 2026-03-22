@@ -338,9 +338,9 @@ export function AppShell() {
               className="absolute top-0 right-0 w-2.5 h-full cursor-col-resize z-10 group/resize"
             >
               <div className={cn(
-                'absolute top-0 right-0 w-px h-full transition-colors border-r border-border/20',
+                'absolute top-0 right-0 h-full transition-colors border-r border-border/20',
                 draggingLeft ? 'bg-accent' : 'group-hover/resize:bg-accent/50'
-              )} />
+              )} style={{ width: '1.5px' }} />
             </div>
           </motion.div>
         )}
@@ -444,9 +444,9 @@ export function AppShell() {
               className="absolute top-0 left-0 w-2.5 h-full cursor-col-resize z-10 group/resize"
             >
               <div className={cn(
-                'absolute top-0 left-0 w-px h-full transition-colors border-l border-border/20',
+                'absolute top-0 left-0 h-full transition-colors border-l border-border/20',
                 draggingRight ? 'bg-accent' : 'group-hover/resize:bg-accent/50'
-              )} />
+              )} style={{ width: '1.5px' }} />
             </div>
             <SidePanel />
           </motion.div>
