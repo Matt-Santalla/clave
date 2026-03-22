@@ -203,7 +203,12 @@ export function useTerminal(sessionId: string) {
       window.electronAPI.resizeSession(sessionId, cols, rows)
     })
 
-    const { setSessionActivity, setSessionPromptWaiting, setSessionDetectedUrl, setSessionUnseenActivity, updateSessionAlive } = useSessionStore.getState()
+    const { setSessionActivity, setSessionPromptWaiting, setSessionDetectedUrl, setSessionUnseenActivity, updateSessionAlive, autoRenameSession } = useSessionStore.getState()
+
+    // Listen for auto-generated titles from the main process
+    const cleanupAutoTitle = window.electronAPI.onSessionAutoTitle(sessionId, (title) => {
+      autoRenameSession(sessionId, title)
+    })
 
     // Activity tracking: debounce from active → idle after silence
     let activityTimer: ReturnType<typeof setTimeout> | null = null
@@ -408,6 +413,7 @@ export function useTerminal(sessionId: string) {
       if (notificationTimer) clearTimeout(notificationTimer)
       inputDisposable.dispose()
       resizeDisposable.dispose()
+      cleanupAutoTitle()
       cleanupData()
       cleanupExit()
       resizeObserver.disconnect()

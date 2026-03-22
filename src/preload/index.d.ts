@@ -167,6 +167,7 @@ export interface ElectronAPI {
   listSessions: () => Promise<SessionInfo[]>
   onSessionData: (id: string, callback: (data: string) => void) => () => void
   onSessionExit: (id: string, callback: (exitCode: number) => void) => () => void
+  onSessionAutoTitle: (sessionId: string, callback: (title: string) => void) => () => void
   openExternal: (url: string) => Promise<void>
   openPath: (filePath: string) => Promise<string>
   openFolderDialog: () => Promise<string | null>

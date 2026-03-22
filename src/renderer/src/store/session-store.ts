@@ -79,6 +79,7 @@ interface SessionState {
   setSessionDetectedUrl: (id: string, url: string | null) => void
   setSessionUnseenActivity: (id: string, unseen: boolean) => void
   renameSession: (id: string, name: string) => void
+  autoRenameSession: (id: string, name: string) => void
   setSearchQuery: (query: string) => void
   toggleClaudeMode: () => void
   toggleDangerousMode: () => void
@@ -172,7 +173,7 @@ export const useSessionStore = create<SessionState>((set) => ({
   ),
   addSession: (session) =>
     set((state) => {
-      const newSession = { ...session, detectedUrl: session.detectedUrl ?? null, hasUnseenActivity: session.hasUnseenActivity ?? false }
+      const newSession = { ...session, detectedUrl: session.detectedUrl ?? null, hasUnseenActivity: session.hasUnseenActivity ?? false, userRenamed: session.userRenamed ?? false }
 
       // Check if selected sessions all belong to a single group
       const selectedIds = state.selectedSessionIds
@@ -537,7 +538,14 @@ export const useSessionStore = create<SessionState>((set) => ({
   renameSession: (id, name) =>
     set((state) => ({
       sessions: state.sessions.map((s) =>
-        s.id === id ? { ...s, name: name.trim() || s.folderName } : s
+        s.id === id ? { ...s, name: name.trim() || s.folderName, userRenamed: true } : s
+      )
+    })),
+
+  autoRenameSession: (id, name) =>
+    set((state) => ({
+      sessions: state.sessions.map((s) =>
+        s.id === id && !s.userRenamed ? { ...s, name: name.trim() || s.name } : s
       )
     })),
 
@@ -672,7 +680,8 @@ export const useSessionStore = create<SessionState>((set) => ({
         sessionType: 'agent',
         agentId: agent.id,
         detectedUrl: null,
-        hasUnseenActivity: false
+        hasUnseenActivity: false,
+        userRenamed: false
       }
       return {
         sessions: [...state.sessions, session],

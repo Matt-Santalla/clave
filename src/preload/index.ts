@@ -32,6 +32,9 @@ const electronAPI = {
   onSessionExit: (id: string, callback: (exitCode: number) => void) =>
     createIpcListener<[number]>(`pty:exit:${id}`, callback),
 
+  onSessionAutoTitle: (sessionId: string, callback: (title: string) => void) =>
+    createIpcListener<[string]>(`session:auto-title:${sessionId}`, callback),
+
   openExternal: (url: string) => ipcRenderer.invoke('shell:openExternal', url),
 
   openPath: (filePath: string) => ipcRenderer.invoke('shell:openPath', filePath),
