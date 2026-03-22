@@ -82,8 +82,9 @@ function CommitDetail({
 
   return (
     <div className="border-t border-border-subtle bg-surface-50/50">
-      {/* Commit metadata */}
+      {/* Commit message + metadata */}
       <div className="px-3 py-1.5 space-y-0.5">
+        <p className="text-xs text-text-primary whitespace-pre-wrap break-words">{commit.message}</p>
         <div className="text-[10px] text-text-tertiary flex items-center gap-2">
           <span>{commit.author}</span>
           <span>{relativeTime(commit.date)}</span>
@@ -183,7 +184,7 @@ function CommitRow({
       <span className="font-mono text-text-tertiary flex-shrink-0 text-[10px]">
         {commit.shortHash}
       </span>
-      <span className="text-text-primary truncate flex-1">{commit.message}</span>
+      <span className="text-text-primary truncate flex-1" title={commit.message}>{commit.message}</span>
       <span className="text-[10px] text-text-tertiary flex-shrink-0 whitespace-nowrap">
         {relativeTime(commit.date)}
       </span>
