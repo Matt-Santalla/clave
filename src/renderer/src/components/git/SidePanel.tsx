@@ -167,12 +167,15 @@ export function SidePanel() {
 
   return (
     <div className="flex flex-col h-full bg-surface-50">
-      {/* Tabbed header — pt-3 clears the inset gap at the window top */}
+      {/* Tabbed header — drag region for window movement, interactive children opt out */}
       <div
         className="flex items-center gap-1.5 px-3 pt-3 pb-2 border-b border-border-subtle flex-shrink-0"
-        style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+        style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
       >
-        <div className="flex items-center gap-px flex-shrink-0">
+        <div
+          className="flex items-center gap-px flex-shrink-0"
+          style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+        >
           <button
             onClick={() => setSidePanelTab('files')}
             className={`p-1 rounded hover:bg-surface-200 transition-colors flex-shrink-0 ${
@@ -211,7 +214,10 @@ export function SidePanel() {
         {/* Path display — location badge for remote, breadcrumb/dropdown for local */}
         <div className="relative flex-1 min-w-0">
           {isRemoteSession && locationName ? (
-            <div className="flex items-center gap-1.5 text-xs font-medium text-text-secondary truncate">
+            <div
+              className="flex items-center gap-1.5 text-xs font-medium text-text-secondary truncate"
+              style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+            >
               <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" />
               <span className="truncate">{locationName}</span>
               {effectiveCwd && (
@@ -224,6 +230,7 @@ export function SidePanel() {
           ) : isNavigatedSubfolder ? (
             <div
               className="flex items-center gap-0.5 text-xs font-medium min-w-0 overflow-hidden"
+              style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
               onDoubleClick={() => setCustomCwd(null)}
               title="Double-click to reset to session folder"
             >
@@ -256,7 +263,8 @@ export function SidePanel() {
               <button
                 ref={pathButtonRef}
                 onClick={() => cwd && setPathMenuOpen((v) => !v)}
-                className="w-full text-left text-xs text-text-secondary font-medium truncate hover:text-text-primary cursor-pointer transition-colors"
+                style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+                className="max-w-full text-left text-xs text-text-secondary font-medium truncate hover:text-text-primary cursor-pointer transition-colors"
                 title={cwd ?? ''}
               >
                 {displayPath}
