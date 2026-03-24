@@ -15,13 +15,14 @@ import { SessionGroupItem } from '../session/SessionGroupItem'
 import { ContextMenu } from '../ui/ContextMenu'
 import { ConfirmDialog } from '../ui/ConfirmDialog'
 import { GroupCommandDialog } from '../ui/GroupCommandDialog'
+import { ExportClaveDialog } from '../ui/ExportClaveDialog'
 import { cn } from '../../lib/utils'
 import { SectionHeading, BoardSection } from './SidebarSections'
 import { NewSessionDropdown } from './NewSessionDropdown'
 import { RemoteDirectoryPicker } from '../ui/RemoteDirectoryPicker'
 import { useAgentStore } from '../../store/agent-store'
 import { useLocationStore } from '../../store/location-store'
-import { usePinnedStore, pinGroupFromCurrent, removePinnedGroupWithCleanup, resyncPinnedGroup, findPinnedByGroupId, isPinnedOutOfSync, getHiddenGroupIds } from '../../store/pinned-store'
+import { usePinnedStore, pinGroupFromCurrent, removePinnedGroupWithCleanup, resyncPinnedGroup, findPinnedByGroupId, isPinnedOutOfSync, getHiddenGroupIds, exportClaveFile, getExportFileName, initClaveFileWatchers } from '../../store/pinned-store'
 import { PinnedGroupsGrid } from '../session/PinnedGroupsGrid'
 import { useSidebarDnd, GAP_HEIGHT } from '../../hooks/use-sidebar-dnd'
 import { SidebarFooter } from './SidebarFooter'
@@ -36,7 +37,8 @@ import {
   ArrowPathIcon,
   XMarkIcon,
   DocumentDuplicateIcon,
-  BookmarkIcon
+  BookmarkIcon,
+  ArrowDownTrayIcon
 } from '@heroicons/react/24/outline'
 
 interface ContextMenuState {
@@ -283,6 +285,44 @@ export function Sidebar() {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [createGroup, ungroupSessions])
+
+  // Initialize .clave file watchers + load workspace config
+  useEffect(() => {
+    const cleanup = initClaveFileWatchers()
+    import('../../store/workspace-store').then(({ loadWorkspaces }) => loadWorkspaces())
+    return cleanup
+  }, [])
+
+  // Detect file drag over window (for showing pinned section as drop target)
+  const [isFileDragOverWindow, setIsFileDragOverWindow] = useState(false)
+  useEffect(() => {
+    let dragCounter = 0
+    const handleDragEnter = (e: DragEvent) => {
+      if (e.dataTransfer?.types.includes('Files')) {
+        dragCounter++
+        setIsFileDragOverWindow(true)
+      }
+    }
+    const handleDragLeave = () => {
+      dragCounter--
+      if (dragCounter <= 0) {
+        dragCounter = 0
+        setIsFileDragOverWindow(false)
+      }
+    }
+    const handleDrop = () => {
+      dragCounter = 0
+      setIsFileDragOverWindow(false)
+    }
+    window.addEventListener('dragenter', handleDragEnter)
+    window.addEventListener('dragleave', handleDragLeave)
+    window.addEventListener('drop', handleDrop)
+    return () => {
+      window.removeEventListener('dragenter', handleDragEnter)
+      window.removeEventListener('dragleave', handleDragLeave)
+      window.removeEventListener('drop', handleDrop)
+    }
+  }, [])
 
   const aliveSessionIds = useMemo(
     () => new Set<string>(sessions.filter((s) => s.alive).map((s) => s.id)),
@@ -890,6 +930,7 @@ export function Sidebar() {
           pinnedZoneRef={pinnedZoneRef}
           isOverPinnedZone={isOverPinnedZone}
           draggedGroupId={draggedGroupId}
+          isFileDragOver={isFileDragOverWindow}
         />
 
         {/* Sessions section */}
@@ -1270,16 +1311,20 @@ function PinnedSection({
   setContextMenu,
   pinnedZoneRef,
   isOverPinnedZone,
-  draggedGroupId
+  draggedGroupId,
+  isFileDragOver
 }: {
   setContextMenu: (menu: ContextMenuState | null) => void
   pinnedZoneRef: React.RefObject<HTMLDivElement | null>
   isOverPinnedZone: boolean
   draggedGroupId: string | null
+  isFileDragOver: boolean
 }) {
   const pinnedGroups = usePinnedStore((s) => s.pinnedGroups)
   const pinnedCollapsed = usePinnedStore((s) => s.pinnedCollapsed)
   const togglePinnedCollapsed = usePinnedStore((s) => s.togglePinnedCollapsed)
+  const [exportDialogPinnedId, setExportDialogPinnedId] = useState<string | null>(null)
+
   const handleContextMenu = useCallback(
     (e: React.MouseEvent, pinnedId: string) => {
       setContextMenu({
@@ -1298,6 +1343,11 @@ function PinnedSection({
             }
           },
           {
+            label: 'Export as .clave',
+            icon: <ArrowDownTrayIcon className="w-3.5 h-3.5" />,
+            onClick: () => setExportDialogPinnedId(pinnedId)
+          },
+          {
             label: 'Remove Pin',
             icon: <TrashIcon className="w-3.5 h-3.5" />,
             danger: true,
@@ -1309,8 +1359,8 @@ function PinnedSection({
     [setContextMenu]
   )
 
-  // Show pinned section when there are pins OR when dragging a group (drop target)
-  const showSection = pinnedGroups.length > 0 || !!draggedGroupId
+  // Show pinned section when there are pins, dragging a group, or dragging a .clave file
+  const showSection = pinnedGroups.length > 0 || !!draggedGroupId || isFileDragOver
 
   if (!showSection) return null
 
@@ -1327,6 +1377,18 @@ function PinnedSection({
         onContextMenu={handleContextMenu}
         isOverPinnedZone={isOverPinnedZone}
         draggedGroupId={draggedGroupId}
+        isFileDragOver={isFileDragOver}
+      />
+      <ExportClaveDialog
+        isOpen={exportDialogPinnedId !== null}
+        defaultFileName={exportDialogPinnedId ? getExportFileName(exportDialogPinnedId) : 'group.clave'}
+        onExport={async (folder, fileName, keepSynced) => {
+          if (exportDialogPinnedId) {
+            await exportClaveFile(exportDialogPinnedId, folder, fileName, keepSynced)
+          }
+          setExportDialogPinnedId(null)
+        }}
+        onCancel={() => setExportDialogPinnedId(null)}
       />
     </>
   )

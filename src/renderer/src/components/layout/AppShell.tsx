@@ -16,6 +16,9 @@ import { FilePreview } from '../files/FilePreview'
 import { GitDiffPreview } from '../git/GitDiffPreview'
 import { Bars3BottomLeftIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline'
 import { cn } from '../../lib/utils'
+import { usePinnedStore } from '../../store/pinned-store'
+import { resolveColorHex } from '../../store/session-types'
+import { getTerminalIconComponent } from '../ui/GroupCommandDialog'
 
 const sidebarTransition = {
   duration: 0.2,
@@ -437,6 +440,7 @@ export function AppShell() {
             )}
             style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
           >
+            {/* Left — sidebar toggle */}
             <div
               className="flex items-center gap-2"
               style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
@@ -450,10 +454,17 @@ export function AppShell() {
               </button>
             </div>
 
+            {/* Center — workspace title */}
+            <span className="text-[11px] font-medium text-text-tertiary tracking-wide select-none">
+              Codika
+            </span>
+
+            {/* Right — quick actions + divider + search + file tree */}
             <div
-              className="flex items-center gap-2"
+              className="flex items-center gap-0.5"
               style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
             >
+              <ToolbarQuickActions />
               {/* File palette button */}
               <button
                 onClick={toggleFilePalette}
@@ -534,5 +545,83 @@ export function AppShell() {
       <GitDiffPreview />
       <UpdateOverlay />
     </div>
+  )
+}
+
+function ToolbarQuickActions() {
+  const pinnedGroups = usePinnedStore((s) => s.pinnedGroups)
+  const addSession = useSessionStore((s) => s.addSession)
+
+  // Collect terminals from all pinned groups marked as toolbar
+  const toolbarPins = pinnedGroups.filter((pg) => pg.toolbar)
+  if (toolbarPins.length === 0) return null
+
+  const handleClick = async (cwd: string, command: string, commandMode: 'prefill' | 'auto') => {
+    try {
+      const sessionInfo = await window.electronAPI.spawnSession(cwd, {
+        claudeMode: false,
+        initialCommand: command || undefined,
+        autoExecute: command ? commandMode === 'auto' : false
+      })
+      addSession({
+        id: sessionInfo.id,
+        cwd: sessionInfo.cwd,
+        folderName: sessionInfo.folderName,
+        name: command ? command.split(' ').slice(0, 3).join(' ') : sessionInfo.folderName,
+        alive: sessionInfo.alive,
+        activityStatus: 'idle',
+        promptWaiting: null,
+        claudeMode: false,
+        dangerousMode: false,
+        claudeSessionId: sessionInfo.claudeSessionId,
+        sessionType: 'local',
+        detectedUrl: null,
+        hasUnseenActivity: false,
+        userRenamed: false
+      })
+      useSessionStore.getState().selectSession(sessionInfo.id, false)
+      useSessionStore.getState().setFocusedSession(sessionInfo.id)
+    } catch (err) {
+      console.error('[toolbar] Failed to spawn:', err)
+    }
+  }
+
+  // Darken color for better toolbar contrast
+  const darken = (hex: string | undefined): string | undefined => {
+    if (!hex) return undefined
+    // Mix with black at 30% to darken
+    const r = parseInt(hex.slice(1, 3), 16)
+    const g = parseInt(hex.slice(3, 5), 16)
+    const b = parseInt(hex.slice(5, 7), 16)
+    const f = 0.7
+    return `rgb(${Math.round(r * f)}, ${Math.round(g * f)}, ${Math.round(b * f)})`
+  }
+
+  return (
+    <>
+      {toolbarPins.map((pg, pgIdx) => (
+        <div key={pg.id} className="flex items-center gap-0.5">
+          {pgIdx > 0 && (
+            <div className="w-px h-3.5 bg-border-subtle mx-0.5" />
+          )}
+          {pg.terminals.map((t, i) => {
+            const IconComp = getTerminalIconComponent(t.icon)
+            const colorHex = darken(resolveColorHex(t.color))
+            return (
+              <button
+                key={`${pg.id}-${i}`}
+                onClick={() => handleClick(pg.cwd || '.', t.command, t.commandMode)}
+                className="p-1.5 rounded-lg hover:bg-surface-200 transition-colors"
+                style={{ color: colorHex }}
+                title={t.command || 'Shell'}
+              >
+                <IconComp className="w-4 h-4" />
+              </button>
+            )
+          })}
+        </div>
+      ))}
+      <div className="w-px h-3.5 bg-border-subtle mx-0.5" />
+    </>
   )
 }
