@@ -19,6 +19,9 @@ interface PinnedGroupBlueprint {
   sessions: PinnedGroupSession[]
   terminals: PinnedGroupTerminal[]
   createdAt: number
+  filePath?: string | null
+  groupIndex?: number
+  toolbar?: boolean
 }
 
 function loadPersistedGroups(): PinnedGroup[] {
@@ -37,8 +40,8 @@ function loadPersistedGroups(): PinnedGroup[] {
 }
 
 function persistGroups(groups: PinnedGroup[]): void {
-  const blueprints: PinnedGroupBlueprint[] = groups.map(({ id, name, cwd, color, sessions, terminals, createdAt }) => ({
-    id, name, cwd, color, sessions, terminals, createdAt
+  const blueprints: PinnedGroupBlueprint[] = groups.map(({ id, name, cwd, color, sessions, terminals, createdAt, filePath, groupIndex, toolbar }) => ({
+    id, name, cwd, color, sessions, terminals, createdAt, filePath, groupIndex, toolbar
   }))
   localStorage.setItem('clave-pinned-groups', JSON.stringify(blueprints))
 }
@@ -52,6 +55,7 @@ interface PinnedStoreState {
   togglePinnedCollapsed: () => void
   setActiveGroupId: (pinnedId: string, groupId: string | null) => void
   setVisible: (pinnedId: string, visible: boolean) => void
+  updatePinnedGroup: (pinnedId: string, updates: Partial<PinnedGroup>) => void
 }
 
 export const usePinnedStore = create<PinnedStoreState>((set) => ({
@@ -67,6 +71,10 @@ export const usePinnedStore = create<PinnedStoreState>((set) => ({
 
   removePinnedGroup: (id) =>
     set((s) => {
+      const removed = s.pinnedGroups.find((pg) => pg.id === id)
+      if (removed?.filePath) {
+        window.electronAPI?.unwatchClaveFile(removed.filePath).catch(() => {})
+      }
       const next = s.pinnedGroups.filter((pg) => pg.id !== id)
       persistGroups(next)
       return { pinnedGroups: next }
@@ -76,6 +84,8 @@ export const usePinnedStore = create<PinnedStoreState>((set) => ({
     set((s) => {
       const next = s.pinnedGroups.map((pg) => (pg.id === id ? { ...pg, name } : pg))
       persistGroups(next)
+      const renamed = next.find((pg) => pg.id === id)
+      if (renamed) syncToClaveFile(renamed)
       return { pinnedGroups: next }
     }),
 
@@ -98,8 +108,265 @@ export const usePinnedStore = create<PinnedStoreState>((set) => ({
       pinnedGroups: s.pinnedGroups.map((pg) =>
         pg.id === pinnedId ? { ...pg, visible } : pg
       )
-    }))
+    })),
+
+  updatePinnedGroup: (pinnedId, updates) =>
+    set((s) => {
+      const next = s.pinnedGroups.map((pg) =>
+        pg.id === pinnedId ? { ...pg, ...updates } : pg
+      )
+      persistGroups(next)
+      return { pinnedGroups: next }
+    })
 }))
+
+// ── Sync to .clave file (debounced) ──
+
+let syncTimer: ReturnType<typeof setTimeout> | null = null
+const pendingSyncs = new Set<string>()
+
+function syncToClaveFile(pg: PinnedGroup): void {
+  if (!pg.filePath) return
+  // Track by filePath (not pin ID) so multi-group files are written once
+  pendingSyncs.add(pg.filePath)
+
+  if (syncTimer) clearTimeout(syncTimer)
+  syncTimer = setTimeout(() => {
+    const store = usePinnedStore.getState()
+    // Deduplicate by filePath
+    for (const fp of pendingSyncs) {
+      const pinsForFile = store.pinnedGroups
+        .filter((p) => p.filePath === fp)
+        .sort((a, b) => (a.groupIndex ?? 0) - (b.groupIndex ?? 0))
+      if (pinsForFile.length === 0) continue
+
+      const isMulti = pinsForFile.length > 1 || pinsForFile[0].groupIndex !== undefined
+
+      const serializePin = (p: PinnedGroup) => ({
+        name: p.name,
+        cwd: p.cwd,
+        color: p.color,
+        ...(p.toolbar ? { toolbar: true } : {}),
+        sessions: p.sessions.map((s) => ({ cwd: s.cwd, name: s.name, claudeMode: s.claudeMode, dangerousMode: s.dangerousMode })),
+        terminals: p.terminals.map((t) => ({ command: t.command, commandMode: t.commandMode, color: t.color, icon: t.icon }))
+      })
+
+      const writeData = isMulti
+        ? { groups: pinsForFile.map(serializePin) }
+        : serializePin(pinsForFile[0])
+
+      window.electronAPI?.writeClaveFile(fp, writeData)
+        .catch((err) => console.error('[clave] Failed to write .clave file:', err))
+    }
+    pendingSyncs.clear()
+    syncTimer = null
+  }, 300)
+}
+
+// ── Import / Export ──
+
+function createPinnedFromGroup(
+  g: { name: string; cwd: string; color: string | null; toolbar?: boolean; sessions: { cwd: string; name: string; claudeMode: boolean; dangerousMode: boolean }[]; terminals: { command: string; commandMode: 'prefill' | 'auto'; color: string; icon?: string }[] },
+  filePath: string,
+  groupIndex?: number
+): PinnedGroup {
+  return {
+    id: crypto.randomUUID(),
+    name: g.name,
+    cwd: g.cwd,
+    color: (g.color as GroupTerminalColor) ?? null,
+    sessions: g.sessions,
+    terminals: groupDataToPinnedTerminals(g.terminals),
+    createdAt: Date.now(),
+    filePath,
+    groupIndex,
+    toolbar: g.toolbar,
+    activeGroupId: null,
+    visible: false
+  }
+}
+
+function groupDataToPinnedTerminals(terminals: { command: string; commandMode: 'prefill' | 'auto'; color: string; icon?: string }[]): PinnedGroupTerminal[] {
+  return terminals.map((t) => ({
+    command: t.command,
+    commandMode: t.commandMode,
+    color: t.color as GroupTerminalColor,
+    icon: t.icon as PinnedGroupTerminal['icon']
+  }))
+}
+
+/** Import a .clave file as pinned group(s) and optionally auto-launch.
+ *  Returns info about the first pin, and whether it already existed. */
+export async function importClaveFile(filePath: string, options?: { autoLaunch?: boolean }): Promise<{ pinnedId: string; alreadyExists: boolean } | null> {
+  const result = await window.electronAPI?.readClaveFile(filePath)
+  if (!result) return null
+
+  const autoLaunch = options?.autoLaunch ?? true
+
+  // Normalize to array of groups
+  const groups = result.type === 'multi'
+    ? result.groups
+    : [{ name: result.name, cwd: result.cwd, color: result.color, toolbar: result.toolbar, sessions: result.sessions, terminals: result.terminals }]
+
+  // Check if already imported — reuse existing pins
+  const existingPins = usePinnedStore.getState().pinnedGroups.filter((pg) => pg.filePath === filePath)
+  if (existingPins.length > 0) {
+    // Update existing pins from the file
+    for (let i = 0; i < groups.length; i++) {
+      const g = groups[i]
+      const existing = existingPins.find((p) => p.groupIndex === i) ?? existingPins[i]
+      if (existing) {
+        usePinnedStore.getState().updatePinnedGroup(existing.id, {
+          name: g.name,
+          cwd: g.cwd,
+          color: (g.color as GroupTerminalColor) ?? null,
+          sessions: g.sessions,
+          terminals: groupDataToPinnedTerminals(g.terminals),
+          groupIndex: result.type === 'multi' ? i : undefined,
+          toolbar: g.toolbar
+        })
+        if (autoLaunch) {
+          const state = getPinnedState(existing)
+          if (state === 'idle' || state === 'active-hidden') {
+            await togglePinnedGroup(existing.id)
+          }
+        }
+      }
+    }
+    // Add any new groups that weren't in existing pins
+    for (let i = existingPins.length; i < groups.length; i++) {
+      const g = groups[i]
+      const pinned = createPinnedFromGroup(g, filePath, result.type === 'multi' ? i : undefined)
+      usePinnedStore.getState().addPinnedGroup(pinned)
+      if (autoLaunch) await togglePinnedGroup(pinned.id)
+    }
+    return { pinnedId: existingPins[0].id, alreadyExists: true }
+  }
+
+  // Fresh import
+  window.electronAPI?.watchClaveFile(filePath).catch(() => {})
+
+  let firstId: string | null = null
+  for (let i = 0; i < groups.length; i++) {
+    const g = groups[i]
+    const pinned = createPinnedFromGroup(g, filePath, result.type === 'multi' ? i : undefined)
+    usePinnedStore.getState().addPinnedGroup(pinned)
+    if (!firstId) firstId = pinned.id
+    if (autoLaunch) await togglePinnedGroup(pinned.id)
+  }
+
+  return firstId ? { pinnedId: firstId, alreadyExists: false } : null
+}
+
+/** Get the default file name for a pinned group export */
+export function getExportFileName(pinnedId: string): string {
+  const pg = usePinnedStore.getState().pinnedGroups.find((p) => p.id === pinnedId)
+  if (!pg) return 'group.clave'
+  return `${pg.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.clave`
+}
+
+/** Export a pinned group to a .clave file at the specified path */
+export async function exportClaveFile(pinnedId: string, folder: string, fileName: string, keepSynced: boolean): Promise<void> {
+  const pg = usePinnedStore.getState().pinnedGroups.find((p) => p.id === pinnedId)
+  if (!pg) return
+
+  const filePath = `${folder}/${fileName}`
+
+  await window.electronAPI?.writeClaveFile(filePath, {
+    name: pg.name,
+    cwd: pg.cwd,
+    color: pg.color,
+    sessions: pg.sessions.map((s) => ({
+      cwd: s.cwd,
+      name: s.name,
+      claudeMode: s.claudeMode,
+      dangerousMode: s.dangerousMode
+    })),
+    terminals: pg.terminals.map((t) => ({
+      command: t.command,
+      commandMode: t.commandMode,
+      color: t.color,
+      icon: t.icon
+    }))
+  })
+
+  if (keepSynced) {
+    usePinnedStore.getState().updatePinnedGroup(pinnedId, { filePath })
+    window.electronAPI?.watchClaveFile(filePath).catch(() => {})
+  }
+}
+
+// ── File watch handler ──
+
+/** Initialize file watchers for all file-backed pins and set up the listener */
+export function initClaveFileWatchers(): () => void {
+  // Start watching all file-backed pins
+  const pins = usePinnedStore.getState().pinnedGroups
+  for (const pg of pins) {
+    if (pg.filePath) {
+      window.electronAPI?.watchClaveFile(pg.filePath).catch(() => {})
+    }
+  }
+
+  // Listen for file change events
+  const cleanup = window.electronAPI?.onClaveFileChanged(async (filePath: string) => {
+    const pinsForFile = usePinnedStore.getState().pinnedGroups.filter((p) => p.filePath === filePath)
+    if (pinsForFile.length === 0) return
+
+    const result = await window.electronAPI?.readClaveFile(filePath)
+    if (!result) return
+
+    // Normalize to array of groups
+    const groups = result.type === 'multi'
+      ? result.groups
+      : [{ name: result.name, cwd: result.cwd, color: result.color, toolbar: result.toolbar, sessions: result.sessions, terminals: result.terminals }]
+
+    for (let i = 0; i < pinsForFile.length && i < groups.length; i++) {
+      const pg = pinsForFile.find((p) => p.groupIndex === i) ?? pinsForFile[i]
+      const g = groups[i]
+      if (!pg || !g) continue
+
+      const state = getPinnedState(pg)
+
+      if (state === 'idle') {
+        usePinnedStore.getState().updatePinnedGroup(pg.id, {
+          name: g.name,
+          cwd: g.cwd,
+          color: (g.color as GroupTerminalColor) ?? null,
+          toolbar: g.toolbar,
+          sessions: g.sessions,
+          terminals: groupDataToPinnedTerminals(g.terminals)
+        })
+      } else {
+        // Active — only cosmetic updates, never touch running sessions
+        usePinnedStore.getState().updatePinnedGroup(pg.id, {
+          name: g.name,
+          color: (g.color as GroupTerminalColor) ?? null,
+          toolbar: g.toolbar,
+          terminals: groupDataToPinnedTerminals(g.terminals)
+        })
+
+        if (pg.activeGroupId) {
+          const sessionState = useSessionStore.getState()
+          const group = sessionState.groups.find((gr) => gr.id === pg.activeGroupId)
+          if (group) {
+            if (group.name !== g.name) {
+              useSessionStore.getState().renameGroup(pg.activeGroupId, g.name)
+            }
+            const newColor = (g.color as GroupTerminalColor) ?? null
+            if ((group.color ?? null) !== newColor) {
+              useSessionStore.getState().setGroupColor(pg.activeGroupId, newColor)
+            }
+          }
+        }
+      }
+    }
+  })
+
+  return cleanup ?? (() => {})
+}
+
+// ── Original functions (unchanged) ──
 
 /** Capture a live group as a pinned blueprint */
 export function pinGroupFromCurrent(groupId: string): void {
@@ -340,6 +607,9 @@ export function resyncPinnedGroup(groupId: string): void {
         : p
     )
     persistGroups(next)
+    // Sync to .clave file if backed
+    const updated = next.find((p) => p.id === pg.id)
+    if (updated) syncToClaveFile(updated)
     return { pinnedGroups: next }
   })
 }
@@ -384,7 +654,7 @@ export function isPinnedOutOfSync(groupId: string): boolean {
   return false
 }
 
-// Auto-sync group name changes to linked pinned buttons
+// Auto-sync group name/color changes to linked pinned buttons + .clave files
 useSessionStore.subscribe((state, prevState) => {
   if (state.groups === prevState.groups) return
 
@@ -406,5 +676,9 @@ useSessionStore.subscribe((state, prevState) => {
   if (changed) {
     usePinnedStore.setState({ pinnedGroups: updated })
     persistGroups(updated)
+    // Sync changed pins to .clave files
+    for (const pg of updated) {
+      if (pg.filePath) syncToClaveFile(pg)
+    }
   }
 })

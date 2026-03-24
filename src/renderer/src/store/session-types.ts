@@ -157,6 +157,9 @@ export interface PinnedGroup {
   sessions: PinnedGroupSession[]
   terminals: PinnedGroupTerminal[]
   createdAt: number
+  filePath?: string | null
+  groupIndex?: number  // Position in multi-group .clave file (0-based)
+  toolbar?: boolean    // Show this group's terminals as toolbar quick-actions
   // Runtime state (not persisted)
   activeGroupId: string | null
   visible: boolean

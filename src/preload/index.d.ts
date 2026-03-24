@@ -1,3 +1,32 @@
+export interface ClaveFileGroupData {
+  name: string
+  cwd: string
+  color: string | null
+  toolbar?: boolean
+  sessions: { cwd: string; name: string; claudeMode: boolean; dangerousMode: boolean }[]
+  terminals: { command: string; commandMode: 'prefill' | 'auto'; color: string; icon?: string }[]
+}
+
+export type ClaveFileReadResult =
+  | ({ type: 'single' } & ClaveFileGroupData)
+  | { type: 'multi'; groups: ClaveFileGroupData[] }
+
+export interface ClaveFileWriteData {
+  name?: string
+  cwd?: string | null
+  color?: string | null
+  sessions?: { cwd: string; name: string; claudeMode: boolean; dangerousMode: boolean }[]
+  terminals?: { command: string; commandMode: 'prefill' | 'auto'; color: string; icon?: string }[]
+  groups?: Array<{
+    name: string
+    cwd: string | null
+    color: string | null
+    toolbar?: boolean
+    sessions: { cwd: string; name: string; claudeMode: boolean; dangerousMode: boolean }[]
+    terminals: { command: string; commandMode: 'prefill' | 'auto'; color: string; icon?: string }[]
+  }>
+}
+
 export interface SessionInfo {
   id: string
   cwd: string
@@ -251,6 +280,19 @@ export interface ElectronAPI {
   agentSend: (agentId: string, locationId: string, content: string) => Promise<import('../shared/remote-types').ChatMessage>
   onAgentMessage: (agentId: string, callback: (message: unknown) => void) => () => void
   onAgentsUpdated: (callback: (locationId: string, agents: unknown[]) => void) => () => void
+
+  // .clave files
+  readClaveFile: (absolutePath: string) => Promise<ClaveFileReadResult | null>
+  writeClaveFile: (absolutePath: string, data: ClaveFileWriteData) => Promise<void>
+  watchClaveFile: (absolutePath: string) => Promise<void>
+  unwatchClaveFile: (absolutePath: string) => Promise<void>
+  onClaveFileChanged: (callback: (filePath: string) => void) => () => void
+  saveFileDialog: (defaultName: string, filters: { name: string; extensions: string[] }[]) => Promise<string | null>
+  getDownloadsPath: () => Promise<string>
+  getUserDataPath: () => Promise<string>
+  claveFileExists: (absolutePath: string) => Promise<boolean>
+  preferencesGet: (key: string) => Promise<unknown>
+  preferencesSet: (key: string, value: unknown) => Promise<void>
 }
 
 declare global {

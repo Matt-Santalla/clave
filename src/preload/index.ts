@@ -192,7 +192,29 @@ const electronAPI = {
   onAgentMessage: (agentId: string, callback: (message: unknown) => void) =>
     createIpcListener<[unknown]>(`agent:on-message:${agentId}`, callback),
   onAgentsUpdated: (callback: (locationId: string, agents: unknown[]) => void) =>
-    createIpcListener<[string, unknown[]]>('agent:agents-updated', callback)
+    createIpcListener<[string, unknown[]]>('agent:agents-updated', callback),
+
+  // ── .clave files ──
+  readClaveFile: (absolutePath: string) =>
+    ipcRenderer.invoke('clave:read-file', absolutePath),
+  writeClaveFile: (absolutePath: string, data: unknown) =>
+    ipcRenderer.invoke('clave:write-file', absolutePath, data),
+  watchClaveFile: (absolutePath: string) =>
+    ipcRenderer.invoke('clave:watch-file', absolutePath),
+  unwatchClaveFile: (absolutePath: string) =>
+    ipcRenderer.invoke('clave:unwatch-file', absolutePath),
+  onClaveFileChanged: (callback: (filePath: string) => void) =>
+    createIpcListener<[string]>('clave:file-changed', callback),
+  saveFileDialog: (defaultName: string, filters: { name: string; extensions: string[] }[]) =>
+    ipcRenderer.invoke('dialog:saveFile', defaultName, filters),
+  getDownloadsPath: () => ipcRenderer.invoke('app:get-downloads-path') as Promise<string>,
+  getUserDataPath: () => ipcRenderer.invoke('app:get-user-data-path') as Promise<string>,
+  claveFileExists: (absolutePath: string) =>
+    ipcRenderer.invoke('clave:file-exists', absolutePath) as Promise<boolean>,
+  preferencesGet: (key: string) =>
+    ipcRenderer.invoke('preferences:get', key),
+  preferencesSet: (key: string, value: unknown) =>
+    ipcRenderer.invoke('preferences:set', key, value)
 }
 
 contextBridge.exposeInMainWorld('electronAPI', electronAPI)
