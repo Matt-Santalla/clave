@@ -203,11 +203,16 @@ export function useTerminal(sessionId: string) {
       window.electronAPI.resizeSession(sessionId, cols, rows)
     })
 
-    const { setSessionActivity, setSessionPromptWaiting, setSessionDetectedUrl, setSessionServerStatus, setSessionServerCommand, setSessionUnseenActivity, updateSessionAlive, autoRenameSession } = useSessionStore.getState()
+    const { setSessionActivity, setSessionPromptWaiting, setSessionDetectedUrl, setSessionServerStatus, setSessionServerCommand, setSessionUnseenActivity, updateSessionAlive, autoRenameSession, setSessionPlanFile } = useSessionStore.getState()
 
     // Listen for auto-generated titles from the main process
     const cleanupAutoTitle = window.electronAPI.onSessionAutoTitle(sessionId, (title) => {
       autoRenameSession(sessionId, title)
+    })
+
+    // Listen for plan file detection
+    const cleanupPlanDetected = window.electronAPI.onPlanDetected(sessionId, (planPath) => {
+      setSessionPlanFile(sessionId, planPath)
     })
 
     // Activity tracking: debounce from active → idle after silence
@@ -474,6 +479,7 @@ export function useTerminal(sessionId: string) {
       inputDisposable.dispose()
       resizeDisposable.dispose()
       cleanupAutoTitle()
+      cleanupPlanDetected()
       cleanupData()
       cleanupExit()
       resizeObserver.disconnect()

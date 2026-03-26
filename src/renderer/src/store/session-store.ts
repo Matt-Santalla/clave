@@ -84,6 +84,7 @@ interface SessionState {
   setSessionUnseenActivity: (id: string, unseen: boolean) => void
   renameSession: (id: string, name: string) => void
   autoRenameSession: (id: string, name: string) => void
+  setSessionPlanFile: (id: string, path: string) => void
   setSearchQuery: (query: string) => void
   toggleClaudeMode: () => void
   toggleDangerousMode: () => void
@@ -177,7 +178,7 @@ export const useSessionStore = create<SessionState>((set) => ({
   ),
   addSession: (session) =>
     set((state) => {
-      const newSession = { ...session, detectedUrl: session.detectedUrl ?? null, serverStatus: session.serverStatus ?? null, serverCommand: session.serverCommand ?? null, hasUnseenActivity: session.hasUnseenActivity ?? false, userRenamed: session.userRenamed ?? false }
+      const newSession = { ...session, detectedUrl: session.detectedUrl ?? null, serverStatus: session.serverStatus ?? null, serverCommand: session.serverCommand ?? null, hasUnseenActivity: session.hasUnseenActivity ?? false, userRenamed: session.userRenamed ?? false, planFilePath: session.planFilePath ?? null }
 
       // Check if selected sessions all belong to a single group
       const selectedIds = state.selectedSessionIds
@@ -588,6 +589,13 @@ export const useSessionStore = create<SessionState>((set) => ({
       )
     })),
 
+  setSessionPlanFile: (id, path) =>
+    set((state) => ({
+      sessions: state.sessions.map((s) =>
+        s.id === id ? { ...s, planFilePath: path } : s
+      )
+    })),
+
   setSearchQuery: (query) => set({ searchQuery: query }),
 
   toggleClaudeMode: () => set((state) => ({ claudeMode: !state.claudeMode })),
@@ -722,7 +730,8 @@ export const useSessionStore = create<SessionState>((set) => ({
         serverStatus: null,
         serverCommand: null,
         hasUnseenActivity: false,
-        userRenamed: false
+        userRenamed: false,
+        planFilePath: null
       }
       return {
         sessions: [...state.sessions, session],

@@ -203,6 +203,9 @@ export interface ElectronAPI {
   onSessionData: (id: string, callback: (data: string) => void) => () => void
   onSessionExit: (id: string, callback: (exitCode: number) => void) => () => void
   onSessionAutoTitle: (sessionId: string, callback: (title: string) => void) => () => void
+  onPlanDetected: (sessionId: string, callback: (planPath: string) => void) => () => void
+  saveDiscussion: (cwd: string, claudeSessionId: string, sessionName: string) => Promise<{ success: boolean; error?: string }>
+  savePlan: (cwd: string, claudeSessionId: string, sessionName: string) => Promise<{ success: boolean; error?: string }>
   openExternal: (url: string) => Promise<void>
   checkPort: (port: number) => Promise<boolean>
   openPath: (filePath: string) => Promise<string>

@@ -35,6 +35,15 @@ const electronAPI = {
   onSessionAutoTitle: (sessionId: string, callback: (title: string) => void) =>
     createIpcListener<[string]>(`session:auto-title:${sessionId}`, callback),
 
+  onPlanDetected: (sessionId: string, callback: (planPath: string) => void) =>
+    createIpcListener<[string]>(`session:plan-detected:${sessionId}`, callback),
+
+  saveDiscussion: (cwd: string, claudeSessionId: string, sessionName: string) =>
+    ipcRenderer.invoke('session:save-discussion', cwd, claudeSessionId, sessionName),
+
+  savePlan: (cwd: string, claudeSessionId: string, sessionName: string) =>
+    ipcRenderer.invoke('session:save-plan', cwd, claudeSessionId, sessionName),
+
   openExternal: (url: string) => ipcRenderer.invoke('shell:openExternal', url),
   checkPort: (port: number) =>
     ipcRenderer.invoke('net:check-port', port) as Promise<boolean>,

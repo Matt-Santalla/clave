@@ -120,6 +120,7 @@ export interface Session {
   serverCommand: string | null
   hasUnseenActivity: boolean
   userRenamed: boolean
+  planFilePath: string | null
 }
 
 export interface SessionGroup {
