@@ -79,7 +79,7 @@ function InlineCreateInput({
   return (
     <div
       className="flex items-center h-7 px-2"
-      style={{ paddingLeft: `${8 + depth * 16}px` }}
+      style={{ paddingLeft: `${8 + depth * 12}px` }}
     >
       <span className="w-4 flex-shrink-0" />
       <svg

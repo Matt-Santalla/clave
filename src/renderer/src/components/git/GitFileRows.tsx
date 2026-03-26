@@ -139,7 +139,7 @@ export function GitTreeDirRow({
       className={`flex items-center gap-1.5 py-0.5 text-xs transition-colors cursor-pointer pr-3 ${
         isSelected ? 'bg-surface-200' : 'hover:bg-surface-100'
       }`}
-      style={{ paddingLeft: `${12 + node.depth * 16}px` }}
+      style={{ paddingLeft: `${8 + node.depth * 12}px` }}
       onClick={handleClick}
       draggable
       onDragStart={handleDragStart}
@@ -217,7 +217,7 @@ export function GitTreeFileRow({
       className={`flex items-center gap-1.5 py-0.5 text-xs transition-colors group pr-3 ${
         disabled ? 'opacity-50 pointer-events-none' : isSelected ? 'bg-surface-200' : 'hover:bg-surface-100'
       }`}
-      style={{ paddingLeft: `${12 + node.depth * 16}px` }}
+      style={{ paddingLeft: `${8 + node.depth * 12}px` }}
       draggable
       onDragStart={handleDragStart}
     >

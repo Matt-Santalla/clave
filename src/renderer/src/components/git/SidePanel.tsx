@@ -5,7 +5,9 @@ import { useLocationStore } from '../../store/location-store'
 import { FileTree } from '../files/FileTree'
 import { RemoteFileTree } from '../files/RemoteFileTree'
 import { GitStatusPanel, MultiRepoGitPanel } from './GitStatusPanel'
+import { MagicSyncButton, ViewModeToggle, CollapseAllButton } from './GitPanelControls'
 import { useMultiRepoStatus } from '../../hooks/use-multi-repo-status'
+import { useGitStatus } from '../../hooks/use-git-status'
 import { shortenPath } from '../../lib/utils'
 
 function getParentPaths(fullPath: string): { path: string; name: string }[] {
@@ -90,6 +92,22 @@ export function SidePanel() {
   const isGitTabActive = effectiveTab === 'git'
   const multiRepo = useMultiRepoStatus(cwd, isGitTabActive)
 
+  // Single-repo git status — used for branch badge in path row
+  const isSingleRepo = isGitTabActive && multiRepo.result.mode === 'single'
+  const singleRepoGit = useGitStatus(isSingleRepo ? cwd : null, isSingleRepo)
+
+  // Compute repo paths for MagicSync across all git modes
+  const allRepoPaths = useMemo(() => {
+    if (multiRepo.result.mode === 'multi') return multiRepo.result.repos.map((r) => r.path)
+    if (isSingleRepo && cwd) return [cwd]
+    return []
+  }, [multiRepo.result, isSingleRepo, cwd])
+
+  const gitRefresh = useCallback(() => {
+    if (multiRepo.result.mode === 'multi') multiRepo.refresh()
+    if (isSingleRepo) singleRepoGit.refresh()
+  }, [multiRepo, isSingleRepo, singleRepoGit])
+
   const displayPath = useMemo(() => {
     if (!cwd) return ''
     return shortenPath(cwd)
@@ -167,38 +185,41 @@ export function SidePanel() {
 
   return (
     <div className="flex flex-col h-full bg-surface-50">
-      {/* Tabbed header — drag region for window movement, interactive children opt out */}
+      {/* Header — drag region for window movement, interactive children opt out */}
       <div
-        className="flex items-center gap-1.5 px-3 pt-3 pb-2 border-b border-border-subtle flex-shrink-0"
+        className="flex flex-col border-b border-border-subtle flex-shrink-0"
         style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
       >
-        <div
-          className="flex items-center gap-px flex-shrink-0"
-          style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
-        >
-          <button
-            onClick={() => setSidePanelTab('files')}
-            className={`p-1 rounded hover:bg-surface-200 transition-colors flex-shrink-0 ${
-              sidePanelTab === 'files' ? 'text-accent' : 'text-text-tertiary hover:text-text-primary'
-            }`}
-            title="File tree"
+        {/* Row 1: Centered segmented control */}
+        <div className="flex justify-center px-3 pt-3 pb-1.5">
+          <div
+            className="flex items-center bg-surface-100 rounded p-0.5 gap-0.5"
+            style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
           >
-            <svg width="14" height="14" viewBox="0 0 12 12" fill="none">
-              <path d="M6.5 1H3a1 1 0 0 0-1 1v6.5a1 1 0 0 0 1 1h4.5a1 1 0 0 0 1-1V2.5L6.5 1Z" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round" />
-              <path d="M4.5 9.5V10a1 1 0 0 0 1 1H9a1 1 0 0 0 1-1V4.5a1 1 0 0 0-1-1h-.5" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
-          {!isRemoteSession && (
-            <>
-              <div className="w-px h-3.5 bg-border-subtle" />
+            <button
+              onClick={() => setSidePanelTab('files')}
+              className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium transition-colors ${
+                sidePanelTab === 'files'
+                  ? 'bg-surface-200 text-text-primary'
+                  : 'text-text-tertiary hover:text-text-secondary'
+              }`}
+            >
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                <path d="M6.5 1H3a1 1 0 0 0-1 1v6.5a1 1 0 0 0 1 1h4.5a1 1 0 0 0 1-1V2.5L6.5 1Z" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round" />
+                <path d="M4.5 9.5V10a1 1 0 0 0 1 1H9a1 1 0 0 0 1-1V4.5a1 1 0 0 0-1-1h-.5" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              Files
+            </button>
+            {!isRemoteSession && (
               <button
                 onClick={() => setSidePanelTab('git')}
-                className={`p-1 rounded hover:bg-surface-200 transition-colors flex-shrink-0 ${
-                  sidePanelTab === 'git' ? 'text-accent' : 'text-text-tertiary hover:text-text-primary'
+                className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium transition-colors ${
+                  sidePanelTab === 'git'
+                    ? 'bg-surface-200 text-text-primary'
+                    : 'text-text-tertiary hover:text-text-secondary'
                 }`}
-                title="Git status"
               >
-                <svg width="14" height="14" viewBox="0 0 12 12" fill="none">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
                   <circle cx="6" cy="1.5" r="1.25" stroke="currentColor" strokeWidth="1.1" />
                   <circle cx="3" cy="10.5" r="1.25" stroke="currentColor" strokeWidth="1.1" />
                   <circle cx="9" cy="10.5" r="1.25" stroke="currentColor" strokeWidth="1.1" />
@@ -206,115 +227,145 @@ export function SidePanel() {
                   <path d="M6 6.25L3 9.25" stroke="currentColor" strokeWidth="1.1" />
                   <path d="M6 6.25l3 3" stroke="currentColor" strokeWidth="1.1" />
                 </svg>
+                Git
               </button>
-            </>
-          )}
+            )}
+          </div>
         </div>
 
-        {/* Path display — location badge for remote, breadcrumb/dropdown for local */}
-        <div className="relative flex-1 min-w-0">
-          {isRemoteSession && locationName ? (
-            <div
-              className="flex items-center gap-1.5 text-xs font-medium text-text-secondary truncate"
-              style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
-            >
-              <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" />
-              <span className="truncate">{locationName}</span>
-              {effectiveCwd && (
-                <>
-                  <span className="text-text-tertiary">:</span>
-                  <span className="text-text-tertiary truncate">{effectiveCwd}</span>
-                </>
-              )}
-            </div>
-          ) : isNavigatedSubfolder ? (
-            <div
-              className="flex items-center gap-0.5 text-xs font-medium min-w-0 overflow-hidden"
-              style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
-              onDoubleClick={() => setCustomCwd(null)}
-              title="Double-click to reset to session folder"
-            >
-              {breadcrumbSegments.map((seg, i) => (
-                <span key={seg.path} className="flex items-center min-w-0">
-                  {i > 0 && (
-                    <span className="text-text-tertiary mx-0.5 flex-shrink-0">/</span>
-                  )}
-                  <button
-                    onClick={() => {
-                      if (seg.path === sessionCwd) {
-                        setCustomCwd(null)
-                      } else {
-                        setCustomCwd(seg.path)
-                      }
-                    }}
-                    className={`truncate hover:text-text-primary transition-colors ${
-                      i === breadcrumbSegments.length - 1
-                        ? 'text-text-primary'
-                        : 'text-text-tertiary hover:underline'
-                    }`}
-                  >
-                    {seg.label}
-                  </button>
-                </span>
-              ))}
-            </div>
-          ) : (
-            <>
-              <button
-                ref={pathButtonRef}
-                onClick={() => cwd && setPathMenuOpen((v) => !v)}
+        {/* Row 2: Left-aligned path display + optional branch badge */}
+        <div className="relative flex items-center gap-1.5 px-3 pb-2">
+          <div className="flex-1 min-w-0">
+            {isRemoteSession && locationName ? (
+              <div
+                className="flex items-center gap-1.5 text-xs font-medium text-text-secondary truncate"
                 style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
-                className="max-w-full text-left text-xs text-text-secondary font-medium truncate hover:text-text-primary cursor-pointer transition-colors"
-                title={cwd ?? ''}
               >
-                {displayPath}
-              </button>
-              {pathMenuOpen && parentPaths.length > 0 && (
-                <div
-                  ref={pathMenuRef}
-                  className="fixed z-50 min-w-[180px] max-w-[320px] max-h-[60vh] overflow-y-auto py-1 bg-surface-100 border border-border rounded-lg shadow-xl"
-                  style={{
-                    top: (pathButtonRef.current?.getBoundingClientRect().bottom ?? 0) + 4,
-                    right:
-                      document.documentElement.clientWidth -
-                      (pathButtonRef.current?.getBoundingClientRect().right ?? 0)
-                  }}
-                >
-                  {parentPaths.map((item) => (
+                <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" />
+                <span className="truncate">{locationName}</span>
+                {effectiveCwd && (
+                  <>
+                    <span className="text-text-tertiary">:</span>
+                    <span className="text-text-tertiary truncate">{effectiveCwd}</span>
+                  </>
+                )}
+              </div>
+            ) : isNavigatedSubfolder ? (
+              <div
+                className="flex items-center gap-0.5 text-xs font-medium min-w-0 overflow-hidden"
+                style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+                onDoubleClick={() => setCustomCwd(null)}
+                title="Double-click to reset to session folder"
+              >
+                {breadcrumbSegments.map((seg, i) => (
+                  <span key={seg.path} className="flex items-center min-w-0">
+                    {i > 0 && (
+                      <span className="text-text-tertiary mx-0.5 flex-shrink-0">/</span>
+                    )}
                     <button
-                      key={item.path}
                       onClick={() => {
-                        setCustomCwd(item.path)
-                        setPathMenuOpen(false)
+                        if (seg.path === sessionCwd) {
+                          setCustomCwd(null)
+                        } else {
+                          setCustomCwd(seg.path)
+                        }
                       }}
-                      className={`w-full flex items-center gap-2 px-3 py-1.5 text-xs font-medium hover:bg-surface-200 transition-colors ${
-                        item.path === cwd ? 'text-accent' : 'text-text-primary'
+                      className={`truncate hover:text-text-primary transition-colors ${
+                        i === breadcrumbSegments.length - 1
+                          ? 'text-text-primary'
+                          : 'text-text-tertiary hover:underline'
                       }`}
                     >
-                      <svg
-                        width="12"
-                        height="12"
-                        viewBox="0 0 12 12"
-                        fill="none"
-                        className="flex-shrink-0"
-                      >
-                        <path
-                          d="M1.5 2.5a1 1 0 0 1 1-1h2.172a1 1 0 0 1 .707.293L6.5 2.914a1 1 0 0 0 .707.293H9.5a1 1 0 0 1 1 1v5.293a1 1 0 0 1-1 1h-7a1 1 0 0 1-1-1V2.5Z"
-                          stroke="currentColor"
-                          strokeWidth="1.1"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                      <span className="truncate">{item.name}</span>
+                      {seg.label}
                     </button>
-                  ))}
-                </div>
-              )}
-            </>
-          )}
-        </div>
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <>
+                <button
+                  ref={pathButtonRef}
+                  onClick={() => cwd && setPathMenuOpen((v) => !v)}
+                  style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+                  className="max-w-full text-left text-xs text-text-secondary font-medium truncate hover:text-text-primary cursor-pointer transition-colors"
+                  title={cwd ?? ''}
+                >
+                  {displayPath}
+                </button>
+                {pathMenuOpen && parentPaths.length > 0 && (
+                  <div
+                    ref={pathMenuRef}
+                    className="fixed z-50 min-w-[180px] max-w-[320px] max-h-[60vh] overflow-y-auto py-1 bg-surface-100 border border-border rounded-lg shadow-xl"
+                    style={{
+                      top: (pathButtonRef.current?.getBoundingClientRect().bottom ?? 0) + 4,
+                      right:
+                        document.documentElement.clientWidth -
+                        (pathButtonRef.current?.getBoundingClientRect().right ?? 0)
+                    }}
+                  >
+                    {parentPaths.map((item) => (
+                      <button
+                        key={item.path}
+                        onClick={() => {
+                          setCustomCwd(item.path)
+                          setPathMenuOpen(false)
+                        }}
+                        className={`w-full flex items-center gap-2 px-3 py-1.5 text-xs font-medium hover:bg-surface-200 transition-colors ${
+                          item.path === cwd ? 'text-accent' : 'text-text-primary'
+                        }`}
+                      >
+                        <svg
+                          width="12"
+                          height="12"
+                          viewBox="0 0 12 12"
+                          fill="none"
+                          className="flex-shrink-0"
+                        >
+                          <path
+                            d="M1.5 2.5a1 1 0 0 1 1-1h2.172a1 1 0 0 1 .707.293L6.5 2.914a1 1 0 0 0 .707.293H9.5a1 1 0 0 1 1 1v5.293a1 1 0 0 1-1 1h-7a1 1 0 0 1-1-1V2.5Z"
+                            stroke="currentColor"
+                            strokeWidth="1.1"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                        <span className="truncate">{item.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
 
+        </div>
       </div>
+
+      {/* Shared git toolbar — branch on left, controls on right */}
+      {isGitTabActive && !isRemoteSession && multiRepo.result.mode !== 'none' && multiRepo.result.mode !== 'loading' && (
+        <div className="flex items-center gap-1.5 px-3 py-1 border-b border-border-subtle flex-shrink-0">
+          {/* Branch name (single-repo only) */}
+          {isSingleRepo && singleRepoGit.status?.branch && (
+            <span className="flex items-center gap-1 text-xs text-text-secondary truncate min-w-0">
+              <svg width="10" height="10" viewBox="0 0 12 12" fill="none" className="flex-shrink-0 text-text-tertiary">
+                <circle cx="6" cy="2.5" r="1.5" stroke="currentColor" strokeWidth="1.2" />
+                <circle cx="6" cy="9.5" r="1.5" stroke="currentColor" strokeWidth="1.2" />
+                <path d="M6 4v4" stroke="currentColor" strokeWidth="1.2" />
+              </svg>
+              <span className="truncate">{singleRepoGit.status.branch}</span>
+              {singleRepoGit.status.ahead > 0 && (
+                <span className="text-green-400 text-[10px] flex-shrink-0">{'\u2191'}{singleRepoGit.status.ahead}</span>
+              )}
+              {singleRepoGit.status.behind > 0 && (
+                <span className="text-orange-400 text-[10px] flex-shrink-0">{'\u2193'}{singleRepoGit.status.behind}</span>
+              )}
+            </span>
+          )}
+          <span className="flex-1" />
+          <MagicSyncButton repoPaths={allRepoPaths} onDone={gitRefresh} />
+          <ViewModeToggle />
+          <CollapseAllButton />
+        </div>
+      )}
 
       {/* Active tab content */}
       {isRemoteSession && remoteLocationId && effectiveCwd && effectiveCwd !== '' && effectiveCwd !== '~' && effectiveCwd.startsWith('/') ? (
@@ -346,6 +397,8 @@ export function SidePanel() {
           cwd={cwd}
           isActive={isGitTabActive}
           filterPrefix={isNavigatedSubfolder ? cwd : null}
+          externalStatus={singleRepoGit.status}
+          externalRefresh={singleRepoGit.refresh}
         />
       )}
     </div>

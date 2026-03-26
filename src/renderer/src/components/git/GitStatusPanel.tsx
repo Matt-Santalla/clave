@@ -5,7 +5,7 @@ import { ConfirmDialog } from '../ui/ConfirmDialog'
 import { buildGitTree, compactTree, collectAllDirPaths } from '../../lib/git-file-tree'
 import { GitLogView } from './GitLogView'
 import { FileRow, GitTreeSection } from './GitFileRows'
-import { SectionHeader, BranchHeader, ErrorBanner, MagicSyncButton, PanelModeToggle, ViewModeToggle, CollapseAllButton } from './GitPanelControls'
+import { SectionHeader, ErrorBanner } from './GitPanelControls'
 import { CommitBar } from './GitCommitBar'
 import type { GitFileStatus, GitStatusResult } from '../../../../preload/index.d'
 
@@ -39,13 +39,15 @@ function RepoSection({
   status,
   filterPrefix,
   refresh,
-  fillHeight = true
+  fillHeight = true,
+  hideCommitBar = false
 }: {
   cwd: string
   status: GitStatusResult
   filterPrefix?: string | null
   refresh: () => void
   fillHeight?: boolean
+  hideCommitBar?: boolean
 }) {
   const gitViewMode = useSessionStore((s) => s.gitViewMode)
   const setDiffPreview = useSessionStore((s) => s.setDiffPreview)
@@ -287,7 +289,7 @@ function RepoSection({
             {relativeFilterPrefix ? 'No changes in this folder' : 'Working tree clean'}
           </span>
         </div>
-        {(status.ahead > 0 || status.behind > 0) && (
+        {!hideCommitBar && (status.ahead > 0 || status.behind > 0) && (
           <CommitBar
             cwd={cwd}
             stagedCount={0}
@@ -440,16 +442,18 @@ function RepoSection({
           </>
         )}
       </div>
-      <CommitBar
-        cwd={cwd}
-        stagedCount={staged.length}
-        totalFileCount={staged.length + unstaged.length + untracked.length}
-        allFilePaths={[...staged, ...unstaged, ...untracked].map((f) => f.path)}
-        ahead={status.ahead}
-        behind={status.behind}
-        operating={operating}
-        onOperation={runOperation}
-      />
+      {!hideCommitBar && (
+        <CommitBar
+          cwd={cwd}
+          stagedCount={staged.length}
+          totalFileCount={staged.length + unstaged.length + untracked.length}
+          allFilePaths={[...staged, ...unstaged, ...untracked].map((f) => f.path)}
+          ahead={status.ahead}
+          behind={status.behind}
+          operating={operating}
+          onOperation={runOperation}
+        />
+      )}
       <ConfirmDialog
         isOpen={confirmDiscard !== null}
         title="Discard changes"
@@ -465,10 +469,54 @@ function RepoSection({
 // GitStatusPanel — single-repo view (existing behavior)
 // ---------------------------------------------------------------------------
 
-export function GitStatusPanel({ cwd, isActive, filterPrefix }: { cwd: string | null; isActive: boolean; filterPrefix?: string | null }) {
+export function GitStatusPanel({
+  cwd,
+  isActive,
+  filterPrefix,
+  externalStatus,
+  externalRefresh
+}: {
+  cwd: string | null
+  isActive: boolean
+  filterPrefix?: string | null
+  externalStatus?: GitStatusResult | null
+  externalRefresh?: () => void
+}) {
   const focusedSessionId = useSessionStore((s) => s.focusedSessionId)
-  const gitPanelMode = useSessionStore((s) => s.gitPanelMode)
-  const { status, loading, refresh } = useGitStatus(cwd, isActive)
+  const internal = useGitStatus(externalStatus !== undefined ? null : cwd, isActive)
+  const status = externalStatus !== undefined ? externalStatus : internal.status
+  const loading = externalStatus !== undefined ? false : internal.loading
+  const refresh = externalRefresh ?? internal.refresh
+
+  const [logExpanded, setLogExpanded] = useState(false)
+  const [operating, setOperating] = useState(false)
+
+  const runOperation = useCallback(
+    async (fn: () => Promise<void>) => {
+      setOperating(true)
+      try {
+        await fn()
+      } catch (err) {
+        console.error(err)
+      } finally {
+        setOperating(false)
+        refresh()
+      }
+    },
+    [refresh]
+  )
+
+  // Compute commit bar data from status
+  const commitBarData = useMemo(() => {
+    if (!status?.files) return { stagedCount: 0, totalFileCount: 0, allFilePaths: [] as string[] }
+    const staged = status.files.filter((f) => f.staged)
+    const total = status.files.length
+    return {
+      stagedCount: staged.length,
+      totalFileCount: total,
+      allFilePaths: status.files.map((f) => f.path)
+    }
+  }, [status?.files])
 
   if (!focusedSessionId || !cwd) {
     return (
@@ -500,17 +548,55 @@ export function GitStatusPanel({ cwd, isActive, filterPrefix }: { cwd: string | 
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
-      <BranchHeader branch={status.branch} ahead={status.ahead} behind={status.behind} cwd={cwd} onSyncDone={refresh} />
-      {gitPanelMode === 'log' ? (
-        <GitLogView
-          cwd={cwd}
-          branch={status.branch}
-          ahead={status.ahead}
-          behind={status.behind}
-        />
-      ) : (
-        <RepoSection cwd={cwd} status={status} filterPrefix={filterPrefix} refresh={refresh} fillHeight />
-      )}
+      {/* Changes section — shrinks when log is expanded */}
+      <div className={`${logExpanded ? 'flex-shrink-0 max-h-[40%] overflow-y-auto' : 'flex-1 overflow-y-auto'}`}>
+        <RepoSection cwd={cwd} status={status} filterPrefix={filterPrefix} refresh={refresh} fillHeight={!logExpanded} hideCommitBar />
+      </div>
+
+      {/* Commit bar — always at the bottom, just above commits */}
+      <CommitBar
+        cwd={cwd}
+        stagedCount={commitBarData.stagedCount}
+        totalFileCount={commitBarData.totalFileCount}
+        allFilePaths={commitBarData.allFilePaths}
+        ahead={status.ahead}
+        behind={status.behind}
+        operating={operating}
+        onOperation={runOperation}
+      />
+
+      {/* Collapsible commit log section */}
+      <div className={`flex flex-col ${logExpanded ? 'flex-1 min-h-0' : ''}`}>
+        <button
+          onClick={() => setLogExpanded((v) => !v)}
+          className="flex items-center gap-1.5 px-3 py-1.5 border-t border-border-subtle text-xs font-medium text-text-secondary hover:text-text-primary hover:bg-surface-100 transition-colors flex-shrink-0"
+        >
+          <svg
+            width="10"
+            height="10"
+            viewBox="0 0 10 10"
+            fill="none"
+            className={`text-text-tertiary flex-shrink-0 transition-transform duration-150 ${logExpanded ? 'rotate-90' : ''}`}
+          >
+            <path d="M3 1.5l4 3.5-4 3.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          Commits
+          {(status.ahead > 0 || status.behind > 0) && (
+            <span className="flex items-center gap-1 ml-1">
+              {status.ahead > 0 && <span className="text-green-400 text-[10px]">{'\u2191'}{status.ahead}</span>}
+              {status.behind > 0 && <span className="text-orange-400 text-[10px]">{'\u2193'}{status.behind}</span>}
+            </span>
+          )}
+        </button>
+        {logExpanded && (
+          <GitLogView
+            cwd={cwd}
+            branch={status.branch}
+            ahead={status.ahead}
+            behind={status.behind}
+          />
+        )}
+      </div>
     </div>
   )
 }
@@ -536,7 +622,6 @@ function MultiRepoSection({
   onSelect?: (path: string, metaKey: boolean) => void
   selectedRepoPaths?: Set<string>
 }) {
-  const gitPanelMode = useSessionStore((s) => s.gitPanelMode)
   const collapseAllTrigger = useSessionStore((s) => s.collapseAllTrigger)
   const changeCount = status.files.length
   const hasChanges = changeCount > 0
@@ -639,21 +724,12 @@ function MultiRepoSection({
       {/* Expanded content */}
       {expanded && (
         <div className="flex flex-col">
-          {gitPanelMode === 'log' ? (
-            <GitLogView
-              cwd={repoPath}
-              branch={status.branch}
-              ahead={status.ahead}
-              behind={status.behind}
-            />
-          ) : (
-            <RepoSection
-              cwd={repoPath}
-              status={status}
-              refresh={refresh}
-              fillHeight={false}
-            />
-          )}
+          <RepoSection
+            cwd={repoPath}
+            status={status}
+            refresh={refresh}
+            fillHeight={false}
+          />
         </div>
       )}
     </div>
@@ -697,18 +773,8 @@ export function MultiRepoGitPanel({
     [nestedRepos]
   )
 
-  const gitPanelMode = useSessionStore((s) => s.gitPanelMode)
-
-  const allRepoPaths = useMemo(() => repos.map((r) => r.path), [repos])
-
   return (
     <div className="flex-1 flex flex-col min-h-0">
-      <div className="flex items-center justify-end gap-0.5 px-3 py-1 border-b border-border-subtle flex-shrink-0">
-        <MagicSyncButton repoPaths={allRepoPaths} onDone={refresh} />
-        <PanelModeToggle />
-        {gitPanelMode === 'changes' && <ViewModeToggle />}
-        <CollapseAllButton />
-      </div>
       <div className="flex-1 overflow-y-auto">
         {/* Root repo */}
         {rootRepo && (

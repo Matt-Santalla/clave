@@ -9,9 +9,7 @@ export function fileUrl(absolutePath: string): string {
   return 'file://' + absolutePath.split('/').map(encodeURIComponent).join('/')
 }
 
-export function shortenPath(fullPath: string, maxLength = 40): string {
-  if (fullPath.length <= maxLength) return fullPath
-  const parts = fullPath.split('/')
-  if (parts.length <= 2) return fullPath
-  return '~/' + parts.slice(-2).join('/')
+export function shortenPath(fullPath: string): string {
+  // Replace /Users/<name> with ~
+  return fullPath.replace(/^\/Users\/[^/]+/, '~')
 }

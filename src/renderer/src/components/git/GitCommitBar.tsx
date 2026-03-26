@@ -154,7 +154,7 @@ export function CommitBar({
   )
 
   return (
-    <div className="border-t border-border-subtle p-2 flex-shrink-0 flex flex-col gap-1.5">
+    <div className="border-t border-border-subtle p-2 flex-shrink-0 flex flex-col gap-2">
       <div className="relative">
         <textarea
           className="w-full bg-surface-100 text-text-primary text-xs rounded px-2 py-1.5 pr-7 resize-none outline-none border border-transparent focus:border-accent placeholder:text-text-tertiary"
@@ -198,7 +198,7 @@ export function CommitBar({
         </button>
         {ahead > 0 && (
           <button
-            className="text-xs font-medium px-2 py-1 rounded bg-surface-100 text-text-secondary hover:text-text-primary disabled:opacity-40 transition-all"
+            className="text-xs font-medium px-2 py-1 rounded bg-green-500/15 text-green-400 hover:bg-green-500/25 disabled:opacity-40 transition-all"
             disabled={operating}
             onClick={handlePush}
             title="Push"

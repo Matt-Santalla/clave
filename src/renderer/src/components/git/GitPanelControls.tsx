@@ -21,7 +21,7 @@ export function SectionHeader({
   disabled?: boolean
 }) {
   return (
-    <div className="flex items-center px-3 pt-2.5 pb-1">
+    <div className="flex items-center px-3 py-1.5">
       <span className="text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">
         {label} ({count})
       </span>
@@ -221,23 +221,23 @@ export function BranchHeader({
 }) {
   const gitPanelMode = useSessionStore((s) => s.gitPanelMode)
   return (
-    <div className="flex items-center gap-1.5 px-3 py-1 border-b border-border-subtle text-xs flex-shrink-0">
-      {/* Branch icon */}
-      <svg
-        width="12"
-        height="12"
-        viewBox="0 0 12 12"
-        fill="none"
-        className="text-text-secondary flex-shrink-0"
-      >
-        <circle cx="6" cy="2.5" r="1.5" stroke="currentColor" strokeWidth="1.2" />
-        <circle cx="6" cy="9.5" r="1.5" stroke="currentColor" strokeWidth="1.2" />
-        <path d="M6 4v4" stroke="currentColor" strokeWidth="1.2" />
-      </svg>
-      <span className="text-text-primary font-medium truncate">{branch}</span>
-      <span className="ml-auto flex-shrink-0 flex items-center gap-0.5">
+    <div className="flex flex-col border-b border-border-subtle flex-shrink-0">
+      {/* Row 1: Branch info */}
+      <div className="flex items-center gap-1.5 px-3 py-1.5 text-xs">
+        <svg
+          width="12"
+          height="12"
+          viewBox="0 0 12 12"
+          fill="none"
+          className="text-text-secondary flex-shrink-0"
+        >
+          <circle cx="6" cy="2.5" r="1.5" stroke="currentColor" strokeWidth="1.2" />
+          <circle cx="6" cy="9.5" r="1.5" stroke="currentColor" strokeWidth="1.2" />
+          <path d="M6 4v4" stroke="currentColor" strokeWidth="1.2" />
+        </svg>
+        <span className="text-text-primary font-medium truncate">{branch}</span>
         {(ahead > 0 || behind > 0) && (
-          <span className="text-text-tertiary">
+          <span className="text-text-tertiary ml-auto flex-shrink-0">
             {ahead > 0 && (
               <span className="text-green-400">
                 {'\u2191'}
@@ -253,11 +253,15 @@ export function BranchHeader({
             )}
           </span>
         )}
+      </div>
+      {/* Row 2: Toolbar controls */}
+      <div className="flex items-center gap-1 px-3 py-1 border-t border-border-subtle/50">
         {cwd && <MagicSyncButton repoPaths={[cwd]} onDone={onSyncDone} />}
+        <span className="flex-1" />
         <PanelModeToggle />
         {gitPanelMode === 'changes' && <ViewModeToggle />}
         <CollapseAllButton />
-      </span>
+      </div>
     </div>
   )
 }
