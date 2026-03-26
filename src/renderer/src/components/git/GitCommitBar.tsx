@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { ChevronDownIcon } from '@heroicons/react/24/outline'
+import { ChevronDownIcon, SparklesIcon } from '@heroicons/react/24/outline'
+import { IconButton } from '../ui/tooltip'
 import { useSessionStore } from '../../store/session-store'
 import type { PullStrategy } from './git-status-utils'
 
@@ -40,22 +41,24 @@ export function PullButton({
   return (
     <div className="relative" ref={menuRef}>
       <div className="flex items-center">
-        <button
+        <IconButton
           className="text-xs font-medium pl-2 pr-1 py-1 rounded-l bg-surface-100 text-text-secondary hover:text-text-primary disabled:opacity-40 transition-all"
           disabled={operating}
           onClick={() => handlePull('auto')}
-          title="Pull (auto: fast-forward, then merge)"
+          tooltip="Pull remote changes"
+          side="top"
         >
           {'\u2193'} Pull
-        </button>
-        <button
+        </IconButton>
+        <IconButton
           className="text-xs py-1 pr-1.5 pl-0.5 rounded-r bg-surface-100 text-text-tertiary hover:text-text-primary disabled:opacity-40 transition-all border-l border-border-subtle"
           disabled={operating}
           onClick={() => setMenuOpen((v) => !v)}
-          title="Pull options"
+          tooltip="Pull options"
+          side="top"
         >
           <ChevronDownIcon className="w-3 h-3" />
-        </button>
+        </IconButton>
       </div>
       {menuOpen && (
         <div className="absolute bottom-full right-0 mb-1 bg-surface-200 border border-border-subtle rounded shadow-lg py-0.5 z-50 min-w-[140px]">
@@ -165,11 +168,12 @@ export function CommitBar({
           onKeyDown={handleKeyDown}
           disabled={operating || generating}
         />
-        <button
+        <IconButton
           className="absolute right-1.5 top-1.5 p-0.5 rounded text-text-tertiary hover:text-accent disabled:opacity-30 transition-colors"
           disabled={totalFileCount === 0 || generating || operating}
           onClick={handleGenerateMessage}
-          title="Generate commit message with AI"
+          tooltip="Generate commit message"
+          side="top"
         >
           {generating ? (
             <svg className="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
@@ -177,11 +181,9 @@ export function CommitBar({
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
             </svg>
           ) : (
-            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275L12 3z" />
-            </svg>
+            <SparklesIcon className="w-3.5 h-3.5" />
           )}
-        </button>
+        </IconButton>
       </div>
       {generateError && (
         <div className="text-[10px] text-red-400 px-1 truncate" title={generateError}>
@@ -197,14 +199,15 @@ export function CommitBar({
           Commit
         </button>
         {ahead > 0 && (
-          <button
+          <IconButton
             className="text-xs font-medium px-2 py-1 rounded bg-green-500/15 text-green-400 hover:bg-green-500/25 disabled:opacity-40 transition-all"
             disabled={operating}
             onClick={handlePush}
-            title="Push"
+            tooltip="Push to remote"
+            side="top"
           >
             {'\u2191'} Push
-          </button>
+          </IconButton>
         )}
         {behind > 0 && (
           <PullButton cwd={cwd} operating={operating} onOperation={onOperation} />

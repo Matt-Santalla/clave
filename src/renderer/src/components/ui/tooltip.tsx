@@ -28,4 +28,23 @@ const TooltipContent = React.forwardRef<
 ))
 TooltipContent.displayName = TooltipPrimitive.Content.displayName
 
-export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider }
+/** Button with a tooltip — eliminates the 6-line Tooltip/Trigger/Content boilerplate. */
+const IconButton = React.forwardRef<
+  HTMLButtonElement,
+  React.ButtonHTMLAttributes<HTMLButtonElement> & {
+    tooltip: React.ReactNode
+    side?: 'top' | 'bottom' | 'left' | 'right'
+  }
+>(({ tooltip, side = 'bottom', children, ...props }, ref) => (
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <button ref={ref} {...props}>
+        {children}
+      </button>
+    </TooltipTrigger>
+    <TooltipContent side={side}>{tooltip}</TooltipContent>
+  </Tooltip>
+))
+IconButton.displayName = 'IconButton'
+
+export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider, IconButton }

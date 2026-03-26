@@ -3,7 +3,7 @@ import { TooltipProvider } from './components/ui/tooltip'
 
 function App(): React.JSX.Element {
   return (
-    <TooltipProvider delayDuration={300}>
+    <TooltipProvider delayDuration={700} skipDelayDuration={300}>
       <AppShell />
     </TooltipProvider>
   )

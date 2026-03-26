@@ -3,6 +3,7 @@ import { useSessionStore } from '../../store/session-store'
 import { useFileTree, type FlatTreeNode } from '../../hooks/use-file-tree'
 import { FileTreeItem } from './FileTreeItem'
 import { ContextMenu } from '../ui/ContextMenu'
+import { IconButton } from '../ui/tooltip'
 
 interface ContextMenuState {
   x: number
@@ -381,22 +382,22 @@ export function FileTree({ cwd, isCustom, onChangeFolder, onResetFolder, onNavig
           className="flex-1 h-[20px] px-2 rounded bg-surface-100 text-[11px] text-text-primary placeholder:text-text-tertiary outline-none focus:ring-1 focus:ring-border transition-colors min-w-0"
         />
         {isCustom && (
-          <button
+          <IconButton
             onClick={onResetFolder}
             className="p-1 rounded hover:bg-surface-200 text-text-tertiary hover:text-text-primary transition-colors flex-shrink-0"
-            title="Reset to session folder"
+            tooltip="Reset to session folder"
           >
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
               <path d="M2 6a4 4 0 0 1 7.2-2.4M10 6a4 4 0 0 1-7.2 2.4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
               <path d="M9.5 1.5v2.5H7" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
               <path d="M2.5 10.5V8H5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-          </button>
+          </IconButton>
         )}
-        <button
+        <IconButton
           onClick={onChangeFolder}
           className="p-1 rounded hover:bg-surface-200 text-text-tertiary hover:text-text-primary transition-colors flex-shrink-0"
-          title="Browse another folder"
+          tooltip="Browse folder"
         >
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
             <path
@@ -406,17 +407,17 @@ export function FileTree({ cwd, isCustom, onChangeFolder, onResetFolder, onNavig
               strokeLinejoin="round"
             />
           </svg>
-        </button>
-        <button
+        </IconButton>
+        <IconButton
           onClick={collapseAll}
           className="p-1 rounded hover:bg-surface-200 text-text-tertiary hover:text-text-primary transition-colors flex-shrink-0"
-          title="Collapse all"
+          tooltip="Collapse all"
         >
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
             <path d="M2 8l4-3 4 3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
             <path d="M2 5l4-3 4 3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-        </button>
+        </IconButton>
       </div>
 
       {/* Tree list */}

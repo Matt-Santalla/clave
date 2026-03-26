@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react'
 import { useSessionStore } from '../../store/session-store'
 import { ListBulletIcon, Bars3BottomLeftIcon, ArrowPathIcon } from '@heroicons/react/24/outline'
+import { IconButton } from '../ui/tooltip'
 import type { MagicSyncStep } from '../../../../preload/index.d'
 
 export function SectionHeader({
@@ -52,16 +53,16 @@ export function SectionHeader({
 export function CollapseAllButton() {
   const triggerCollapseAll = useSessionStore((s) => s.triggerCollapseAll)
   return (
-    <button
+    <IconButton
       onClick={triggerCollapseAll}
       className="p-1 rounded text-text-tertiary hover:text-text-primary hover:bg-surface-200 transition-colors flex-shrink-0"
-      title="Collapse all"
+      tooltip="Collapse all"
     >
       <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
         <path d="M2 8l4-3 4 3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
         <path d="M2 5l4-3 4 3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
-    </button>
+    </IconButton>
   )
 }
 
@@ -70,17 +71,17 @@ export function ViewModeToggle() {
   const setGitViewMode = useSessionStore((s) => s.setGitViewMode)
   const isTree = gitViewMode === 'tree'
   return (
-    <button
+    <IconButton
       onClick={() => setGitViewMode(isTree ? 'list' : 'tree')}
       className="p-1 rounded text-text-tertiary hover:text-text-primary hover:bg-surface-200 transition-colors flex-shrink-0"
-      title={isTree ? 'Switch to list view' : 'Switch to tree view'}
+      tooltip={isTree ? 'List view' : 'Tree view'}
     >
       {isTree ? (
         <ListBulletIcon className="w-3 h-3" />
       ) : (
         <Bars3BottomLeftIcon className="w-3 h-3" />
       )}
-    </button>
+    </IconButton>
   )
 }
 
@@ -89,10 +90,10 @@ export function PanelModeToggle() {
   const setGitPanelMode = useSessionStore((s) => s.setGitPanelMode)
   const isLog = gitPanelMode === 'log'
   return (
-    <button
+    <IconButton
       onClick={() => setGitPanelMode(isLog ? 'changes' : 'log')}
       className="p-1 rounded text-text-tertiary hover:text-text-primary hover:bg-surface-200 transition-colors flex-shrink-0"
-      title={isLog ? 'Switch to changes' : 'Switch to commit log'}
+      tooltip={isLog ? 'Changes' : 'Commit log'}
     >
       {isLog ? (
         /* Changes/diff icon */
@@ -106,7 +107,7 @@ export function PanelModeToggle() {
           <path d="M6 3.5V6l2 1.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       )}
-    </button>
+    </IconButton>
   )
 }
 
@@ -173,14 +174,14 @@ export function MagicSyncButton({
 
   return (
     <div className="relative flex items-center">
-      <button
+      <IconButton
         onClick={handleSync}
         disabled={syncing || repoPaths.length === 0}
         className="p-1 rounded text-text-tertiary hover:text-text-primary hover:bg-surface-200 transition-colors flex-shrink-0 disabled:opacity-40"
-        title={syncing ? (currentStep ?? 'Syncing...') : 'Magic Sync — pull, commit & push all repos'}
+        tooltip={syncing ? (currentStep ?? 'Syncing...') : 'Magic sync'}
       >
         <ArrowPathIcon className={`w-3 h-3 ${syncing ? 'animate-spin' : ''}`} />
-      </button>
+      </IconButton>
       {(syncing || resultMessage) && (
         <span className="ml-1 text-[10px] text-text-tertiary whitespace-nowrap">
           {syncing ? (currentStep ?? 'Syncing...') : resultMessage}
