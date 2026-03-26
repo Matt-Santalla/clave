@@ -79,6 +79,8 @@ interface SessionState {
   setSessionActivity: (id: string, status: ActivityStatus) => void
   setSessionPromptWaiting: (id: string, promptType: string | null) => void
   setSessionDetectedUrl: (id: string, url: string | null) => void
+  setSessionServerStatus: (id: string, status: import('./session-types').ServerStatus) => void
+  setSessionServerCommand: (id: string, command: string | null) => void
   setSessionUnseenActivity: (id: string, unseen: boolean) => void
   renameSession: (id: string, name: string) => void
   autoRenameSession: (id: string, name: string) => void
@@ -175,7 +177,7 @@ export const useSessionStore = create<SessionState>((set) => ({
   ),
   addSession: (session) =>
     set((state) => {
-      const newSession = { ...session, detectedUrl: session.detectedUrl ?? null, hasUnseenActivity: session.hasUnseenActivity ?? false, userRenamed: session.userRenamed ?? false }
+      const newSession = { ...session, detectedUrl: session.detectedUrl ?? null, serverStatus: session.serverStatus ?? null, serverCommand: session.serverCommand ?? null, hasUnseenActivity: session.hasUnseenActivity ?? false, userRenamed: session.userRenamed ?? false }
 
       // Check if selected sessions all belong to a single group
       const selectedIds = state.selectedSessionIds
@@ -525,7 +527,9 @@ export const useSessionStore = create<SessionState>((set) => ({
   setSessionDetectedUrl: (id, url) =>
     set((state) => {
       const session = state.sessions.find((s) => s.id === id)
-      if (!session || session.detectedUrl === url) return state
+      if (!session) return state
+      // Skip if URL unchanged AND already running (avoid unnecessary re-renders)
+      if (session.detectedUrl === url && (!url || session.serverStatus === 'running')) return state
 
       // Auto-launch localhost if the session's terminal config has the flag
       if (url && window.electronAPI?.openExternal) {
@@ -540,10 +544,24 @@ export const useSessionStore = create<SessionState>((set) => ({
 
       return {
         sessions: state.sessions.map((s) =>
-          s.id === id ? { ...s, detectedUrl: url } : s
+          s.id === id ? { ...s, detectedUrl: url, serverStatus: url ? 'running' : s.serverStatus } : s
         )
       }
     }),
+
+  setSessionServerStatus: (id, status) =>
+    set((state) => ({
+      sessions: state.sessions.map((s) =>
+        s.id === id ? { ...s, serverStatus: status } : s
+      )
+    })),
+
+  setSessionServerCommand: (id, command) =>
+    set((state) => ({
+      sessions: state.sessions.map((s) =>
+        s.id === id ? { ...s, serverCommand: command } : s
+      )
+    })),
 
   setSessionUnseenActivity: (id, unseen) =>
     set((state) => {
@@ -701,6 +719,8 @@ export const useSessionStore = create<SessionState>((set) => ({
         sessionType: 'agent',
         agentId: agent.id,
         detectedUrl: null,
+        serverStatus: null,
+        serverCommand: null,
         hasUnseenActivity: false,
         userRenamed: false
       }

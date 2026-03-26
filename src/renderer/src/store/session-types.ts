@@ -98,6 +98,8 @@ export interface GroupTerminalConfig {
   sessionId: string | null
 }
 
+export type ServerStatus = 'running' | 'stopped' | 'starting' | null
+
 export interface Session {
   id: string
   cwd: string
@@ -114,6 +116,8 @@ export interface Session {
   sessionType: SessionType
   agentId?: string
   detectedUrl: string | null
+  serverStatus: ServerStatus
+  serverCommand: string | null
   hasUnseenActivity: boolean
   userRenamed: boolean
 }

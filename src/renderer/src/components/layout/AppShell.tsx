@@ -630,24 +630,27 @@ function ToolbarQuickActions() {
 function ToolbarActiveUrls() {
   const sessions = useSessionStore((s) => s.sessions)
   const groups = useSessionStore((s) => s.groups)
+  const setSessionServerStatus = useSessionStore((s) => s.setSessionServerStatus)
 
-  // Collect sessions with detected URLs, grouped by their parent group
-  const urlEntries: { url: string; port: string; groupName: string; groupColor: string | undefined }[] = []
+  // Collect sessions with detected URLs (any server status)
+  const urlEntries: { sessionId: string; url: string; port: string; groupName: string; groupColor: string | undefined; serverStatus: string; serverCommand: string | null }[] = []
 
   for (const session of sessions) {
-    if (!session.detectedUrl || !session.alive) continue
+    if (!session.detectedUrl || !session.serverStatus) continue
     try {
       const port = new URL(session.detectedUrl).port
-      // Find which group this session belongs to
       const group = groups.find((g) =>
         g.sessionIds.includes(session.id) ||
         g.terminals.some((t) => t.sessionId === session.id)
       )
       urlEntries.push({
+        sessionId: session.id,
         url: session.detectedUrl,
         port,
         groupName: group?.name || session.name,
-        groupColor: resolveColorHex(group?.color)
+        groupColor: resolveColorHex(group?.color),
+        serverStatus: session.serverStatus,
+        serverCommand: session.serverCommand
       })
     } catch {
       // invalid URL
@@ -661,11 +664,40 @@ function ToolbarActiveUrls() {
       {urlEntries.map((entry, i) => (
         <button
           key={`${entry.url}-${i}`}
-          onClick={() => window.electronAPI.openExternal(entry.url)}
-          className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-surface-100 hover:bg-surface-200 transition-colors"
-          title={entry.url}
+          onClick={() => {
+            if (entry.serverStatus === 'running') {
+              window.electronAPI.openExternal(entry.url)
+            } else if (entry.serverStatus === 'stopped' && entry.serverCommand) {
+              setSessionServerStatus(entry.sessionId, 'starting')
+              window.electronAPI.writeSession(entry.sessionId, entry.serverCommand + '\r')
+            }
+          }}
+          disabled={entry.serverStatus === 'starting'}
+          className={cn(
+            'flex items-center gap-1 px-2 py-0.5 rounded-md transition-colors',
+            entry.serverStatus === 'running' && 'bg-surface-100 hover:bg-surface-200',
+            entry.serverStatus === 'stopped' && 'bg-red-500/5 hover:bg-red-500/10',
+            entry.serverStatus === 'starting' && 'bg-amber-500/5 cursor-wait'
+          )}
+          title={
+            entry.serverStatus === 'running' ? entry.url :
+            entry.serverStatus === 'stopped' ? `Restart ${entry.serverCommand}` :
+            'Starting…'
+          }
         >
-          <div className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0" />
+          <div
+            className={cn(
+              'w-1.5 h-1.5 rounded-full flex-shrink-0',
+              entry.serverStatus === 'running' && 'bg-emerald-500',
+              entry.serverStatus === 'stopped' && 'bg-red-400',
+              entry.serverStatus === 'starting' && 'bg-amber-400'
+            )}
+            style={
+              entry.serverStatus === 'running' || entry.serverStatus === 'starting'
+                ? { animation: 'pulse-dot 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite' }
+                : undefined
+            }
+          />
           <span className="text-[10px] font-medium whitespace-nowrap text-text-primary">
             {entry.groupName}
           </span>

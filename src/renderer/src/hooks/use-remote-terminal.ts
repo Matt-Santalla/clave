@@ -196,7 +196,7 @@ export function useRemoteTerminal(shellId: string) {
       window.electronAPI.sshShellResize(shellId, cols, rows)
     })
 
-    const { setSessionActivity, setSessionPromptWaiting, setSessionDetectedUrl, setSessionUnseenActivity, updateSessionAlive } =
+    const { setSessionActivity, setSessionPromptWaiting, setSessionDetectedUrl, setSessionServerStatus, setSessionUnseenActivity, updateSessionAlive } =
       useSessionStore.getState()
 
     // Activity tracking: debounce from active → idle after silence
@@ -244,7 +244,7 @@ export function useRemoteTerminal(shellId: string) {
           setTimeout(() => {
             window.electronAPI.checkPort(port).then((alive) => {
               if (!alive) {
-                setSessionDetectedUrl(shellId, null)
+                setSessionServerStatus(shellId, 'stopped')
                 portCheckFailures = 0
               }
             })
@@ -301,7 +301,10 @@ export function useRemoteTerminal(shellId: string) {
         notificationTimer = null
       }
       updateSessionAlive(shellId, false)
-      setSessionDetectedUrl(shellId, null)
+      const exitingSession = useSessionStore.getState().sessions.find((s) => s.id === shellId)
+      if (exitingSession?.detectedUrl) {
+        setSessionServerStatus(shellId, 'stopped')
+      }
 
       const session = useSessionStore.getState().sessions.find((s) => s.id === shellId)
       const title = session?.name ?? session?.folderName ?? 'Clave'
@@ -344,7 +347,7 @@ export function useRemoteTerminal(shellId: string) {
     const portCheckInterval = setInterval(() => {
       if (!document.hasFocus()) return
       const session = useSessionStore.getState().sessions.find((s) => s.id === shellId)
-      if (!session?.detectedUrl) { portCheckFailures = 0; return }
+      if (!session?.detectedUrl || session.serverStatus !== 'running') { portCheckFailures = 0; return }
       try {
         const port = Number(new URL(session.detectedUrl).port)
         if (port) {
@@ -354,7 +357,7 @@ export function useRemoteTerminal(shellId: string) {
             } else {
               portCheckFailures++
               if (portCheckFailures >= 2) {
-                setSessionDetectedUrl(shellId, null)
+                setSessionServerStatus(shellId, 'stopped')
                 portCheckFailures = 0
               }
             }

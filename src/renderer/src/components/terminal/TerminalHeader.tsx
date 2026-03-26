@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import { ArrowTopRightOnSquareIcon } from '@heroicons/react/24/outline'
+import { ArrowTopRightOnSquareIcon, PlayIcon } from '@heroicons/react/24/outline'
 import { useSessionStore } from '../../store/session-store'
 import { cn } from '../../lib/utils'
 import { ConfirmDialog } from '../ui/ConfirmDialog'
@@ -11,6 +11,7 @@ interface TerminalHeaderProps {
 export function TerminalHeader({ sessionId }: TerminalHeaderProps) {
   const session = useSessionStore((s) => s.sessions.find((sess) => sess.id === sessionId))
   const removeSession = useSessionStore((s) => s.removeSession)
+  const setSessionServerStatus = useSessionStore((s) => s.setSessionServerStatus)
   const [showConfirm, setShowConfirm] = useState(false)
 
   const handleKill = useCallback(async () => {
@@ -23,7 +24,29 @@ export function TerminalHeader({ sessionId }: TerminalHeaderProps) {
     setShowConfirm(false)
   }, [sessionId, removeSession])
 
+  const handleServerToggle = useCallback(() => {
+    if (!session) return
+
+    if (session.serverStatus === 'running' && session.detectedUrl) {
+      // Running → open in browser
+      window.electronAPI.openExternal(session.detectedUrl)
+    } else if (session.serverStatus === 'stopped' && session.serverCommand) {
+      // Stopped → restart by writing command to PTY
+      setSessionServerStatus(sessionId, 'starting')
+      window.electronAPI.writeSession(sessionId, session.serverCommand + '\r')
+    }
+  }, [session, sessionId, setSessionServerStatus])
+
+  const handleServerStop = useCallback(() => {
+    if (!session || session.serverStatus !== 'running') return
+    // Send Ctrl+C to the terminal
+    window.electronAPI.writeSession(sessionId, '\x03')
+  }, [session, sessionId])
+
   if (!session) return null
+
+  const serverStatus = session.serverStatus
+  const hasServer = session.detectedUrl && serverStatus
 
   return (
     <>
@@ -39,15 +62,56 @@ export function TerminalHeader({ sessionId }: TerminalHeaderProps) {
             style={session.activityStatus === 'active' ? { animation: 'pulse-dot 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite' } : undefined}
           />
           <span className="text-xs font-medium text-text-secondary truncate">{session.name}</span>
-          {session.detectedUrl && (
-            <button
-              onClick={() => window.electronAPI.openExternal(session.detectedUrl!)}
-              className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium text-accent hover:bg-accent/10 transition-colors flex-shrink-0"
-              title={`Open ${session.detectedUrl}`}
-            >
-              <ArrowTopRightOnSquareIcon className="w-3 h-3" />
-              <span>{`:${new URL(session.detectedUrl).port}`}</span>
-            </button>
+          {hasServer && (
+            <div className="flex items-center gap-0.5 flex-shrink-0">
+              <button
+                onClick={handleServerToggle}
+                disabled={serverStatus === 'starting'}
+                className={cn(
+                  'flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium transition-colors flex-shrink-0',
+                  serverStatus === 'running' && 'text-emerald-500 hover:bg-emerald-500/10',
+                  serverStatus === 'stopped' && 'text-red-400 hover:bg-red-400/10',
+                  serverStatus === 'starting' && 'text-amber-400 cursor-wait'
+                )}
+                title={
+                  serverStatus === 'running' ? `Open ${session.detectedUrl}` :
+                  serverStatus === 'stopped' ? `Restart server (${session.serverCommand})` :
+                  'Starting server…'
+                }
+              >
+                {/* Status dot */}
+                <span
+                  className={cn(
+                    'w-1.5 h-1.5 rounded-full flex-shrink-0',
+                    serverStatus === 'running' && 'bg-emerald-500',
+                    serverStatus === 'stopped' && 'bg-red-400',
+                    serverStatus === 'starting' && 'bg-amber-400'
+                  )}
+                  style={
+                    serverStatus === 'running' || serverStatus === 'starting'
+                      ? { animation: 'pulse-dot 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite' }
+                      : undefined
+                  }
+                />
+                {/* Port label */}
+                <span>{`:${new URL(session.detectedUrl!).port}`}</span>
+                {/* Action icon */}
+                {serverStatus === 'running' && <ArrowTopRightOnSquareIcon className="w-3 h-3" />}
+                {serverStatus === 'stopped' && <PlayIcon className="w-3 h-3" />}
+              </button>
+              {/* Stop button — only when running */}
+              {serverStatus === 'running' && (
+                <button
+                  onClick={handleServerStop}
+                  className="p-0.5 rounded text-text-tertiary hover:text-red-400 hover:bg-red-400/10 transition-colors"
+                  title="Stop server (Ctrl+C)"
+                >
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                    <rect x="2" y="2" width="6" height="6" rx="1" fill="currentColor" />
+                  </svg>
+                </button>
+              )}
+            </div>
           )}
         </div>
 

@@ -203,7 +203,7 @@ export function useTerminal(sessionId: string) {
       window.electronAPI.resizeSession(sessionId, cols, rows)
     })
 
-    const { setSessionActivity, setSessionPromptWaiting, setSessionDetectedUrl, setSessionUnseenActivity, updateSessionAlive, autoRenameSession } = useSessionStore.getState()
+    const { setSessionActivity, setSessionPromptWaiting, setSessionDetectedUrl, setSessionServerStatus, setSessionServerCommand, setSessionUnseenActivity, updateSessionAlive, autoRenameSession } = useSessionStore.getState()
 
     // Listen for auto-generated titles from the main process
     const cleanupAutoTitle = window.electronAPI.onSessionAutoTitle(sessionId, (title) => {
@@ -245,6 +245,18 @@ export function useTerminal(sessionId: string) {
       if (detectedUrl) {
         setSessionDetectedUrl(sessionId, detectedUrl)
         portCheckFailures = 0
+
+        // Capture the server command from the group terminal config (if available)
+        const currentSession = useSessionStore.getState().sessions.find((s) => s.id === sessionId)
+        if (!currentSession?.serverCommand) {
+          const group = useSessionStore.getState().groups.find((g) =>
+            g.terminals.some((t) => t.sessionId === sessionId)
+          )
+          const terminalConfig = group?.terminals.find((t) => t.sessionId === sessionId)
+          if (terminalConfig?.command) {
+            setSessionServerCommand(sessionId, terminalConfig.command)
+          }
+        }
       }
 
       // If a URL is set and we see signals the server was killed, verify immediately
@@ -256,7 +268,7 @@ export function useTerminal(sessionId: string) {
           setTimeout(() => {
             window.electronAPI.checkPort(port).then((alive) => {
               if (!alive) {
-                setSessionDetectedUrl(sessionId, null)
+                setSessionServerStatus(sessionId, 'stopped')
                 portCheckFailures = 0
               }
             })
@@ -312,7 +324,11 @@ export function useTerminal(sessionId: string) {
         notificationTimer = null
       }
       updateSessionAlive(sessionId, false)
-      setSessionDetectedUrl(sessionId, null)
+      // Keep the URL so the button remains visible; mark as stopped
+      const exitingSession = useSessionStore.getState().sessions.find((s) => s.id === sessionId)
+      if (exitingSession?.detectedUrl) {
+        setSessionServerStatus(sessionId, 'stopped')
+      }
 
       const session = useSessionStore.getState().sessions.find((s) => s.id === sessionId)
       const title = session?.name ?? session?.folderName ?? 'Clave'
@@ -428,7 +444,7 @@ export function useTerminal(sessionId: string) {
     const portCheckInterval = setInterval(() => {
       if (!document.hasFocus()) return
       const session = useSessionStore.getState().sessions.find((s) => s.id === sessionId)
-      if (!session?.detectedUrl) { portCheckFailures = 0; return }
+      if (!session?.detectedUrl || session.serverStatus !== 'running') { portCheckFailures = 0; return }
       try {
         const port = Number(new URL(session.detectedUrl).port)
         if (port) {
@@ -438,7 +454,7 @@ export function useTerminal(sessionId: string) {
             } else {
               portCheckFailures++
               if (portCheckFailures >= 2) {
-                setSessionDetectedUrl(sessionId, null)
+                setSessionServerStatus(sessionId, 'stopped')
                 portCheckFailures = 0
               }
             }
