@@ -260,6 +260,26 @@ export function registerClaveFileHandlers(): void {
       const maxDepth = config?.maxDepth ?? 4
       const results: { name: string; path: string; rootDir: string }[] = []
 
+      function findClaveFile(dir: string): string | null {
+        // 1. Check fixed pattern files
+        for (const pattern of patterns) {
+          const filePath = path.join(dir, pattern)
+          if (fs.existsSync(filePath)) return filePath
+        }
+        // 2. Check .clave/workspaces/*.clave — prefer "default.clave", else first found
+        const wsDir = path.join(dir, '.clave', 'workspaces')
+        try {
+          if (fs.existsSync(wsDir) && fs.statSync(wsDir).isDirectory()) {
+            const files = fs.readdirSync(wsDir).filter((f) => f.endsWith('.clave'))
+            if (files.length > 0) {
+              const defaultFile = files.find((f) => f === 'default.clave')
+              return path.join(wsDir, defaultFile ?? files[0])
+            }
+          }
+        } catch { /* ignore */ }
+        return null
+      }
+
       async function scan(dir: string, depth: number): Promise<void> {
         if (depth > maxDepth) return
         let entries: fs.Dirent[]
@@ -269,17 +289,9 @@ export function registerClaveFileHandlers(): void {
           return
         }
 
-        // Check if any pattern file exists in this directory
-        for (const pattern of patterns) {
-          const filePath = path.join(dir, pattern)
-          if (fs.existsSync(filePath)) {
-            results.push({
-              name: path.basename(dir),
-              path: filePath,
-              rootDir: dir
-            })
-            break // one match per directory is enough
-          }
+        const found = findClaveFile(dir)
+        if (found) {
+          results.push({ name: path.basename(dir), path: found, rootDir: dir })
         }
 
         // Recurse into subdirectories
