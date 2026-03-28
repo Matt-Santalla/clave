@@ -94,6 +94,7 @@ export interface GroupTerminalConfig {
   commandMode: 'prefill' | 'auto'
   color: GroupTerminalColor
   icon?: GroupTerminalIcon
+  cwd?: string | null
   autoLaunchLocalhost?: boolean
   sessionId: string | null
 }
@@ -153,6 +154,7 @@ export interface PinnedGroupTerminal {
   commandMode: 'prefill' | 'auto'
   color: GroupTerminalColor
   icon?: GroupTerminalIcon
+  cwd?: string | null
   autoLaunchLocalhost?: boolean
 }
 

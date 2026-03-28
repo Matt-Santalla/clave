@@ -110,7 +110,6 @@ export function Sidebar() {
   const addGroupTerminal = useSessionStore((s) => s.addGroupTerminal)
   const removeGroupTerminal = useSessionStore((s) => s.removeGroupTerminal)
   const setGroupTerminalSessionId = useSessionStore((s) => s.setGroupTerminalSessionId)
-  const setGroupCwd = useSessionStore((s) => s.setGroupCwd)
   const fileTabs = useSessionStore((s) => s.fileTabs)
   const removeFileTab = useSessionStore((s) => s.removeFileTab)
   const searchQuery = useSessionStore((s) => s.searchQuery)
@@ -501,7 +500,7 @@ export function Sidebar() {
         }
       }
 
-      spawnGroupTerminal(groupId, terminalId, config.command, config.commandMode)
+      spawnGroupTerminal(groupId, terminalId, config.command, config.commandMode, config.cwd)
     },
     [selectSession, spawnGroupTerminal]
   )
@@ -1238,6 +1237,10 @@ export function Sidebar() {
         initialCwd={(() => {
           if (!terminalDialogState) return null
           const group = groups.find((g) => g.id === terminalDialogState.groupId)
+          if (terminalDialogState.terminalId) {
+            const terminal = group?.terminals.find((t) => t.id === terminalDialogState.terminalId)
+            if (terminal?.cwd) return terminal.cwd
+          }
           return group?.cwd || sessions.find((s) => group?.sessionIds.includes(s.id))?.cwd || null
         })()}
         initialIcon={
@@ -1249,22 +1252,18 @@ export function Sidebar() {
           if (!terminalDialogState) return
           const { groupId, terminalId } = terminalDialogState
 
-          // Update group cwd if changed
-          if (cwd) {
-            const group = groups.find((g) => g.id === groupId)
-            const currentCwd = group?.cwd || sessions.find((s) => group?.sessionIds.includes(s.id))?.cwd
-            if (cwd !== currentCwd) {
-              setGroupCwd(groupId, cwd)
-            }
-          }
+          // Determine per-terminal cwd: store only if different from group default
+          const group = groups.find((g) => g.id === groupId)
+          const groupCwd = group?.cwd || sessions.find((s) => group?.sessionIds.includes(s.id))?.cwd
+          const terminalCwd = cwd && cwd !== groupCwd ? cwd : null
 
           if (terminalId) {
             // Editing existing
-            useSessionStore.getState().updateGroupTerminal(groupId, terminalId, { command, commandMode: mode, color, icon })
+            useSessionStore.getState().updateGroupTerminal(groupId, terminalId, { command, commandMode: mode, color, icon, cwd: terminalCwd })
           } else {
             // Adding new — add config, then spawn immediately
             const newId = `term-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
-            addGroupTerminal(groupId, { id: newId, command, commandMode: mode, color, icon })
+            addGroupTerminal(groupId, { id: newId, command, commandMode: mode, color, icon, cwd: terminalCwd })
             setTerminalDialogState(null)
             await spawnGroupTerminal(groupId, newId, command, mode, cwd)
             return

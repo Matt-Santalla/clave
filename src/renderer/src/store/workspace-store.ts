@@ -168,7 +168,8 @@ async function saveInitWorkspace(): Promise<void> {
         command: t.command,
         commandMode: t.commandMode,
         color: t.color,
-        icon: t.icon
+        icon: t.icon,
+        cwd: t.cwd
       }))
     }))
 
