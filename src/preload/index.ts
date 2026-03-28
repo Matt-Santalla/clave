@@ -228,6 +228,10 @@ const electronAPI = {
     ipcRenderer.invoke('clave:file-exists', absolutePath) as Promise<boolean>,
   discoverClaveFiles: (folderPath: string) =>
     ipcRenderer.invoke('clave:discover-files', folderPath) as Promise<{ name: string; path: string; rootDir: string | null }[]>,
+  discoverClaveFilesRecursive: (rootDir: string, config?: { patterns?: string[]; exclude?: string[]; maxDepth?: number }) =>
+    ipcRenderer.invoke('clave:discover-files-recursive', rootDir, config) as Promise<{ name: string; path: string; rootDir: string }[]>,
+  readAutoDiscoverConfig: (filePath: string) =>
+    ipcRenderer.invoke('clave:read-auto-discover', filePath) as Promise<{ enabled: boolean; patterns?: string[]; exclude?: string[]; maxDepth?: number } | null>,
   readImageAsDataUrl: (absolutePath: string) =>
     ipcRenderer.invoke('clave:read-image', absolutePath) as Promise<string | null>,
   preferencesGet: (key: string) =>

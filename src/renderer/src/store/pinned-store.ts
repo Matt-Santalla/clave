@@ -24,6 +24,7 @@ interface PinnedGroupBlueprint {
   toolbar?: boolean
   logo?: string | null
   category?: string | null
+  discoveredBy?: string | null
 }
 
 function loadPersistedGroups(): PinnedGroup[] {
@@ -42,8 +43,8 @@ function loadPersistedGroups(): PinnedGroup[] {
 }
 
 function persistGroups(groups: PinnedGroup[]): void {
-  const blueprints: PinnedGroupBlueprint[] = groups.map(({ id, name, cwd, color, sessions, terminals, createdAt, filePath, groupIndex, toolbar, logo, category }) => ({
-    id, name, cwd, color, sessions, terminals, createdAt, filePath, groupIndex, toolbar, logo, category
+  const blueprints: PinnedGroupBlueprint[] = groups.map(({ id, name, cwd, color, sessions, terminals, createdAt, filePath, groupIndex, toolbar, logo, category, discoveredBy }) => ({
+    id, name, cwd, color, sessions, terminals, createdAt, filePath, groupIndex, toolbar, logo, category, discoveredBy
   }))
   localStorage.setItem('clave-pinned-groups', JSON.stringify(blueprints))
 }
@@ -175,7 +176,8 @@ function createPinnedFromGroup(
   g: { name: string; cwd: string; color: string | null; toolbar?: boolean; category?: string; logo?: string; sessions: { cwd: string; name: string; claudeMode: boolean; dangerousMode: boolean }[]; terminals: { command: string; commandMode: 'prefill' | 'auto'; color: string; icon?: string }[] },
   filePath: string,
   groupIndex?: number,
-  rootDir?: string | null
+  rootDir?: string | null,
+  discoveredBy?: string | null
 ): PinnedGroup {
   return {
     id: crypto.randomUUID(),
@@ -191,6 +193,7 @@ function createPinnedFromGroup(
     toolbar: g.toolbar,
     logo: g.logo,
     category: g.category ?? null,
+    discoveredBy: discoveredBy ?? null,
     activeGroupId: null,
     visible: false
   }
@@ -209,8 +212,9 @@ function groupDataToPinnedTerminals(terminals: { command: string; commandMode: '
 
 /** Import a .clave file as pinned group(s) and optionally auto-launch.
  *  Returns info about the first pin, and whether it already existed. */
-export async function importClaveFile(filePath: string, options?: { autoLaunch?: boolean; rootDir?: string }): Promise<{ pinnedId: string; alreadyExists: boolean } | null> {
+export async function importClaveFile(filePath: string, options?: { autoLaunch?: boolean; rootDir?: string; discoveredBy?: string }): Promise<{ pinnedId: string; alreadyExists: boolean } | null> {
   const rootDir = options?.rootDir
+  const discoveredBy = options?.discoveredBy
   const result = await window.electronAPI?.readClaveFile(filePath, rootDir)
   if (!result) return null
 
@@ -251,7 +255,7 @@ export async function importClaveFile(filePath: string, options?: { autoLaunch?:
     // Add any new groups that weren't in existing pins
     for (let i = existingPins.length; i < groups.length; i++) {
       const g = groups[i]
-      const pinned = createPinnedFromGroup(g, filePath, result.type === 'multi' ? i : undefined, rootDir)
+      const pinned = createPinnedFromGroup(g, filePath, result.type === 'multi' ? i : undefined, rootDir, discoveredBy)
       usePinnedStore.getState().addPinnedGroup(pinned)
       if (autoLaunch) await togglePinnedGroup(pinned.id)
     }
@@ -264,7 +268,7 @@ export async function importClaveFile(filePath: string, options?: { autoLaunch?:
   let firstId: string | null = null
   for (let i = 0; i < groups.length; i++) {
     const g = groups[i]
-    const pinned = createPinnedFromGroup(g, filePath, result.type === 'multi' ? i : undefined, rootDir)
+    const pinned = createPinnedFromGroup(g, filePath, result.type === 'multi' ? i : undefined, rootDir, discoveredBy)
     usePinnedStore.getState().addPinnedGroup(pinned)
     if (!firstId) firstId = pinned.id
     if (autoLaunch) await togglePinnedGroup(pinned.id)

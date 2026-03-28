@@ -119,6 +119,8 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
           autoLaunch: false,
           rootDir: workspace.rootDir ?? undefined
         })
+        // Auto-discover repo .clave files if enabled
+        await discoverAndLoadRepoFiles(workspace)
       }
     }
   }
@@ -126,9 +128,31 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
 
 function removeWorkspacePins(filePath: string): void {
   const store = usePinnedStore.getState()
-  const pinsToRemove = store.pinnedGroups.filter((pg) => pg.filePath === filePath)
+  // Remove workspace's own pins AND any pins auto-discovered by this workspace
+  const pinsToRemove = store.pinnedGroups.filter((pg) => pg.filePath === filePath || pg.discoveredBy === filePath)
   for (const pg of pinsToRemove) {
     store.removePinnedGroup(pg.id)
+  }
+}
+
+/** Read autoDiscover config from workspace file and import discovered repo .clave files */
+async function discoverAndLoadRepoFiles(workspace: ClaveWorkspace): Promise<void> {
+  const adConfig = await window.electronAPI?.readAutoDiscoverConfig(workspace.claveFilePath)
+  if (!adConfig?.enabled) return
+
+  const rootDir = workspace.rootDir || workspace.claveFilePath.replace(/\/[^/]+$/, '')
+  const discovered = await window.electronAPI?.discoverClaveFilesRecursive(rootDir, adConfig)
+  if (!discovered?.length) return
+
+  // Filter out the workspace file itself
+  const repoFiles = discovered.filter((f) => f.path !== workspace.claveFilePath)
+
+  for (const file of repoFiles) {
+    await importClaveFile(file.path, {
+      autoLaunch: false,
+      rootDir: file.rootDir,
+      discoveredBy: workspace.claveFilePath
+    })
   }
 }
 
@@ -232,6 +256,8 @@ export async function loadWorkspaces(): Promise<void> {
         autoLaunch: false,
         rootDir: workspace.rootDir ?? undefined
       })
+      // Auto-discover repo .clave files if enabled
+      await discoverAndLoadRepoFiles(workspace)
     }
   }
 }

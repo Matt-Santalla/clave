@@ -250,6 +250,66 @@ export function registerClaveFileHandlers(): void {
     }
   )
 
+  // Recursively discover .clave files under a root directory
+  // Used by workspaces with autoDiscover enabled
+  ipcMain.handle(
+    'clave:discover-files-recursive',
+    async (_event, rootDir: string, config?: { patterns?: string[]; exclude?: string[]; maxDepth?: number }): Promise<{ name: string; path: string; rootDir: string }[]> => {
+      const patterns = config?.patterns ?? ['workspace.clave', '.clave/workspace.clave']
+      const exclude = new Set(config?.exclude ?? ['node_modules', '.git', 'references', 'build', 'dist', '.next', '.turbo'])
+      const maxDepth = config?.maxDepth ?? 4
+      const results: { name: string; path: string; rootDir: string }[] = []
+
+      async function scan(dir: string, depth: number): Promise<void> {
+        if (depth > maxDepth) return
+        let entries: fs.Dirent[]
+        try {
+          entries = fs.readdirSync(dir, { withFileTypes: true })
+        } catch {
+          return
+        }
+
+        // Check if any pattern file exists in this directory
+        for (const pattern of patterns) {
+          const filePath = path.join(dir, pattern)
+          if (fs.existsSync(filePath)) {
+            results.push({
+              name: path.basename(dir),
+              path: filePath,
+              rootDir: dir
+            })
+            break // one match per directory is enough
+          }
+        }
+
+        // Recurse into subdirectories
+        const subdirs = entries.filter((e) => e.isDirectory() && !exclude.has(e.name) && !e.name.startsWith('.'))
+        await Promise.all(subdirs.map((d) => scan(path.join(dir, d.name), depth + 1)))
+      }
+
+      await scan(rootDir, 0)
+      // Sort alphabetically by name for stable ordering
+      results.sort((a, b) => a.name.localeCompare(b.name))
+      return results
+    }
+  )
+
+  // Read autoDiscover config from a .clave file (lightweight, no group parsing)
+  ipcMain.handle(
+    'clave:read-auto-discover',
+    async (_event, filePath: string): Promise<{ enabled: boolean; patterns?: string[]; exclude?: string[]; maxDepth?: number } | null> => {
+      try {
+        const raw = fs.readFileSync(filePath, 'utf-8')
+        const data = JSON.parse(raw)
+        if (!data.autoDiscover) return null
+        if (data.autoDiscover === true) return { enabled: true }
+        return data.autoDiscover
+      } catch {
+        return null
+      }
+    }
+  )
+
   // Check if a file exists
   ipcMain.handle('clave:file-exists', (_event, absolutePath: string): boolean => {
     try {

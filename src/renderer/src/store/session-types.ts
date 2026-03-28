@@ -172,6 +172,7 @@ export interface PinnedGroup {
   toolbar?: boolean    // Show this group's terminals as toolbar quick-actions
   logo?: string | null // Absolute path to logo image
   category?: string | null // Category label for organizing pins in the sidebar
+  discoveredBy?: string | null // filePath of workspace that auto-discovered this pin
   // Runtime state (not persisted)
   activeGroupId: string | null
   visible: boolean
