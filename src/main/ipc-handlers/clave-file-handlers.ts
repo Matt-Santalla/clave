@@ -31,6 +31,7 @@ interface ClaveGroupData {
   cwd: string
   color: string | null
   toolbar?: boolean
+  category?: string
   logo?: string
   sessions: { cwd: string; name: string; claudeMode: boolean; dangerousMode: boolean }[]
   terminals: { command: string; commandMode: 'prefill' | 'auto'; color: string; icon?: string; cwd?: string; autoLaunchLocalhost?: boolean }[]
@@ -45,6 +46,7 @@ interface ClaveFileRaw {
   sessions?: ClaveGroupData['sessions']
   terminals?: ClaveGroupData['terminals']
   toolbar?: boolean
+  category?: string
   logo?: string
   // Multi-group format
   groups?: Array<{
@@ -52,6 +54,7 @@ interface ClaveFileRaw {
     cwd?: string
     color?: string | null
     toolbar?: boolean
+    category?: string
     logo?: string
     sessions?: ClaveGroupData['sessions']
     terminals?: ClaveGroupData['terminals']
@@ -79,12 +82,13 @@ interface ClaveFileWriteData {
   }>
 }
 
-function resolveGroup(raw: { name?: string; cwd?: string; color?: string | null; toolbar?: boolean; logo?: string; sessions?: ClaveGroupData['sessions']; terminals?: ClaveGroupData['terminals'] }, dir: string, fallbackName: string): ClaveGroupData {
+function resolveGroup(raw: { name?: string; cwd?: string; color?: string | null; toolbar?: boolean; category?: string; logo?: string; sessions?: ClaveGroupData['sessions']; terminals?: ClaveGroupData['terminals'] }, dir: string, fallbackName: string): ClaveGroupData {
   return {
     name: raw.name || fallbackName,
     cwd: path.resolve(dir, raw.cwd || '.'),
     color: raw.color ?? null,
     toolbar: raw.toolbar ?? undefined,
+    category: raw.category ?? undefined,
     logo: raw.logo
       ? raw.logo.startsWith('data:') ? raw.logo : readImageAsDataUrl(path.resolve(dir, raw.logo)) ?? undefined
       : undefined,
@@ -151,11 +155,12 @@ export function registerClaveFileHandlers(): void {
           return rel === '' ? '.' : rel
         }
 
-        const serializeGroup = (g: { name: string; cwd: string | null; color: string | null; toolbar?: boolean; logo?: string; sessions: ClaveGroupData['sessions']; terminals: ClaveGroupData['terminals'] }) => ({
+        const serializeGroup = (g: { name: string; cwd: string | null; color: string | null; toolbar?: boolean; category?: string; logo?: string; sessions: ClaveGroupData['sessions']; terminals: ClaveGroupData['terminals'] }) => ({
           name: g.name,
           cwd: toRelative(g.cwd),
           color: g.color,
           ...(g.toolbar ? { toolbar: true } : {}),
+          ...(g.category ? { category: g.category } : {}),
           ...(g.logo ? { logo: g.logo.startsWith('data:') ? g.logo : toRelative(g.logo) } : {}),
           sessions: g.sessions.map((s) => ({
             cwd: toRelative(s.cwd),

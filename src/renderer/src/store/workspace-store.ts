@@ -158,6 +158,7 @@ async function saveInitWorkspace(): Promise<void> {
       cwd: pg.cwd,
       color: pg.color,
       ...(pg.toolbar ? { toolbar: true } : {}),
+      ...(pg.category ? { category: pg.category } : {}),
       sessions: pg.sessions.map((s) => ({
         cwd: s.cwd,
         name: s.name,

@@ -3,6 +3,7 @@ export interface ClaveFileGroupData {
   cwd: string
   color: string | null
   toolbar?: boolean
+  category?: string
   logo?: string
   sessions: { cwd: string; name: string; claudeMode: boolean; dangerousMode: boolean }[]
   terminals: { command: string; commandMode: 'prefill' | 'auto'; color: string; icon?: string; autoLaunchLocalhost?: boolean }[]
@@ -23,6 +24,7 @@ export interface ClaveFileWriteData {
     cwd: string | null
     color: string | null
     toolbar?: boolean
+    category?: string
     logo?: string
     sessions: { cwd: string; name: string; claudeMode: boolean; dangerousMode: boolean }[]
     terminals: { command: string; commandMode: 'prefill' | 'auto'; color: string; icon?: string; autoLaunchLocalhost?: boolean }[]

@@ -41,8 +41,26 @@ export const PinnedGroupsGrid = forwardRef<HTMLDivElement, PinnedGroupsGridProps
     // Show placeholder when dragging a group that isn't already pinned
     const showGroupPlaceholder = !!draggedGroupId && !alreadyPinnedId
     const showFilePlaceholder = isFileDragOver
-    const totalCards = pinnedGroups.length + (showGroupPlaceholder || showFilePlaceholder ? 1 : 0)
-    const gridColumns = useMemo(() => getGridColumns(totalCards, sidebarWidth), [totalCards, sidebarWidth])
+
+    // Group pins by category
+    const categorizedGroups = useMemo(() => {
+      const categoryMap = new Map<string, typeof pinnedGroups>()
+      const uncategorized: typeof pinnedGroups = []
+      for (const pg of pinnedGroups) {
+        if (pg.category) {
+          const existing = categoryMap.get(pg.category)
+          if (existing) existing.push(pg)
+          else categoryMap.set(pg.category, [pg])
+        } else {
+          uncategorized.push(pg)
+        }
+      }
+      const sorted = [...categoryMap.entries()].sort(([a], [b]) => a.localeCompare(b))
+      const result: { category: string | null; groups: typeof pinnedGroups }[] = []
+      if (uncategorized.length > 0) result.push({ category: null, groups: uncategorized })
+      for (const [cat, groups] of sorted) result.push({ category: cat, groups })
+      return result
+    }, [pinnedGroups])
 
     // Force expand when dragging a group or file over
     const effectiveCollapsed = collapsed && !draggedGroupId && !isFileDragOverParent && !isFileDragOverLocal
@@ -94,36 +112,52 @@ export const PinnedGroupsGrid = forwardRef<HTMLDivElement, PinnedGroupsGridProps
         onDrop={handleDrop}
       >
         <div className="overflow-hidden">
-          <div className="px-2 pt-0.5 pb-1">
-            <div className="grid gap-1.5" style={{ gridTemplateColumns: gridColumns }}>
-              {pinnedGroups.map((pg) => (
-                <PinnedGroupButton
-                  key={pg.id}
-                  pinnedGroup={pg}
-                  onContextMenu={onContextMenu}
-                  highlighted={isOverPinnedZone && pg.id === alreadyPinnedId}
-                  flashing={pg.id === flashPinnedId}
-                />
-              ))}
-              {showGroupPlaceholder && (
-                <div className={`
-                  flex items-center justify-center px-2 py-2 rounded-lg border-2 border-dashed
-                  text-[12px] font-medium transition-all duration-150
-                  ${isOverPinnedZone
-                    ? 'border-accent/60 text-accent/80 bg-accent/10'
-                    : 'border-border-subtle/60 text-text-tertiary/50'
-                  }
-                `}>
-                  <span className="truncate">{isOverPinnedZone ? 'Drop to pin' : 'Pin'}</span>
+          <div className="px-2 pt-0.5 pb-1 flex flex-col gap-1">
+            {categorizedGroups.map(({ category, groups }) => {
+              const catGridColumns = getGridColumns(groups.length, sidebarWidth)
+              return (
+                <div key={category ?? '__uncategorized'}>
+                  {category && (
+                    <div className="px-0.5 pt-1 pb-0.5 text-[10px] font-medium uppercase tracking-wider text-text-tertiary/60 select-none">
+                      {category}
+                    </div>
+                  )}
+                  <div className="grid gap-1.5" style={{ gridTemplateColumns: catGridColumns }}>
+                    {groups.map((pg) => (
+                      <PinnedGroupButton
+                        key={pg.id}
+                        pinnedGroup={pg}
+                        onContextMenu={onContextMenu}
+                        highlighted={isOverPinnedZone && pg.id === alreadyPinnedId}
+                        flashing={pg.id === flashPinnedId}
+                      />
+                    ))}
+                  </div>
                 </div>
-              )}
-              {showFilePlaceholder && !showGroupPlaceholder && (
-                <div className="flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg border-2 border-dashed border-accent/60 text-accent/80 bg-accent/10 text-[12px] font-medium transition-all duration-150">
-                  <DocumentIcon className="w-3.5 h-3.5" />
-                  <span className="truncate">Drop .clave</span>
-                </div>
-              )}
-            </div>
+              )
+            })}
+            {(showGroupPlaceholder || showFilePlaceholder) && (
+              <div className="grid gap-1.5" style={{ gridTemplateColumns: '1fr' }}>
+                {showGroupPlaceholder && (
+                  <div className={`
+                    flex items-center justify-center px-2 py-2 rounded-lg border-2 border-dashed
+                    text-[12px] font-medium transition-all duration-150
+                    ${isOverPinnedZone
+                      ? 'border-accent/60 text-accent/80 bg-accent/10'
+                      : 'border-border-subtle/60 text-text-tertiary/50'
+                    }
+                  `}>
+                    <span className="truncate">{isOverPinnedZone ? 'Drop to pin' : 'Pin'}</span>
+                  </div>
+                )}
+                {showFilePlaceholder && !showGroupPlaceholder && (
+                  <div className="flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg border-2 border-dashed border-accent/60 text-accent/80 bg-accent/10 text-[12px] font-medium transition-all duration-150">
+                    <DocumentIcon className="w-3.5 h-3.5" />
+                    <span className="truncate">Drop .clave</span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>

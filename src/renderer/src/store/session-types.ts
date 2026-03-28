@@ -171,6 +171,7 @@ export interface PinnedGroup {
   groupIndex?: number  // Position in multi-group .clave file (0-based)
   toolbar?: boolean    // Show this group's terminals as toolbar quick-actions
   logo?: string | null // Absolute path to logo image
+  category?: string | null // Category label for organizing pins in the sidebar
   // Runtime state (not persisted)
   activeGroupId: string | null
   visible: boolean

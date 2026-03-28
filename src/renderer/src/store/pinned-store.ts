@@ -23,6 +23,7 @@ interface PinnedGroupBlueprint {
   groupIndex?: number
   toolbar?: boolean
   logo?: string | null
+  category?: string | null
 }
 
 function loadPersistedGroups(): PinnedGroup[] {
@@ -41,8 +42,8 @@ function loadPersistedGroups(): PinnedGroup[] {
 }
 
 function persistGroups(groups: PinnedGroup[]): void {
-  const blueprints: PinnedGroupBlueprint[] = groups.map(({ id, name, cwd, color, sessions, terminals, createdAt, filePath, groupIndex, toolbar, logo }) => ({
-    id, name, cwd, color, sessions, terminals, createdAt, filePath, groupIndex, toolbar, logo
+  const blueprints: PinnedGroupBlueprint[] = groups.map(({ id, name, cwd, color, sessions, terminals, createdAt, filePath, groupIndex, toolbar, logo, category }) => ({
+    id, name, cwd, color, sessions, terminals, createdAt, filePath, groupIndex, toolbar, logo, category
   }))
   localStorage.setItem('clave-pinned-groups', JSON.stringify(blueprints))
 }
@@ -150,7 +151,8 @@ function syncToClaveFile(pg: PinnedGroup): void {
         ...(p.toolbar ? { toolbar: true } : {}),
         ...(p.logo ? { logo: p.logo } : {}),
         sessions: p.sessions.map((s) => ({ cwd: s.cwd, name: s.name, claudeMode: s.claudeMode, dangerousMode: s.dangerousMode })),
-        terminals: p.terminals.map((t) => ({ command: t.command, commandMode: t.commandMode, color: t.color, icon: t.icon, cwd: t.cwd, autoLaunchLocalhost: t.autoLaunchLocalhost }))
+        terminals: p.terminals.map((t) => ({ command: t.command, commandMode: t.commandMode, color: t.color, icon: t.icon, cwd: t.cwd, autoLaunchLocalhost: t.autoLaunchLocalhost })),
+        ...(p.category ? { category: p.category } : {})
       })
 
       const writeData = isMulti
@@ -170,7 +172,7 @@ function syncToClaveFile(pg: PinnedGroup): void {
 // ── Import / Export ──
 
 function createPinnedFromGroup(
-  g: { name: string; cwd: string; color: string | null; toolbar?: boolean; logo?: string; sessions: { cwd: string; name: string; claudeMode: boolean; dangerousMode: boolean }[]; terminals: { command: string; commandMode: 'prefill' | 'auto'; color: string; icon?: string }[] },
+  g: { name: string; cwd: string; color: string | null; toolbar?: boolean; category?: string; logo?: string; sessions: { cwd: string; name: string; claudeMode: boolean; dangerousMode: boolean }[]; terminals: { command: string; commandMode: 'prefill' | 'auto'; color: string; icon?: string }[] },
   filePath: string,
   groupIndex?: number,
   rootDir?: string | null
@@ -188,6 +190,7 @@ function createPinnedFromGroup(
     groupIndex,
     toolbar: g.toolbar,
     logo: g.logo,
+    category: g.category ?? null,
     activeGroupId: null,
     visible: false
   }
@@ -216,7 +219,7 @@ export async function importClaveFile(filePath: string, options?: { autoLaunch?:
   // Normalize to array of groups
   const groups = result.type === 'multi'
     ? result.groups
-    : [{ name: result.name, cwd: result.cwd, color: result.color, toolbar: result.toolbar, logo: result.logo, sessions: result.sessions, terminals: result.terminals }]
+    : [{ name: result.name, cwd: result.cwd, color: result.color, toolbar: result.toolbar, category: result.category, logo: result.logo, sessions: result.sessions, terminals: result.terminals }]
 
   // Check if already imported — reuse existing pins
   const existingPins = usePinnedStore.getState().pinnedGroups.filter((pg) => pg.filePath === filePath)
@@ -234,7 +237,8 @@ export async function importClaveFile(filePath: string, options?: { autoLaunch?:
           terminals: groupDataToPinnedTerminals(g.terminals),
           groupIndex: result.type === 'multi' ? i : undefined,
           toolbar: g.toolbar,
-          logo: g.logo
+          logo: g.logo,
+          category: g.category ?? null
         })
         if (autoLaunch) {
           const state = getPinnedState(existing)
@@ -299,7 +303,8 @@ export async function exportClaveFile(pinnedId: string, folder: string, fileName
       color: t.color,
       icon: t.icon,
       cwd: t.cwd
-    }))
+    })),
+    ...(pg.category ? { category: pg.category } : {})
   })
 
   if (keepSynced) {
@@ -333,7 +338,7 @@ export function initClaveFileWatchers(): () => void {
     // Normalize to array of groups
     const groups = result.type === 'multi'
       ? result.groups
-      : [{ name: result.name, cwd: result.cwd, color: result.color, toolbar: result.toolbar, logo: result.logo, sessions: result.sessions, terminals: result.terminals }]
+      : [{ name: result.name, cwd: result.cwd, color: result.color, toolbar: result.toolbar, category: result.category, logo: result.logo, sessions: result.sessions, terminals: result.terminals }]
 
     for (let i = 0; i < pinsForFile.length && i < groups.length; i++) {
       const pg = pinsForFile.find((p) => p.groupIndex === i) ?? pinsForFile[i]
@@ -349,6 +354,7 @@ export function initClaveFileWatchers(): () => void {
           color: (g.color as GroupTerminalColor) ?? null,
           toolbar: g.toolbar,
           logo: g.logo,
+          category: g.category ?? null,
           sessions: g.sessions,
           terminals: groupDataToPinnedTerminals(g.terminals)
         })
@@ -359,6 +365,7 @@ export function initClaveFileWatchers(): () => void {
           color: (g.color as GroupTerminalColor) ?? null,
           toolbar: g.toolbar,
           logo: g.logo,
+          category: g.category ?? null,
           terminals: groupDataToPinnedTerminals(g.terminals)
         })
 
