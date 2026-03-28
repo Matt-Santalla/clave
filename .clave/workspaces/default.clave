@@ -1,0 +1,23 @@
+{
+  "$schema": "clave/1.0",
+  "name": "Clave",
+  "cwd": ".",
+  "category": "Tools",
+  "color": "blue",
+  "sessions": [
+    {
+      "cwd": ".",
+      "name": "Clave",
+      "claudeMode": true,
+      "dangerousMode": true
+    }
+  ],
+  "terminals": [
+    {
+      "command": "npm run dev",
+      "commandMode": "auto",
+      "color": "green",
+      "icon": "bolt"
+    }
+  ]
+}
