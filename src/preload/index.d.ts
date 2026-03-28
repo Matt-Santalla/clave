@@ -306,7 +306,7 @@ export interface ElectronAPI {
   getUserDataPath: () => Promise<string>
   claveFileExists: (absolutePath: string) => Promise<boolean>
   discoverClaveFiles: (folderPath: string) => Promise<{ name: string; path: string; rootDir: string | null }[]>
-  discoverClaveFilesRecursive: (rootDir: string, config?: { patterns?: string[]; exclude?: string[]; maxDepth?: number }) => Promise<{ name: string; path: string; rootDir: string }[]>
+  discoverClaveFilesRecursive: (rootDir: string, config?: { patterns?: string[]; exclude?: string[]; maxDepth?: number; workspaceId?: string }) => Promise<{ name: string; path: string; rootDir: string }[]>
   readAutoDiscoverConfig: (filePath: string) => Promise<{ enabled: boolean; patterns?: string[]; exclude?: string[]; maxDepth?: number } | null>
   readImageAsDataUrl: (absolutePath: string) => Promise<string | null>
   preferencesGet: (key: string) => Promise<unknown>

@@ -140,8 +140,12 @@ async function discoverAndLoadRepoFiles(workspace: ClaveWorkspace): Promise<void
   const adConfig = await window.electronAPI?.readAutoDiscoverConfig(workspace.claveFilePath)
   if (!adConfig?.enabled) return
 
+  // Derive workspaceId from the workspace file name (e.g. "romain.clave" → "romain")
+  const fileName = workspace.claveFilePath.split('/').pop()?.replace('.clave', '') ?? undefined
+  const workspaceId = fileName && fileName !== 'default' ? fileName : undefined
+
   const rootDir = workspace.rootDir || workspace.claveFilePath.replace(/\/[^/]+$/, '')
-  const discovered = await window.electronAPI?.discoverClaveFilesRecursive(rootDir, adConfig)
+  const discovered = await window.electronAPI?.discoverClaveFilesRecursive(rootDir, { ...adConfig, workspaceId })
   if (!discovered?.length) return
 
   // Filter out the workspace file itself

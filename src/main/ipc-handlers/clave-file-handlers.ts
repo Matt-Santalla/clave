@@ -254,10 +254,11 @@ export function registerClaveFileHandlers(): void {
   // Used by workspaces with autoDiscover enabled
   ipcMain.handle(
     'clave:discover-files-recursive',
-    async (_event, rootDir: string, config?: { patterns?: string[]; exclude?: string[]; maxDepth?: number }): Promise<{ name: string; path: string; rootDir: string }[]> => {
+    async (_event, rootDir: string, config?: { patterns?: string[]; exclude?: string[]; maxDepth?: number; workspaceId?: string }): Promise<{ name: string; path: string; rootDir: string }[]> => {
       const patterns = config?.patterns ?? ['workspace.clave', '.clave/workspace.clave']
       const exclude = new Set(config?.exclude ?? ['node_modules', '.git', 'references', 'build', 'dist', '.next', '.turbo'])
       const maxDepth = config?.maxDepth ?? 4
+      const workspaceId = config?.workspaceId // e.g. "romain" → prefer romain.clave over default.clave
       const results: { name: string; path: string; rootDir: string }[] = []
 
       function findClaveFile(dir: string): string | null {
@@ -266,12 +267,16 @@ export function registerClaveFileHandlers(): void {
           const filePath = path.join(dir, pattern)
           if (fs.existsSync(filePath)) return filePath
         }
-        // 2. Check .clave/workspaces/*.clave — prefer "default.clave", else first found
+        // 2. Check .clave/workspaces/*.clave — priority: {workspaceId}.clave → default.clave → first found
         const wsDir = path.join(dir, '.clave', 'workspaces')
         try {
           if (fs.existsSync(wsDir) && fs.statSync(wsDir).isDirectory()) {
             const files = fs.readdirSync(wsDir).filter((f) => f.endsWith('.clave'))
             if (files.length > 0) {
+              if (workspaceId) {
+                const personal = files.find((f) => f === `${workspaceId}.clave`)
+                if (personal) return path.join(wsDir, personal)
+              }
               const defaultFile = files.find((f) => f === 'default.clave')
               return path.join(wsDir, defaultFile ?? files[0])
             }
