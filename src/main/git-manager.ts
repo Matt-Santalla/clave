@@ -285,7 +285,9 @@ class GitManager {
       const isRepo = await git.checkIsRepo()
       if (!isRepo) return []
       // git check-ignore returns the paths that ARE ignored (exit code 1 = none ignored)
-      const result = await git.raw(['check-ignore', ...paths]).catch(() => '')
+      // --no-index: check purely against .gitignore rules, ignoring tracked gitlinks
+      // (nested git repos tracked in the index are otherwise silently skipped)
+      const result = await git.raw(['check-ignore', '--no-index', ...paths]).catch(() => '')
       if (!result.trim()) return []
       return result.trim().split('\n').filter(Boolean)
     } catch {
