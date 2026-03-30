@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import type { GitStatusResult } from '../../../preload/index.d'
 
 const POLL_INTERVAL = 5000
@@ -90,20 +90,27 @@ export function useMultiRepoStatus(
     return () => clearInterval(interval)
   }, [cwd, active, fetchAll, result.mode])
 
+  // Stable key for repo paths — only changes when repos are added/removed, not on status polls
+  const repoPaths = useMemo(() => {
+    if (result.mode !== 'multi') return ''
+    return result.repos.map((r) => r.path).sort().join('\n')
+  }, [result])
+
   // Periodic git fetch for all repos in multi mode
   useEffect(() => {
-    if (!cwd || !active || result.mode !== 'multi') return
-    const repos = result.repos
-    for (const repo of repos) {
-      window.electronAPI.gitFetch(repo.path)
+    if (!cwd || !active || !repoPaths) return
+    const paths = repoPaths.split('\n').filter(Boolean)
+    if (paths.length === 0) return
+    for (const p of paths) {
+      window.electronAPI.gitFetch(p)
     }
     const interval = setInterval(() => {
-      for (const repo of repos) {
-        window.electronAPI.gitFetch(repo.path)
+      for (const p of paths) {
+        window.electronAPI.gitFetch(p)
       }
     }, FETCH_INTERVAL)
     return () => clearInterval(interval)
-  }, [cwd, active, result])
+  }, [cwd, active, repoPaths])
 
   const refresh = useCallback(() => {
     fetchAll()

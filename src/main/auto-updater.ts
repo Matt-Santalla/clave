@@ -9,6 +9,7 @@ const RETRY_DELAY = 60 * 1000 // 1 minute
 let cancellationToken: CancellationToken | null = null
 let downloadCancelled = false
 let isDownloading = false
+let checkInterval: ReturnType<typeof setInterval> | null = null
 
 function sendToRenderer(channel: string, ...args: unknown[]): void {
   getMainWindow()?.webContents.send(channel, ...args)
@@ -72,7 +73,7 @@ export function initAutoUpdater(): void {
   }
 
   setTimeout(check, INITIAL_DELAY)
-  setInterval(check, CHECK_INTERVAL)
+  checkInterval = setInterval(check, CHECK_INTERVAL)
 }
 
 export function startDownload(): void {
@@ -93,6 +94,13 @@ export function cancelDownload(): void {
     isDownloading = false
     cancellationToken.cancel()
     cancellationToken = null
+  }
+}
+
+export function cleanupAutoUpdater(): void {
+  if (checkInterval) {
+    clearInterval(checkInterval)
+    checkInterval = null
   }
 }
 

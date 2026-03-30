@@ -111,6 +111,7 @@ export function useRemoteTerminal(shellId: string) {
   const containerRef = useRef<HTMLDivElement>(null)
   const terminalRef = useRef<Terminal | null>(null)
   const fitAddonRef = useRef<FitAddon | null>(null)
+  const isVisibleRef = useRef(false)
   const theme = useSessionStore((s) => s.theme)
 
   const fit = useCallback(() => {
@@ -129,7 +130,7 @@ export function useRemoteTerminal(shellId: string) {
       lineHeight: 1.4,
       cursorBlink: true,
       cursorStyle: 'bar',
-      allowTransparency: true,
+      allowTransparency: false,
       scrollback: 10000,
       convertEol: true,
       linkHandler: {
@@ -229,11 +230,13 @@ export function useRemoteTerminal(shellId: string) {
       const stripped = stripAnsi(data)
       outputBuffer = (outputBuffer + stripped).slice(-500)
 
-      // Detect localhost URLs in output
-      const detectedUrl = detectLocalhostUrl(outputBuffer)
-      if (detectedUrl) {
-        setSessionDetectedUrl(shellId, detectedUrl)
-        portCheckFailures = 0
+      // Detect localhost URLs in output (skip for hidden terminals — detected on next visible chunk)
+      if (isVisibleRef.current) {
+        const detectedUrl = detectLocalhostUrl(outputBuffer)
+        if (detectedUrl) {
+          setSessionDetectedUrl(shellId, detectedUrl)
+          portCheckFailures = 0
+        }
       }
 
       // If a URL is set and we see signals the server was killed, verify immediately
@@ -345,7 +348,7 @@ export function useRemoteTerminal(shellId: string) {
 
     // Periodically verify detected localhost URL is still reachable (fallback for missed signals)
     const portCheckInterval = setInterval(() => {
-      if (!document.hasFocus()) return
+      if (!document.hasFocus() || !isVisibleRef.current) return
       const session = useSessionStore.getState().sessions.find((s) => s.id === shellId)
       if (!session?.detectedUrl || session.serverStatus !== 'running') { portCheckFailures = 0; return }
       try {
@@ -389,6 +392,23 @@ export function useRemoteTerminal(shellId: string) {
       terminalRef.current.options.theme = getXtermTheme(theme)
     }
   }, [theme])
+
+  // Track visibility and toggle cursor blink for hidden terminals
+  useEffect(() => {
+    isVisibleRef.current = useSessionStore.getState().selectedSessionIds.includes(shellId)
+    if (terminalRef.current) {
+      terminalRef.current.options.cursorBlink = isVisibleRef.current
+    }
+    const unsub = useSessionStore.subscribe((state, prevState) => {
+      if (state.selectedSessionIds === prevState.selectedSessionIds) return
+      const visible = state.selectedSessionIds.includes(shellId)
+      isVisibleRef.current = visible
+      if (terminalRef.current) {
+        terminalRef.current.options.cursorBlink = visible
+      }
+    })
+    return unsub
+  }, [shellId])
 
   const focus = useCallback(() => {
     terminalRef.current?.focus()

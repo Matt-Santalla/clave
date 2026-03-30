@@ -4,12 +4,13 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { registerIpcHandlers } from './ipc-handlers'
 import { applyPersistedIcon } from './ipc-handlers/app-handlers'
 import { ptyManager, preloadLoginShellEnv } from './pty-manager'
-import { initAutoUpdater } from './auto-updater'
+import { initAutoUpdater, cleanupAutoUpdater } from './auto-updater'
 import { initNotificationManager } from './notification-manager'
 import { sshManager } from './ssh-manager'
 import { locationManager } from './location-manager'
 import { openclawClient } from './openclaw-client'
 import { preferencesManager } from './preferences-manager'
+import { cleanupClaveWatchers } from './ipc-handlers/clave-file-handlers'
 
 function createWindow(): void {
   const savedIcon = preferencesManager.get('appIcon')
@@ -99,6 +100,11 @@ app.whenReady().then(() => {
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
+})
+
+app.on('before-quit', () => {
+  cleanupClaveWatchers()
+  cleanupAutoUpdater()
 })
 
 app.on('window-all-closed', () => {

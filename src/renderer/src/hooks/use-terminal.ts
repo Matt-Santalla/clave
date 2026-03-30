@@ -118,6 +118,7 @@ export function useTerminal(sessionId: string) {
   const containerRef = useRef<HTMLDivElement>(null)
   const terminalRef = useRef<Terminal | null>(null)
   const fitAddonRef = useRef<FitAddon | null>(null)
+  const isVisibleRef = useRef(false)
   const theme = useSessionStore((s) => s.theme)
 
   const fit = useCallback(() => {
@@ -136,7 +137,7 @@ export function useTerminal(sessionId: string) {
       lineHeight: 1.4,
       cursorBlink: true,
       cursorStyle: 'bar',
-      allowTransparency: true,
+      allowTransparency: false,
       scrollback: 10000,
       convertEol: true,
       linkHandler: {
@@ -245,21 +246,23 @@ export function useTerminal(sessionId: string) {
       const stripped = stripAnsi(data)
       outputBuffer = (outputBuffer + stripped).slice(-500)
 
-      // Detect localhost URLs in output
-      const detectedUrl = detectLocalhostUrl(outputBuffer)
-      if (detectedUrl) {
-        setSessionDetectedUrl(sessionId, detectedUrl)
-        portCheckFailures = 0
+      // Detect localhost URLs in output (skip for hidden terminals — detected on next visible chunk)
+      if (isVisibleRef.current) {
+        const detectedUrl = detectLocalhostUrl(outputBuffer)
+        if (detectedUrl) {
+          setSessionDetectedUrl(sessionId, detectedUrl)
+          portCheckFailures = 0
 
-        // Capture the server command from the group terminal config (if available)
-        const currentSession = useSessionStore.getState().sessions.find((s) => s.id === sessionId)
-        if (!currentSession?.serverCommand) {
-          const group = useSessionStore.getState().groups.find((g) =>
-            g.terminals.some((t) => t.sessionId === sessionId)
-          )
-          const terminalConfig = group?.terminals.find((t) => t.sessionId === sessionId)
-          if (terminalConfig?.command) {
-            setSessionServerCommand(sessionId, terminalConfig.command)
+          // Capture the server command from the group terminal config (if available)
+          const currentSession = useSessionStore.getState().sessions.find((s) => s.id === sessionId)
+          if (!currentSession?.serverCommand) {
+            const group = useSessionStore.getState().groups.find((g) =>
+              g.terminals.some((t) => t.sessionId === sessionId)
+            )
+            const terminalConfig = group?.terminals.find((t) => t.sessionId === sessionId)
+            if (terminalConfig?.command) {
+              setSessionServerCommand(sessionId, terminalConfig.command)
+            }
           }
         }
       }
@@ -447,7 +450,7 @@ export function useTerminal(sessionId: string) {
 
     // Periodically verify detected localhost URL is still reachable (fallback for missed signals)
     const portCheckInterval = setInterval(() => {
-      if (!document.hasFocus()) return
+      if (!document.hasFocus() || !isVisibleRef.current) return
       const session = useSessionStore.getState().sessions.find((s) => s.id === sessionId)
       if (!session?.detectedUrl || session.serverStatus !== 'running') { portCheckFailures = 0; return }
       try {
@@ -495,6 +498,23 @@ export function useTerminal(sessionId: string) {
       terminalRef.current.options.theme = getXtermTheme(theme)
     }
   }, [theme])
+
+  // Track visibility and toggle cursor blink for hidden terminals
+  useEffect(() => {
+    isVisibleRef.current = useSessionStore.getState().selectedSessionIds.includes(sessionId)
+    if (terminalRef.current) {
+      terminalRef.current.options.cursorBlink = isVisibleRef.current
+    }
+    const unsub = useSessionStore.subscribe((state, prevState) => {
+      if (state.selectedSessionIds === prevState.selectedSessionIds) return
+      const visible = state.selectedSessionIds.includes(sessionId)
+      isVisibleRef.current = visible
+      if (terminalRef.current) {
+        terminalRef.current.options.cursorBlink = visible
+      }
+    })
+    return unsub
+  }, [sessionId])
 
   const focus = useCallback(() => {
     terminalRef.current?.focus()

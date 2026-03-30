@@ -493,10 +493,10 @@ class UsageManager {
     const claudeDir = path.join(app.getPath('home'), '.claude', 'projects')
     let jsonlFiles: string[] = []
     try {
-      const entries = fs.readdirSync(claudeDir, { recursive: true, encoding: 'utf-8' })
-      jsonlFiles = (entries as string[])
-        .filter((e) => e.endsWith('.jsonl'))
-        .map((e) => path.join(claudeDir, e))
+      const entries = fs.readdirSync(claudeDir, { recursive: true, withFileTypes: true })
+      jsonlFiles = entries
+        .filter((e) => e.isFile() && e.name.endsWith('.jsonl'))
+        .map((e) => path.join(e.parentPath, e.name))
     } catch {
       // Directory might not exist
     }

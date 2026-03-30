@@ -18,6 +18,32 @@ interface SessionEntry {
 
 const sessions = new Map<string, SessionEntry>()
 
+// --- Title generation queue (prevent concurrent CLI spawns) ---
+
+interface TitleJob {
+  sessionId: string
+  userMessage: string
+  resolve: (title: string) => void
+  reject: (err: Error) => void
+}
+
+const titleQueue: TitleJob[] = []
+let activeTitleJobs = 0
+const MAX_CONCURRENT_TITLES = 1
+
+function processNextTitle(): void {
+  if (activeTitleJobs >= MAX_CONCURRENT_TITLES || titleQueue.length === 0) return
+  const job = titleQueue.shift()!
+  activeTitleJobs++
+  runTitleGeneration(job.sessionId, job.userMessage)
+    .then(job.resolve)
+    .catch(job.reject)
+    .finally(() => {
+      activeTitleJobs--
+      processNextTitle()
+    })
+}
+
 // --- Helpers (shared) ---
 
 function getJsonlPath(cwd: string, claudeSessionId: string): string {
@@ -62,6 +88,12 @@ export function cleanup(sessionId: string): void {
     try { unwatchFile(entry.jsonlPath) } catch { /* ignore */ }
   }
   sessions.delete(sessionId)
+  // Remove any queued title jobs for this session
+  const queueIdx = titleQueue.findIndex((j) => j.sessionId === sessionId)
+  if (queueIdx !== -1) {
+    titleQueue[queueIdx].reject(new Error('Session cleaned up'))
+    titleQueue.splice(queueIdx, 1)
+  }
 }
 
 // --- JSONL processing ---
@@ -179,6 +211,13 @@ function extractPlanPath(entry: Record<string, unknown>): string | null {
 // --- Title generation ---
 
 function generateTitle(sessionId: string, userMessage: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    titleQueue.push({ sessionId, userMessage, resolve, reject })
+    processNextTitle()
+  })
+}
+
+function runTitleGeneration(sessionId: string, userMessage: string): Promise<string> {
   const prompt = `Generate a short 2-4 word title for this Claude Code terminal session based on what the user asked.
 Rules:
 - Return ONLY the title, no quotes, no explanation
