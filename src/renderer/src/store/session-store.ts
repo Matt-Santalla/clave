@@ -84,6 +84,7 @@ interface SessionState {
   setSessionUnseenActivity: (id: string, unseen: boolean) => void
   renameSession: (id: string, name: string) => void
   autoRenameSession: (id: string, name: string) => void
+  resetSessionName: (id: string) => void
   setSessionPlanFile: (id: string, path: string) => void
   setSearchQuery: (query: string) => void
   toggleClaudeMode: () => void
@@ -586,6 +587,13 @@ export const useSessionStore = create<SessionState>((set) => ({
     set((state) => ({
       sessions: state.sessions.map((s) =>
         s.id === id && !s.userRenamed ? { ...s, name: name.trim() || s.name } : s
+      )
+    })),
+
+  resetSessionName: (id) =>
+    set((state) => ({
+      sessions: state.sessions.map((s) =>
+        s.id === id ? { ...s, name: s.folderName, userRenamed: false } : s
       )
     })),
 

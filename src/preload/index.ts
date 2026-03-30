@@ -38,6 +38,9 @@ const electronAPI = {
   onPlanDetected: (sessionId: string, callback: (planPath: string) => void) =>
     createIpcListener<[string]>(`session:plan-detected:${sessionId}`, callback),
 
+  onClearDetected: (sessionId: string, callback: () => void) =>
+    createIpcListener<[]>(`session:clear-detected:${sessionId}`, callback),
+
   saveDiscussion: (cwd: string, claudeSessionId: string, sessionName: string) =>
     ipcRenderer.invoke('session:save-discussion', cwd, claudeSessionId, sessionName),
 

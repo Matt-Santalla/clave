@@ -1,6 +1,6 @@
 import { execFile } from 'child_process'
-import { existsSync, watchFile, unwatchFile, type Stats } from 'fs'
-import { join } from 'path'
+import { existsSync, watchFile, unwatchFile, watch, readFileSync, type Stats } from 'fs'
+import { join, dirname } from 'path'
 import { homedir } from 'os'
 import { BrowserWindow } from 'electron'
 import { getLoginShellEnv } from './pty-manager'
@@ -14,6 +14,7 @@ interface SessionEntry {
   jsonlPath: string
   titleDone: boolean
   planDetected: boolean
+  dirWatcher: ReturnType<typeof watch> | null
 }
 
 const sessions = new Map<string, SessionEntry>()
@@ -62,22 +63,59 @@ export function scheduleTitleGeneration(
   const jsonlPath = getJsonlPath(cwd, claudeSessionId)
   const entry: SessionEntry = {
     cwd, claudeSessionId, win, jsonlPath,
-    titleDone: false, planDetected: false
+    titleDone: false, planDetected: false, dirWatcher: null
   }
   sessions.set(sessionId, entry)
 
+  watchJsonl(sessionId, entry)
+
+  // Watch the project directory for new JSONL files (created by /clear)
+  const projectDir = dirname(jsonlPath)
+  if (existsSync(projectDir)) {
+    const dirWatcher = watch(projectDir, (eventType, filename) => {
+      if (eventType !== 'rename' || !filename?.endsWith('.jsonl')) return
+      const newFile = join(projectDir, filename)
+      if (newFile === entry.jsonlPath || !existsSync(newFile)) return
+
+      // Small delay — file may not be fully written yet when the watch event fires
+      setTimeout(() => {
+        if (!existsSync(newFile)) return
+        // Check if this new JSONL is a /clear continuation
+        try {
+          const head = readFileSync(newFile, { encoding: 'utf-8', flag: 'r' })
+          if (!head.includes('<command-name>/clear</command-name>')) return
+        } catch { return }
+
+        console.log(`[title-gen] Session ${sessionId}: /clear detected (new JSONL: ${filename})`)
+
+        // Stop watching old JSONL, switch to new one
+        try { unwatchFile(entry.jsonlPath) } catch { /* ignore */ }
+        entry.jsonlPath = newFile
+        entry.titleDone = false
+        entry.planDetected = false
+
+        // Start watching the new JSONL for title generation
+        watchJsonl(sessionId, entry)
+
+        // Notify renderer to reset the session name
+        if (entry.win && !entry.win.isDestroyed()) {
+          entry.win.webContents.send(`session:clear-detected:${sessionId}`)
+        }
+      }, 500)
+    })
+    entry.dirWatcher = dirWatcher
+  }
+}
+
+function watchJsonl(sessionId: string, entry: SessionEntry): void {
   let lastSize = 0
-  watchFile(jsonlPath, { persistent: false, interval: 2000 }, (curr: Stats) => {
-    if (entry.titleDone && entry.planDetected) {
-      unwatchFile(jsonlPath)
-      return
-    }
+  watchFile(entry.jsonlPath, { persistent: false, interval: 2000 }, (curr: Stats) => {
     if (curr.size === 0 || curr.size === lastSize) return
     lastSize = curr.size
     processJsonl(sessionId, entry)
   })
 
-  if (existsSync(jsonlPath)) {
+  if (existsSync(entry.jsonlPath)) {
     processJsonl(sessionId, entry)
   }
 }
@@ -86,6 +124,7 @@ export function cleanup(sessionId: string): void {
   const entry = sessions.get(sessionId)
   if (entry) {
     try { unwatchFile(entry.jsonlPath) } catch { /* ignore */ }
+    try { entry.dirWatcher?.close() } catch { /* ignore */ }
   }
   sessions.delete(sessionId)
   // Remove any queued title jobs for this session
@@ -99,24 +138,27 @@ export function cleanup(sessionId: string): void {
 // --- JSONL processing ---
 
 function processJsonl(sessionId: string, entry: SessionEntry): void {
-  // Title: grep for the first user message line, parse just that one line
+  // Title: grep for all user messages, find the first valid one
   if (!entry.titleDone) {
-    grepFile(entry.jsonlPath, '"type":"user"', true).then((line) => {
-      if (!line) return
-      const userMessage = parseUserMessage(line)
-      if (!userMessage || !isValidMessage(userMessage)) return
+    grepFile(entry.jsonlPath, '"type":"user"', false).then((output) => {
+      if (!output) return
+      for (const line of output.split('\n')) {
+        if (!line.trim()) continue
+        const userMessage = parseUserMessage(line)
+        if (!userMessage || !isValidMessage(userMessage)) continue
 
-      entry.titleDone = true
-      console.log(`[title-gen] Session ${sessionId} message: "${userMessage.slice(0, 80)}"`)
+        entry.titleDone = true
+        console.log(`[title-gen] Session ${sessionId} message: "${userMessage.slice(0, 80)}"`)
 
-      generateTitle(sessionId, userMessage)
-        .then((title) => {
-          if (entry.win && !entry.win.isDestroyed()) {
-            entry.win.webContents.send(`session:auto-title:${sessionId}`, title)
-          }
-        })
-        .catch(() => {})
-        .finally(() => stopIfDone(entry))
+        generateTitle(sessionId, userMessage)
+          .then((title) => {
+            if (entry.win && !entry.win.isDestroyed()) {
+              entry.win.webContents.send(`session:auto-title:${sessionId}`, title)
+            }
+          })
+          .catch(() => {})
+        return
+      }
     })
   }
 
@@ -136,7 +178,6 @@ function processJsonl(sessionId: string, entry: SessionEntry): void {
               entry.win.webContents.send(`session:plan-detected:${sessionId}`, planPath)
             }
             console.log(`[title-gen] Session ${sessionId}: plan detected at ${planPath}`)
-            stopIfDone(entry)
             return
           }
         } catch {
@@ -145,6 +186,7 @@ function processJsonl(sessionId: string, entry: SessionEntry): void {
       }
     })
   }
+
 }
 
 /** Use grep to search the file without loading it into memory */
@@ -162,12 +204,6 @@ function grepFile(filePath: string, pattern: string, firstMatchOnly: boolean): P
       resolve(stdout.trim())
     })
   })
-}
-
-function stopIfDone(entry: SessionEntry): void {
-  if (entry.titleDone && entry.planDetected) {
-    try { unwatchFile(entry.jsonlPath) } catch { /* ignore */ }
-  }
 }
 
 // --- Parsing ---
