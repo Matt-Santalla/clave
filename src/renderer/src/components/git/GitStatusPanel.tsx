@@ -49,6 +49,7 @@ function RepoSection({
 }) {
   const gitViewMode = useSessionStore((s) => s.gitViewMode)
   const setDiffPreview = useSessionStore((s) => s.setDiffPreview)
+  const diffPreview = useSessionStore((s) => s.diffPreview)
   const collapseAllTrigger = useSessionStore((s) => s.collapseAllTrigger)
   const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set())
   const [operating, setOperating] = useState(false)
@@ -103,18 +104,13 @@ function RepoSection({
     }
   }, [cwd])
 
+  const openDiffPreviewRef = useRef<(file: GitFileStatus, clickY?: number) => void>(() => {})
+
   const openDiffPreview = useCallback(
-    (file: GitFileStatus) => {
-      setDiffPreview({
-        file: file.path,
-        cwd,
-        type: 'working',
-        staged: file.staged,
-        fileStatus: file.status,
-        hash: null
-      })
+    (file: GitFileStatus, clickY?: number) => {
+      openDiffPreviewRef.current(file, clickY)
     },
-    [cwd, setDiffPreview]
+    []
   )
 
   const handleSelect = useCallback(
@@ -201,6 +197,24 @@ function RepoSection({
     }
     return { staged, unstaged, untracked }
   }, [status?.files, relativeFilterPrefix])
+
+  // Derive active diff file for highlighting
+  const activeDiffFile = diffPreview?.type === 'working' && diffPreview.cwd === cwd ? diffPreview.file : null
+
+  // Update ref so openDiffPreview can access latest file lists
+  openDiffPreviewRef.current = (file: GitFileStatus, clickY?: number) => {
+    const allFiles = [...staged, ...unstaged, ...untracked]
+    setDiffPreview({
+      file: file.path,
+      cwd,
+      type: 'working',
+      staged: file.staged,
+      fileStatus: file.status,
+      hash: null,
+      siblings: allFiles.map((f) => ({ file: f.path, staged: f.staged, fileStatus: f.status })),
+      clickY
+    })
+  }
 
   const runOperation = useCallback(
     async (fn: () => Promise<void>) => {
@@ -330,6 +344,7 @@ function RepoSection({
                 cwd={repoRoot}
                 selectedPaths={selectedPaths}
                 expandedPaths={stagedExpanded}
+                activeDiffFile={activeDiffFile}
                 onToggleExpanded={toggleStagedExpanded}
                 onClickFile={openDiffPreview}
                 onSelect={handleSelect}
@@ -344,7 +359,8 @@ function RepoSection({
                   file={f}
                   cwd={repoRoot}
                   isSelected={selectedPaths.has(f.path)}
-                  onClickName={() => openDiffPreview(f)}
+                  isActiveDiff={activeDiffFile === f.path}
+                  onClickName={(clickY) => openDiffPreview(f, clickY)}
                   onSelect={handleSelect}
                   onStageToggle={() => unstageFile(f.path)}
                   onDiscard={() => promptDiscardFile(f)}
@@ -372,6 +388,7 @@ function RepoSection({
                 cwd={repoRoot}
                 selectedPaths={selectedPaths}
                 expandedPaths={unstagedExpanded}
+                activeDiffFile={activeDiffFile}
                 onToggleExpanded={toggleUnstagedExpanded}
                 onClickFile={openDiffPreview}
                 onSelect={handleSelect}
@@ -386,7 +403,8 @@ function RepoSection({
                   file={f}
                   cwd={repoRoot}
                   isSelected={selectedPaths.has(f.path)}
-                  onClickName={() => openDiffPreview(f)}
+                  isActiveDiff={activeDiffFile === f.path}
+                  onClickName={(clickY) => openDiffPreview(f, clickY)}
                   onSelect={handleSelect}
                   onStageToggle={() => stageFile(f.path)}
                   onDiscard={() => promptDiscardFile(f)}
@@ -414,6 +432,7 @@ function RepoSection({
                 cwd={repoRoot}
                 selectedPaths={selectedPaths}
                 expandedPaths={untrackedExpanded}
+                activeDiffFile={activeDiffFile}
                 onToggleExpanded={toggleUntrackedExpanded}
                 onClickFile={openDiffPreview}
                 onSelect={handleSelect}
@@ -428,7 +447,8 @@ function RepoSection({
                   file={f}
                   cwd={repoRoot}
                   isSelected={selectedPaths.has(f.path)}
-                  onClickName={() => openDiffPreview(f)}
+                  isActiveDiff={activeDiffFile === f.path}
+                  onClickName={(clickY) => openDiffPreview(f, clickY)}
                   onSelect={handleSelect}
                   onStageToggle={() => stageFile(f.path)}
                   onDiscard={() => promptDiscardFile(f)}

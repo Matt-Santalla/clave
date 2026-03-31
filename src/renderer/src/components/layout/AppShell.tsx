@@ -523,7 +523,7 @@ export function AppShell() {
             animate={{ width: effectiveFileTreeWidth, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={skipTransition.current ? { duration: 0 } : sidebarTransition}
-            className="flex-shrink-0 overflow-hidden relative z-10"
+            className="flex-shrink-0 overflow-hidden relative z-[45]"
           >
             {/* Resize handle */}
             {/* Resize handle — wide invisible hit area, thin visible line */}

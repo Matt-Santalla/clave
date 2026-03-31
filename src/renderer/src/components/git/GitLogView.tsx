@@ -50,12 +50,14 @@ function commitFileStatusColor(status: GitCommitFileStatus['status']): string {
 function CommitDetail({
   cwd,
   commit,
+  activeDiffFile,
   onSelectFile,
   onClose
 }: {
   cwd: string
   commit: GitLogEntry
-  onSelectFile: (file: GitCommitFileStatus) => void
+  activeDiffFile: string | null
+  onSelectFile: (file: GitCommitFileStatus, allFiles: GitCommitFileStatus[], clickY: number) => void
   onClose: () => void
 }) {
   const [files, setFiles] = useState<GitCommitFileStatus[]>([])
@@ -118,11 +120,14 @@ function CommitDetail({
             const dir = file.path.includes('/')
               ? file.path.slice(0, file.path.lastIndexOf('/') + 1)
               : ''
+            const isActive = activeDiffFile === file.path
             return (
               <div
                 key={file.path}
-                className="flex items-center gap-1.5 px-3 py-0.5 text-xs hover:bg-surface-100 transition-colors cursor-pointer group"
-                onClick={() => onSelectFile(file)}
+                className={`flex items-center gap-1.5 px-3 py-0.5 text-xs transition-colors cursor-pointer group ${
+                  isActive ? 'bg-accent/15 border-l-2 border-l-accent' : 'hover:bg-surface-100 border-l-2 border-l-transparent'
+                }`}
+                onClick={(e) => onSelectFile(file, files, e.clientY)}
               >
                 <span
                   className={`font-mono w-3 flex-shrink-0 ${commitFileStatusColor(file.status)}`}
@@ -272,15 +277,19 @@ export function GitLogView({
   const [error, setError] = useState<string | null>(null)
   const [expandedHash, setExpandedHash] = useState<string | null>(null)
 
+  const diffPreview = useSessionStore((s) => s.diffPreview)
+
   const openCommitDiff = useCallback(
-    (hash: string, file: GitCommitFileStatus) => {
+    (hash: string, file: GitCommitFileStatus, allFiles: GitCommitFileStatus[], clickY?: number) => {
       setDiffPreview({
         file: file.path,
         cwd,
         type: 'commit',
         staged: false,
         fileStatus: file.status,
-        hash
+        hash,
+        siblings: allFiles.map((f) => ({ file: f.path, staged: false, fileStatus: f.status })),
+        clickY
       })
     },
     [cwd, setDiffPreview]
@@ -391,8 +400,9 @@ export function GitLogView({
                   <CommitDetail
                     cwd={cwd}
                     commit={commit}
-                    onSelectFile={(file) =>
-                      openCommitDiff(commit.hash, file)
+                    activeDiffFile={diffPreview?.hash === commit.hash ? diffPreview.file : null}
+                    onSelectFile={(file, allFiles, clickY) =>
+                      openCommitDiff(commit.hash, file, allFiles, clickY)
                     }
                     onClose={() => setExpandedHash(null)}
                   />
@@ -426,8 +436,9 @@ export function GitLogView({
                   <CommitDetail
                     cwd={cwd}
                     commit={commit}
-                    onSelectFile={(file) =>
-                      openCommitDiff(commit.hash, file)
+                    activeDiffFile={diffPreview?.hash === commit.hash ? diffPreview.file : null}
+                    onSelectFile={(file, allFiles, clickY) =>
+                      openCommitDiff(commit.hash, file, allFiles, clickY)
                     }
                     onClose={() => setExpandedHash(null)}
                   />
@@ -451,8 +462,9 @@ export function GitLogView({
               <CommitDetail
                 cwd={cwd}
                 commit={commit}
-                onSelectFile={(file) =>
-                  openCommitDiff(commit.hash, file)
+                activeDiffFile={diffPreview?.hash === commit.hash ? diffPreview.file : null}
+                onSelectFile={(file, allFiles, clickY) =>
+                  openCommitDiff(commit.hash, file, allFiles, clickY)
                 }
                 onClose={() => setExpandedHash(null)}
               />

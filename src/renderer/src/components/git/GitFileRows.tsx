@@ -10,6 +10,7 @@ export function FileRow({
   file,
   cwd,
   isSelected,
+  isActiveDiff,
   onClickName,
   onSelect,
   onStageToggle,
@@ -20,7 +21,8 @@ export function FileRow({
   file: GitFileStatus
   cwd: string
   isSelected?: boolean
-  onClickName?: () => void
+  isActiveDiff?: boolean
+  onClickName?: (clickY: number) => void
   onSelect?: (path: string, metaKey: boolean) => void
   onStageToggle?: () => void
   onDiscard?: () => void
@@ -37,7 +39,7 @@ export function FileRow({
         return
       }
       onSelect?.(file.path, false)
-      onClickName?.()
+      onClickName?.(e.clientY)
     },
     [file.path, onClickName, onSelect]
   )
@@ -59,19 +61,17 @@ export function FileRow({
 
   return (
     <div
-      className={`flex items-center gap-1.5 px-3 py-0.5 text-xs transition-colors group ${
-        disabled ? 'opacity-50 pointer-events-none' : isSelected ? 'bg-surface-200' : 'hover:bg-surface-100'
+      className={`flex items-center gap-1.5 px-3 py-0.5 text-xs transition-colors cursor-pointer group ${
+        disabled ? 'opacity-50 pointer-events-none' : isActiveDiff ? 'bg-accent/15 border-l-2 border-l-accent' : isSelected ? 'bg-surface-200 border-l-2 border-l-transparent' : 'hover:bg-surface-100 border-l-2 border-l-transparent'
       }`}
+      onClick={handleClick}
       draggable
       onDragStart={handleDragStart}
     >
       <span className={`font-mono w-3 flex-shrink-0 ${statusColor(file.status)}`}>
         {statusLetter(file.status)}
       </span>
-      <span
-        className="text-text-primary truncate cursor-pointer hover:underline"
-        onClick={handleClick}
-      >
+      <span className="text-text-primary truncate hover:underline">
         {name}
       </span>
       {dir && <span className="text-text-tertiary truncate text-[10px]">{dir}</span>}
@@ -165,6 +165,7 @@ export function GitTreeFileRow({
   node,
   cwd,
   isSelected,
+  isActiveDiff,
   onClickName,
   onSelect,
   onStageToggle,
@@ -175,7 +176,8 @@ export function GitTreeFileRow({
   node: FlatGitTreeNode
   cwd: string
   isSelected?: boolean
-  onClickName?: () => void
+  isActiveDiff?: boolean
+  onClickName?: (clickY: number) => void
   onSelect?: (path: string, metaKey: boolean) => void
   onStageToggle?: () => void
   onDiscard?: () => void
@@ -192,7 +194,7 @@ export function GitTreeFileRow({
         return
       }
       onSelect?.(file.path, false)
-      onClickName?.()
+      onClickName?.(e.clientY)
     },
     [file.path, onClickName, onSelect]
   )
@@ -214,10 +216,11 @@ export function GitTreeFileRow({
 
   return (
     <div
-      className={`flex items-center gap-1.5 py-0.5 text-xs transition-colors group pr-3 ${
-        disabled ? 'opacity-50 pointer-events-none' : isSelected ? 'bg-surface-200' : 'hover:bg-surface-100'
+      className={`flex items-center gap-1.5 py-0.5 text-xs transition-colors cursor-pointer group pr-3 ${
+        disabled ? 'opacity-50 pointer-events-none' : isActiveDiff ? 'bg-accent/15 border-l-2 border-l-accent' : isSelected ? 'bg-surface-200 border-l-2 border-l-transparent' : 'hover:bg-surface-100 border-l-2 border-l-transparent'
       }`}
       style={{ paddingLeft: `${8 + node.depth * 12}px` }}
+      onClick={handleClick}
       draggable
       onDragStart={handleDragStart}
     >
@@ -225,10 +228,7 @@ export function GitTreeFileRow({
       <span className={`font-mono w-3 flex-shrink-0 ${statusColor(file.status)}`}>
         {statusLetter(file.status)}
       </span>
-      <span
-        className="text-text-primary truncate cursor-pointer hover:underline"
-        onClick={handleClick}
-      >
+      <span className="text-text-primary truncate hover:underline">
         {node.name}
       </span>
       <div className="ml-auto flex-shrink-0 flex items-center gap-0.5">
@@ -262,6 +262,7 @@ export function GitTreeSection({
   cwd,
   selectedPaths,
   expandedPaths,
+  activeDiffFile,
   onToggleExpanded,
   onClickFile,
   onSelect,
@@ -273,8 +274,9 @@ export function GitTreeSection({
   cwd: string
   selectedPaths: Set<string>
   expandedPaths: Set<string>
+  activeDiffFile?: string | null
   onToggleExpanded: (path: string) => void
-  onClickFile: (file: GitFileStatus) => void
+  onClickFile: (file: GitFileStatus, clickY: number) => void
   onSelect: (path: string, metaKey: boolean) => void
   onStageToggle: (file: GitFileStatus) => void
   onDiscard: (file: GitFileStatus) => void
@@ -304,7 +306,8 @@ export function GitTreeSection({
             node={node}
             cwd={cwd}
             isSelected={selectedPaths.has(node.file?.path ?? node.path)}
-            onClickName={() => node.file && onClickFile(node.file)}
+            isActiveDiff={activeDiffFile === (node.file?.path ?? node.path)}
+            onClickName={(clickY) => node.file && onClickFile(node.file, clickY)}
             onSelect={onSelect}
             onStageToggle={() => node.file && onStageToggle(node.file)}
             onDiscard={() => node.file && onDiscard(node.file)}

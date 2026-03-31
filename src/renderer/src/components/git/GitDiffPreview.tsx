@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from 'react'
+import { useEffect, useMemo, useState, useCallback, useRef, useLayoutEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useSessionStore } from '../../store/session-store'
 import { parseDiffLines } from '../../lib/diff-utils'
@@ -110,11 +110,29 @@ export function GitDiffPreview() {
       if (e.key === 'Escape') {
         e.preventDefault()
         close()
+        return
+      }
+      if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && diffPreview.siblings?.length) {
+        e.preventDefault()
+        const siblings = diffPreview.siblings
+        const currentIndex = siblings.findIndex((s) => s.file === diffPreview.file)
+        if (currentIndex === -1) return
+
+        const nextIndex = e.key === 'ArrowDown' ? currentIndex + 1 : currentIndex - 1
+        if (nextIndex < 0 || nextIndex >= siblings.length) return
+
+        const next = siblings[nextIndex]
+        setDiffPreview({
+          ...diffPreview,
+          file: next.file,
+          staged: next.staged,
+          fileStatus: next.fileStatus
+        })
       }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [diffPreview, close])
+  }, [diffPreview, close, setDiffPreview])
 
   const diffLines = useMemo(() => {
     if (diff === null) return []
@@ -155,6 +173,27 @@ export function GitDiffPreview() {
     }
   }, [diffPreview, operating, triggerGitRefresh, setDiffPreview])
 
+  // Measure panel height and compute top position based on clickY
+  const panelRef = useRef<HTMLDivElement>(null)
+  const [panelTop, setPanelTop] = useState<number | null>(null)
+
+  useLayoutEffect(() => {
+    if (!diffPreview || !panelRef.current) return
+    const clickY = diffPreview.clickY
+    if (clickY == null) {
+      setPanelTop(null)
+      return
+    }
+    const vh = window.innerHeight
+    const panelHeight = panelRef.current.offsetHeight
+    const padding = 16
+    // Center the panel on the click position
+    let top = clickY - panelHeight / 2
+    // Clamp within viewport
+    top = Math.max(padding, Math.min(top, vh - panelHeight - padding))
+    setPanelTop(top)
+  })
+
   if (!diffPreview) return null
 
   const filename = diffPreview.file.split('/').pop() ?? ''
@@ -167,6 +206,7 @@ export function GitDiffPreview() {
       <div className="fixed inset-0 z-40" onClick={close} />
 
       <motion.div
+        ref={panelRef}
         initial={{ opacity: 0, x: 8 }}
         animate={{ opacity: 1, x: 0 }}
         exit={{ opacity: 0, x: 8 }}
@@ -174,8 +214,8 @@ export function GitDiffPreview() {
         className="fixed z-50 bg-surface-50 border border-border rounded-xl shadow-2xl overflow-hidden flex flex-col"
         style={{
           right: rightOffset,
-          top: '10%',
-          maxHeight: '75vh',
+          top: panelTop != null ? panelTop : '4%',
+          maxHeight: '92vh',
           width: panelWidth
         }}
       >
@@ -261,7 +301,12 @@ export function GitDiffPreview() {
         {/* Footer */}
         {!loading && !error && diffLines.length > 0 && (
           <div className="flex items-center justify-between px-4 py-1.5 border-t border-border-subtle text-[10px] text-text-tertiary flex-shrink-0">
-            <span>{diffLines.length} lines</span>
+            <span className="flex items-center gap-2">
+              {diffPreview.siblings && diffPreview.siblings.length > 1 && (
+                <span>{diffPreview.siblings.findIndex((s) => s.file === diffPreview.file) + 1}/{diffPreview.siblings.length}</span>
+              )}
+              <span>{diffLines.length} lines</span>
+            </span>
             <span>
               {stats.additions > 0 && <span className="text-green-400">+{stats.additions}</span>}
               {stats.additions > 0 && stats.deletions > 0 && ' '}
