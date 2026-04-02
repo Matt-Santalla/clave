@@ -201,6 +201,7 @@ export const useSessionStore = create<SessionState>((set) => ({
           sessions: [...state.sessions, newSession],
           selectedSessionIds: [session.id],
           focusedSessionId: session.id,
+          activeView: 'terminals',
           groups: state.groups.map((g) =>
             g.id === targetGroup!.id
               ? { ...g, sessionIds: [...g.sessionIds, session.id] }
@@ -214,6 +215,7 @@ export const useSessionStore = create<SessionState>((set) => ({
         sessions: [...state.sessions, newSession],
         selectedSessionIds: [session.id],
         focusedSessionId: session.id,
+        activeView: 'terminals',
         displayOrder: [...getDisplayOrder(state), session.id]
       }
     }),
@@ -714,7 +716,7 @@ export const useSessionStore = create<SessionState>((set) => ({
   renameFileTab: (id, name) =>
     set((state) => ({
       fileTabs: state.fileTabs.map((f) =>
-        f.id === id ? { ...f, name: name.trim() || f.filePath.split('/').pop() || 'file' } : f
+        f.id === id ? { ...f, name: name.trim() || f.filePath.split(/[\\/]/).pop() || 'file' } : f
       )
     })),
 
