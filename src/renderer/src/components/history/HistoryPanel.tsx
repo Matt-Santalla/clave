@@ -183,10 +183,10 @@ export function HistoryPanel() {
           <button
             type="button"
             onClick={() => refresh()}
-            className="h-9 px-3 rounded-lg border border-border text-sm text-text-secondary hover:text-text-primary hover:bg-surface-200 transition-colors inline-flex items-center gap-2"
+            className="p-1.5 rounded text-text-tertiary hover:text-text-primary hover:bg-surface-200 transition-colors"
+            title="Refresh"
           >
-            <ArrowPathIcon className={`w-4 h-4 ${isLoadingProjects ? 'animate-spin' : ''}`} />
-            Refresh
+            <ArrowPathIcon className={`w-3.5 h-3.5 ${isLoadingProjects ? 'animate-spin' : ''}`} />
           </button>
         </div>
 
@@ -256,21 +256,21 @@ export function HistoryPanel() {
           )}
         </div>
 
-        <div className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-2 flex-shrink-0">
+        <div className="ml-auto flex items-center gap-1.5 flex-shrink-0">
           <button
             type="button"
             onClick={() => refresh()}
-            className="h-9 px-3 rounded-lg border border-border text-sm text-text-secondary hover:text-text-primary hover:bg-surface-200 transition-colors inline-flex items-center gap-2"
+            className="p-1.5 rounded text-text-tertiary hover:text-text-primary hover:bg-surface-200 transition-colors"
+            title="Refresh"
           >
-            <ArrowPathIcon className="w-4 h-4" />
-            Refresh
+            <ArrowPathIcon className="w-3.5 h-3.5" />
           </button>
           <button
             type="button"
             onClick={restoreSession}
-            className="h-9 px-3 rounded-lg bg-accent text-accent-foreground text-sm font-medium hover:opacity-90 transition-opacity inline-flex items-center gap-2"
+            className="h-7 px-2.5 rounded text-xs font-medium bg-accent text-accent-foreground hover:opacity-90 transition-opacity inline-flex items-center gap-1.5"
           >
-            <PlayIcon className="w-4 h-4" />
+            <PlayIcon className="w-3 h-3" />
             Resume
           </button>
         </div>
