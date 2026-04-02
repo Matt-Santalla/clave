@@ -17,7 +17,7 @@ import { ConfirmDialog } from '../ui/ConfirmDialog'
 import { GroupCommandDialog } from '../ui/GroupCommandDialog'
 import { ExportClaveDialog } from '../ui/ExportClaveDialog'
 import { cn } from '../../lib/utils'
-import { SectionHeading, TaskQueueSection } from './SidebarSections'
+import { SectionHeading, TaskQueueSection, HistorySection } from './SidebarSections'
 import { NewSessionDropdown } from './NewSessionDropdown'
 import { RemoteDirectoryPicker } from '../ui/RemoteDirectoryPicker'
 import { useAgentStore } from '../../store/agent-store'
@@ -27,7 +27,6 @@ import { PinnedGroupsGrid } from '../session/PinnedGroupsGrid'
 import { useSidebarDnd, GAP_HEIGHT } from '../../hooks/use-sidebar-dnd'
 import { SidebarFooter } from './SidebarFooter'
 import { ScrollArea } from '../ui/scroll-area'
-import { HistorySidebarSection } from '../history/HistorySidebarSection'
 import {
   MagnifyingGlassIcon,
   PencilSquareIcon,
@@ -1223,11 +1222,10 @@ export function Sidebar() {
           </>
         )}
 
-        <HistorySidebarSection />
-
-        {/* Workflows section */}
-        <SectionHeading title="Workflows" collapsed={boardCollapsed} onToggle={() => setBoardCollapsed((c) => !c)} />
+        {/* Activity section */}
+        <SectionHeading title="Activity" collapsed={boardCollapsed} onToggle={() => setBoardCollapsed((c) => !c)} />
         <TaskQueueSection collapsed={boardCollapsed} />
+        <HistorySection collapsed={boardCollapsed} />
       </ScrollArea>
 
       {/* User footer */}

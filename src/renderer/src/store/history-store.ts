@@ -74,6 +74,7 @@ interface HistoryState {
   openSearchResult: (result: HistorySearchResult) => Promise<void>
   clearSearch: () => void
   clearTargetMessage: () => void
+  clearSelectedSession: () => void
 }
 
 function findSessionBySourcePath(
@@ -118,10 +119,9 @@ export const useHistoryStore = create<HistoryState>((set, get) => ({
       )
 
       const currentSelectedId = get().selectedSessionId
-      const fallbackSession = loaded.find(({ sessions }) => sessions.length > 0)?.sessions[0] ?? null
-      const selectedSession =
-        (currentSelectedId && findSessionBySourcePath(sessionsByProject, currentSelectedId)) ||
-        fallbackSession
+      const selectedSession = currentSelectedId
+        ? findSessionBySourcePath(sessionsByProject, currentSelectedId)
+        : null
 
       set({
         projects,
@@ -240,5 +240,13 @@ export const useHistoryStore = create<HistoryState>((set, get) => ({
       isSearching: false
     })),
 
-  clearTargetMessage: () => set({ targetMessageId: null })
+  clearTargetMessage: () => set({ targetMessageId: null }),
+
+  clearSelectedSession: () =>
+    set({
+      selectedProjectId: null,
+      selectedSessionId: null,
+      selectedSession: null,
+      messages: []
+    })
 }))

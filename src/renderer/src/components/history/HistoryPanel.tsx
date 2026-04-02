@@ -98,6 +98,10 @@ export function HistoryPanel() {
   const clearTargetMessage = useHistoryStore((s) => s.clearTargetMessage)
   const refresh = useHistoryStore((s) => s.refresh)
   const searchQuery = useHistoryStore((s) => s.searchQuery)
+  const sessionsByProject = useHistoryStore((s) => s.sessionsByProject)
+  const isLoadingProjects = useHistoryStore((s) => s.isLoadingProjects)
+  const projects = useHistoryStore((s) => s.projects)
+  const selectSession = useHistoryStore((s) => s.selectSession)
   const addSession = useSessionStore((s) => s.addSession)
   const selectTerminalSession = useSessionStore((s) => s.selectSession)
   const setFocusedSession = useSessionStore((s) => s.setFocusedSession)
@@ -152,10 +156,82 @@ export function HistoryPanel() {
     [messages]
   )
 
+  const allSessions = useMemo(() => {
+    return Object.values(sessionsByProject)
+      .flat()
+      .sort((a, b) => new Date(b.lastModified).getTime() - new Date(a.lastModified).getTime())
+  }, [sessionsByProject])
+
+  // Trigger load if we land here with no data yet (e.g. direct "History" click with no prior expand)
+  useEffect(() => {
+    if (!selectedSession && !isLoadingProjects && projects.length === 0) {
+      refresh().catch(console.error)
+    }
+  }, [selectedSession, isLoadingProjects, projects.length, refresh])
+
   if (!selectedSession) {
     return (
-      <div className="flex-1 flex items-center justify-center text-sm text-text-tertiary">
-        Select a Claude history session to view its conversation.
+      <div className="flex-1 min-w-0 min-h-0 flex flex-col bg-surface-50">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-surface-100/80 flex-shrink-0">
+          <div>
+            <div className="text-xs uppercase tracking-[0.18em] text-text-tertiary mb-1">Claude History</div>
+            <h2 className="text-lg font-semibold text-text-primary">
+              {isLoadingProjects ? 'Loading…' : `${allSessions.length} conversations`}
+            </h2>
+          </div>
+          <button
+            type="button"
+            onClick={() => refresh()}
+            className="h-9 px-3 rounded-lg border border-border text-sm text-text-secondary hover:text-text-primary hover:bg-surface-200 transition-colors inline-flex items-center gap-2"
+          >
+            <ArrowPathIcon className={`w-4 h-4 ${isLoadingProjects ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+        </div>
+
+        {/* Session list */}
+        <div className="flex-1 overflow-auto">
+          {isLoadingProjects && allSessions.length === 0 ? (
+            <div className="flex items-center justify-center h-40 text-sm text-text-tertiary gap-2">
+              <ArrowPathIcon className="w-4 h-4 animate-spin" />
+              Scanning history…
+            </div>
+          ) : allSessions.length === 0 ? (
+            <div className="flex items-center justify-center h-40 text-sm text-text-tertiary">
+              No history found on this machine.
+            </div>
+          ) : (
+            <div className="divide-y divide-border-subtle">
+              {allSessions.map((session) => (
+                <button
+                  key={session.id}
+                  type="button"
+                  onClick={() => selectSession(session).catch(console.error)}
+                  className="w-full flex items-start gap-4 px-6 py-3.5 text-left hover:bg-surface-100 transition-colors"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="text-[11px] font-medium text-text-tertiary bg-surface-200 px-1.5 py-0.5 rounded">
+                        {session.projectName}
+                      </span>
+                      <span className="text-[11px] text-text-tertiary">
+                        {new Date(session.lastModified).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <div className="text-sm font-medium text-text-primary truncate">{session.title}</div>
+                    {session.summary && (
+                      <div className="text-xs text-text-tertiary truncate mt-0.5">{session.summary}</div>
+                    )}
+                  </div>
+                  <div className="flex-shrink-0 text-[11px] text-text-tertiary pt-0.5">
+                    {session.messageCount} msg
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     )
   }
