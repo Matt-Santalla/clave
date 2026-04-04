@@ -636,9 +636,9 @@ ${diff}`
               if (commit.hash === pushEvent.hash) collecting = true
 
               if (collecting) {
+                if (nextPushHash && commit.hash === nextPushHash) break
                 groupCommits.push(commit)
                 assigned.add(commit.hash)
-                if (nextPushHash && commit.hash === nextPushHash) break
               }
             }
 
@@ -675,11 +675,13 @@ ${diff}`
           if (!dayMap.has(day)) dayMap.set(day, [])
           dayMap.get(day)!.push(commit)
         }
-        pushGroups = Array.from(dayMap.entries()).map(([day, commits]) => ({
-          id: day,
-          pushedAt: commits[0].date,
-          commits
-        }))
+        pushGroups = Array.from(dayMap.entries())
+          .sort((a, b) => b[0].localeCompare(a[0]))
+          .map(([day, commits]) => ({
+            id: day,
+            pushedAt: commits[0].date,
+            commits
+          }))
       }
 
       const hasMore = log.length >= maxCount
