@@ -156,6 +156,7 @@ export interface PinnedGroupTerminal {
   icon?: GroupTerminalIcon
   cwd?: string | null
   autoLaunchLocalhost?: boolean
+  persistent?: boolean
 }
 
 export interface PinnedGroup {

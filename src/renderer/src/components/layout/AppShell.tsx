@@ -21,6 +21,7 @@ import { cn } from '../../lib/utils'
 import { usePinnedStore } from '../../store/pinned-store'
 import { resolveColorHex } from '../../store/session-types'
 import { getTerminalIconComponent } from '../ui/GroupCommandDialog'
+import { ToolbarTerminalPopover } from './ToolbarTerminalPopover'
 
 const sidebarTransition = {
   duration: 0.2,
@@ -557,41 +558,11 @@ export function AppShell() {
 
 function ToolbarQuickActions() {
   const pinnedGroups = usePinnedStore((s) => s.pinnedGroups)
-  const addSession = useSessionStore((s) => s.addSession)
+  const [openId, setOpenId] = useState<string | null>(null)
 
   // Collect terminals from all pinned groups marked as toolbar
   const toolbarPins = pinnedGroups.filter((pg) => pg.toolbar)
   if (toolbarPins.length === 0) return null
-
-  const handleClick = async (cwd: string, command: string, commandMode: 'prefill' | 'auto') => {
-    try {
-      const sessionInfo = await window.electronAPI.spawnSession(cwd, {
-        claudeMode: false,
-        initialCommand: command || undefined,
-        autoExecute: command ? commandMode === 'auto' : false
-      })
-      addSession({
-        id: sessionInfo.id,
-        cwd: sessionInfo.cwd,
-        folderName: sessionInfo.folderName,
-        name: command ? command.split(' ').slice(0, 3).join(' ') : sessionInfo.folderName,
-        alive: sessionInfo.alive,
-        activityStatus: 'idle',
-        promptWaiting: null,
-        claudeMode: false,
-        dangerousMode: false,
-        claudeSessionId: sessionInfo.claudeSessionId,
-        sessionType: 'local',
-        detectedUrl: null,
-        hasUnseenActivity: false,
-        userRenamed: false
-      })
-      useSessionStore.getState().selectSession(sessionInfo.id, false)
-      useSessionStore.getState().setFocusedSession(sessionInfo.id)
-    } catch (err) {
-      console.error('[toolbar] Failed to spawn:', err)
-    }
-  }
 
   // Darken color for better toolbar contrast
   const darken = (hex: string | undefined): string | undefined => {
@@ -612,18 +583,27 @@ function ToolbarQuickActions() {
             <div className="w-px h-3.5 bg-border-subtle mx-0.5" />
           )}
           {pg.terminals.map((t, i) => {
+            const key = `${pg.id}-${i}`
             const IconComp = getTerminalIconComponent(t.icon)
             const colorHex = darken(resolveColorHex(t.color))
             return (
-              <button
-                key={`${pg.id}-${i}`}
-                onClick={() => handleClick(pg.cwd || '.', t.command, t.commandMode)}
-                className="p-1.5 rounded-lg hover:bg-surface-200 transition-colors"
-                style={{ color: colorHex }}
-                title={t.command || 'Shell'}
+              <ToolbarTerminalPopover
+                key={key}
+                cwd={pg.cwd || '.'}
+                command={t.command}
+                persistent={t.persistent}
+                open={openId === key}
+                onOpenChange={(open) => setOpenId(open ? key : null)}
+                header={<IconComp className="w-3.5 h-3.5 shrink-0" style={{ color: colorHex }} />}
               >
-                <IconComp className="w-4 h-4" />
-              </button>
+                <button
+                  className="p-1.5 rounded-lg hover:bg-surface-200 transition-colors"
+                  style={{ color: colorHex }}
+                  title={t.command || 'Shell'}
+                >
+                  <IconComp className="w-4 h-4" />
+                </button>
+              </ToolbarTerminalPopover>
             )
           })}
         </div>

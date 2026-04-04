@@ -70,7 +70,7 @@ export function NewSessionDropdown({ onNewSession, loading }: NewSessionDropdown
           </button>
         </DropdownMenuTrigger>
 
-        <DropdownMenuContent align="start">
+        <DropdownMenuContent animated open={open} align="start">
           {hasRemoteLocations && (
             <DropdownMenuLabel>This Mac</DropdownMenuLabel>
           )}

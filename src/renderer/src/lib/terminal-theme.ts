@@ -1,0 +1,81 @@
+import type { Theme } from '../store/session-types'
+
+export const DARK_THEME = {
+  background: '#000000',
+  foreground: 'rgba(255, 255, 255, 0.9)',
+  cursor: 'rgba(255, 255, 255, 0.8)',
+  cursorAccent: '#000000',
+  selectionBackground: 'rgba(255, 255, 255, 0.15)',
+  selectionForeground: undefined,
+  black: '#1a1a1a',
+  red: '#f87171',
+  green: '#4ade80',
+  yellow: '#facc15',
+  blue: '#60a5fa',
+  magenta: '#c084fc',
+  cyan: '#22d3ee',
+  white: '#e5e5e5',
+  brightBlack: '#404040',
+  brightRed: '#fca5a5',
+  brightGreen: '#86efac',
+  brightYellow: '#fde047',
+  brightBlue: '#93bbfd',
+  brightMagenta: '#d8b4fe',
+  brightCyan: '#67e8f9',
+  brightWhite: '#ffffff'
+}
+
+export const LIGHT_THEME = {
+  background: '#ffffff',
+  foreground: 'rgba(0, 0, 0, 0.85)',
+  cursor: 'rgba(0, 0, 0, 0.7)',
+  cursorAccent: '#ffffff',
+  selectionBackground: 'rgba(0, 0, 0, 0.12)',
+  selectionForeground: undefined,
+  black: '#000000',
+  red: '#dc2626',
+  green: '#16a34a',
+  yellow: '#ca8a04',
+  blue: '#2563eb',
+  magenta: '#9333ea',
+  cyan: '#0891b2',
+  white: '#d4d4d4',
+  brightBlack: '#737373',
+  brightRed: '#ef4444',
+  brightGreen: '#22c55e',
+  brightYellow: '#eab308',
+  brightBlue: '#3b82f6',
+  brightMagenta: '#a855f7',
+  brightCyan: '#06b6d4',
+  brightWhite: '#525252'
+}
+
+export const COFFEE_THEME = {
+  background: '#f5f1eb',
+  foreground: '#1b1610',
+  cursor: 'rgba(27, 22, 16, 0.7)',
+  cursorAccent: '#f5f1eb',
+  selectionBackground: 'rgba(120, 100, 80, 0.15)',
+  selectionForeground: undefined,
+  black: '#1b1610',
+  red: '#c53030',
+  green: '#2f855a',
+  yellow: '#b7791f',
+  blue: '#2b6cb0',
+  magenta: '#805ad5',
+  cyan: '#0e7490',
+  white: '#d0cbc3',
+  brightBlack: '#756e66',
+  brightRed: '#e53e3e',
+  brightGreen: '#38a169',
+  brightYellow: '#d69e2e',
+  brightBlue: '#3182ce',
+  brightMagenta: '#9f7aea',
+  brightCyan: '#0891b2',
+  brightWhite: '#9b9590'
+}
+
+export function getXtermTheme(theme: Theme): typeof DARK_THEME {
+  if (theme === 'coffee') return COFFEE_THEME
+  return theme === 'dark' ? DARK_THEME : LIGHT_THEME
+}

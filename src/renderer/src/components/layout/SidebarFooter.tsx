@@ -118,6 +118,8 @@ export function SidebarFooter() {
           </button>
         </PopoverTrigger>
         <PopoverContent
+          animated
+          open={popoverOpen}
           side="right"
           align="end"
           sideOffset={0}
