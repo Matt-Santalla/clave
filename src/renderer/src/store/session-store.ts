@@ -44,7 +44,7 @@ interface SessionState {
   gitRefreshTrigger: number
   collapseAllTrigger: number
   activeView: ActiveView
-  sidePanelTab: 'files' | 'git' | 'help'
+  sidePanelTab: 'files' | 'git' | 'help' | 'ai'
   gitViewMode: 'list' | 'tree'
   gitPanelMode: 'changes' | 'log'
   journeyPanel: { cwd: string; repoName: string } | null
@@ -96,7 +96,7 @@ interface SessionState {
   setFileTreeWidth: (width: number) => void
   setFileTreeWidthOverride: (width: number | null) => void
   setActiveView: (view: ActiveView) => void
-  setSidePanelTab: (tab: 'files' | 'git' | 'help') => void
+  setSidePanelTab: (tab: 'files' | 'git' | 'help' | 'ai') => void
   setGitViewMode: (mode: 'list' | 'tree') => void
   setGitPanelMode: (mode: 'changes' | 'log') => void
   openJourneyPanel: (cwd: string, repoName: string) => void
