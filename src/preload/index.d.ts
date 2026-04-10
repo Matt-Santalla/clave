@@ -339,6 +339,8 @@ export interface ElectronAPI {
   journalSave: (data: JournalData) => Promise<void>
   journalArchive: (data: JournalData) => Promise<void>
   journalSummarize: (claudeSessionId: string, cwd: string) => Promise<string | null>
+  journalListArchives: () => Promise<string[]>
+  journalLoadArchive: (date: string) => Promise<JournalData | null>
   templatesLoad: () => Promise<LaunchTemplatesData>
   templatesSave: (data: LaunchTemplatesData) => Promise<void>
   templatesValidate: (template: LaunchTemplate) => Promise<ValidationResult>

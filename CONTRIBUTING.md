@@ -1,6 +1,6 @@
 # Contributing to Clave
 
-Thanks for your interest in contributing! Here's how you can help.
+Thanks for your interest in contributing! Please read this guide before starting any work.
 
 ## Reporting bugs
 
@@ -15,22 +15,39 @@ Open a [bug report](https://github.com/codika-io/clave/issues/new?template=bug_r
 
 Open a [feature request](https://github.com/codika-io/clave/issues/new?template=feature_request.md) describing the problem you're trying to solve and your proposed solution.
 
-## Submitting pull requests
+## The golden rule: propose before you build
 
-### Discuss before you build
+**Feature PRs that arrive without an approved issue will be closed**, regardless of code quality. This is not about gatekeeping; it protects your time. We have closed well-built PRs in the past because the feature didn't fit the product direction, and that's a bad outcome for everyone.
 
-For any change that adds a new UI surface, introduces a new concept, or touches more than ~200 lines, **open an issue first** to discuss the approach. This saves everyone time: some features may have been tried and reverted, others may conflict with the product direction.
+### What needs an issue first
 
-Small bug fixes, typo corrections, and minor improvements can go straight to a PR.
+- Any new UI surface (panel, tab, modal, widget)
+- Any new concept or data model
+- Any change touching more than ~200 lines
+- Anything that adds a dependency
 
-### PR guidelines
+### What can go straight to a PR
+
+- Bug fixes
+- Typo and documentation corrections
+- Performance improvements with no UX change
+- Refactors that don't change behavior
+
+### How the approval flow works
+
+1. **Open a feature request issue** describing the problem, not just the solution
+2. **Wait for a maintainer to respond.** We aim to reply within a few days. The issue will be labeled `approved` if we're aligned, or we'll explain why it's not the right fit
+3. **Only then start building.** Reference the approved issue in your PR
+
+This flow exists because Clave has a deliberately narrow scope. Features that seem like obvious additions often conflict with design choices we've already tested and reverted.
+
+## PR guidelines
 
 1. Fork the repo and create a branch from `main`
-2. Make your changes
-3. Run `npm run typecheck` and `npm run lint` to verify nothing is broken
-4. Open a PR with a clear description of what changed and why
-
-Keep PRs focused — one feature or fix per PR.
+2. One feature or fix per PR. Don't bundle unrelated changes
+3. Run `npm run typecheck` and `npm run lint` before opening
+4. Reference the related issue: `Closes #123`
+5. Write a clear description of what changed and why
 
 ## Development setup
 

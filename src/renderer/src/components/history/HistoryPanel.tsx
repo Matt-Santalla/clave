@@ -4,6 +4,12 @@ import { cn } from '../../lib/utils'
 import { MarkdownRenderer } from '../files/MarkdownRenderer'
 import { useHistoryStore } from '../../store/history-store'
 import { useSessionStore } from '../../store/session-store'
+import {
+  filterMetaSessions,
+  getProjectDisplayName,
+  getProjectColor,
+  groupSessionsByDate
+} from '../../lib/history-utils'
 
 function formatTimestamp(value: string): string {
   const date = new Date(value)
@@ -184,10 +190,13 @@ export function HistoryPanel() {
   )
 
   const allSessions = useMemo(() => {
-    return Object.values(sessionsByProject)
+    const all = Object.values(sessionsByProject)
       .flat()
       .sort((a, b) => new Date(b.lastModified).getTime() - new Date(a.lastModified).getTime())
+    return filterMetaSessions(all)
   }, [sessionsByProject])
+
+  const groupedSessions = useMemo(() => groupSessionsByDate(allSessions), [allSessions])
 
   // Trigger load if we land here with no data yet (e.g. direct "History" click with no prior expand)
   useEffect(() => {
@@ -229,32 +238,52 @@ export function HistoryPanel() {
               No history found on this machine.
             </div>
           ) : (
-            <div className="divide-y divide-border-subtle">
-              {allSessions.map((session) => (
-                <button
-                  key={session.id}
-                  type="button"
-                  onClick={() => selectSession(session).catch(console.error)}
-                  className="w-full flex items-start gap-4 px-6 py-3.5 text-left hover:bg-surface-100 transition-colors"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <span className="text-[11px] font-medium text-text-tertiary bg-surface-200 px-1.5 py-0.5 rounded">
-                        {session.projectName}
-                      </span>
-                      <span className="text-[11px] text-text-tertiary">
-                        {new Date(session.lastModified).toLocaleDateString()}
-                      </span>
-                    </div>
-                    <div className="text-sm font-medium text-text-primary truncate">{session.title}</div>
-                    {session.summary && (
-                      <div className="text-xs text-text-tertiary truncate mt-0.5">{session.summary}</div>
-                    )}
+            <div>
+              {groupedSessions.map((group) => (
+                <div key={group.label}>
+                  <div className="sticky top-0 z-10 px-6 py-2 bg-surface-50/95 backdrop-blur-sm border-b border-border-subtle">
+                    <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
+                      {group.label}
+                    </span>
                   </div>
-                  <div className="flex-shrink-0 text-[11px] text-text-tertiary pt-0.5">
-                    {session.messageCount} msg
+                  <div className="divide-y divide-border-subtle">
+                    {group.sessions.map((session) => {
+                      const projectName = getProjectDisplayName(session.projectName)
+                      return (
+                        <button
+                          key={session.id}
+                          type="button"
+                          onClick={() => selectSession(session).catch(console.error)}
+                          className="w-full flex items-start gap-4 px-6 py-4 text-left hover:bg-surface-100 transition-colors"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span
+                                className="text-[11px] font-medium px-1.5 py-0.5 rounded"
+                                style={{
+                                  color: getProjectColor(projectName),
+                                  backgroundColor: 'color-mix(in srgb, currentColor 12%, transparent)'
+                                }}
+                              >
+                                {projectName}
+                              </span>
+                              <span className="text-[11px] text-text-tertiary">
+                                {new Date(session.lastModified).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                              </span>
+                            </div>
+                            <div className="text-sm font-medium text-text-primary truncate">{session.title}</div>
+                            {session.summary && session.summary !== session.title && (
+                              <div className="text-xs text-text-tertiary truncate mt-0.5">{session.summary}</div>
+                            )}
+                          </div>
+                          <div className="flex-shrink-0 text-[11px] text-text-tertiary pt-0.5">
+                            {session.messageCount} msg
+                          </div>
+                        </button>
+                      )
+                    })}
                   </div>
-                </button>
+                </div>
               ))}
             </div>
           )}

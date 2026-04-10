@@ -5,6 +5,7 @@ import { useBoardStore } from '../../store/board-store'
 import { useHistoryStore, type HistorySession } from '../../store/history-store'
 import { useAssistantStore } from '../../store/assistant-store'
 import { cn } from '../../lib/utils'
+import { filterMetaSessions, isMetaSession } from '../../lib/history-utils'
 
 export function SectionHeading({
   title,
@@ -132,14 +133,15 @@ export function HistorySection({ collapsed }: { collapsed: boolean }) {
   }, [loadStarted, isLoadingProjects, projects.length, refresh])
 
   const recentSessions = useMemo(() => {
-    return Object.values(sessionsByProject)
+    const all = Object.values(sessionsByProject)
       .flat()
       .sort((a, b) => new Date(b.lastModified).getTime() - new Date(a.lastModified).getTime())
-      .slice(0, 10)
+    return filterMetaSessions(all).slice(0, 10)
   }, [sessionsByProject])
 
   const totalCount = useMemo(() => {
-    return Object.values(sessionsByProject).reduce((sum, arr) => sum + arr.length, 0)
+    const all = Object.values(sessionsByProject).flat()
+    return filterMetaSessions(all).length
   }, [sessionsByProject])
 
   const openSession = (session: HistorySession) => {
@@ -208,22 +210,25 @@ export function HistorySection({ collapsed }: { collapsed: boolean }) {
                 <div className="pl-4 py-1.5 text-[12px] text-text-tertiary">No history found.</div>
               ) : (
                 <>
-                  {recentSessions.map((session) => (
-                    <button
-                      key={session.id}
-                      onClick={() => openSession(session)}
-                      className={cn(
-                        'group relative w-full flex items-center gap-2 pl-4 pr-2 py-1 text-left rounded-r-md transition-colors',
-                        activeView === 'history' && selectedSessionId === session.sourcePath
-                          ? 'bg-surface-200 text-text-primary'
-                          : 'hover:bg-surface-100 text-text-secondary'
-                      )}
-                    >
-                      <div className="absolute left-0 top-1/2 w-2.5 h-px bg-border-subtle" />
-                      <SparklesIcon className="flex-shrink-0 w-3 h-3 text-text-tertiary" />
-                      <span className="text-[12px] truncate">{session.title}</span>
-                    </button>
-                  ))}
+                  {recentSessions.map((session) => {
+                    const displayTitle = session.summary || session.title
+                    return (
+                      <button
+                        key={session.id}
+                        onClick={() => openSession(session)}
+                        className={cn(
+                          'group relative w-full flex items-center gap-2 pl-4 pr-2 py-1 text-left rounded-r-md transition-colors',
+                          activeView === 'history' && selectedSessionId === session.sourcePath
+                            ? 'bg-surface-200 text-text-primary'
+                            : 'hover:bg-surface-100 text-text-secondary'
+                        )}
+                      >
+                        <div className="absolute left-0 top-1/2 w-2.5 h-px bg-border-subtle" />
+                        <SparklesIcon className="flex-shrink-0 w-3 h-3 text-text-tertiary" />
+                        <span className="text-[12px] truncate">{displayTitle}</span>
+                      </button>
+                    )
+                  })}
 
                   {totalCount > 10 && (
                     <button
@@ -271,7 +276,7 @@ export function JournalSection({ collapsed }: { collapsed: boolean }) {
             )}
           >
             <SparklesIcon className="flex-shrink-0 w-4 h-4 text-text-tertiary" />
-            <span className="truncate">Journal</span>
+            <span className="truncate">Daily Log</span>
             {totalSessions > 0 && (
               <span className="ml-auto text-[12px] text-text-tertiary">{totalSessions}</span>
             )}

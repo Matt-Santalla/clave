@@ -26,7 +26,6 @@ import { usePinnedStore } from '../../store/pinned-store'
 import { resolveColorHex } from '../../store/session-types'
 import { getTerminalIconComponent } from '../ui/GroupCommandDialog'
 import { ToolbarTerminalPopover } from './ToolbarTerminalPopover'
-import { WhatsNewBanner } from '../help/WhatsNewBanner'
 
 const sidebarTransition = {
   duration: 0.2,
@@ -455,7 +454,6 @@ export function AppShell() {
         sidebarOpen ? 'ml-1' : 'ml-2',
         fileTreeOpen ? 'mr-1' : 'mr-2'
       )}>
-        <WhatsNewBanner />
         {/* Toolbar — its own floating card */}
         <div className="floating-card flex-shrink-0 !bg-surface-0/70">
           <div

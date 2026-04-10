@@ -155,7 +155,7 @@ export const useSessionStore = create<SessionState>((set) => ({
   displayOrder: [],
   sidebarOpen: true,
   sidebarWidth: 260,
-  theme: (localStorage.getItem('clave-theme') as Theme) || 'coffee',
+  theme: (localStorage.getItem('clave-theme') as Theme) || 'light',
   appIcon: (localStorage.getItem('clave-app-icon') as AppIcon) || 'dark',
   searchQuery: '',
   claudeMode: true,

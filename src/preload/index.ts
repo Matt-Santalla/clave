@@ -128,6 +128,8 @@ const electronAPI = {
   journalArchive: (data: unknown) => ipcRenderer.invoke('journal:archive', data),
   journalSummarize: (claudeSessionId: string, cwd: string) =>
     ipcRenderer.invoke('journal:summarize', claudeSessionId, cwd),
+  journalListArchives: () => ipcRenderer.invoke('journal:list-archives'),
+  journalLoadArchive: (date: string) => ipcRenderer.invoke('journal:load-archive', date),
 
   // Templates
   templatesLoad: () => ipcRenderer.invoke('templates:load'),

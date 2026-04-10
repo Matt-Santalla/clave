@@ -36,6 +36,29 @@ class JournalManager {
     const archivePath = path.join(this.archiveDir, `${data.date}.json`)
     await fs.writeFile(archivePath, JSON.stringify(data, null, 2), 'utf-8')
   }
+
+  async listArchives(): Promise<string[]> {
+    try {
+      const files = await fs.readdir(this.archiveDir)
+      return files
+        .filter((f) => f.endsWith('.json'))
+        .map((f) => f.replace('.json', ''))
+        .sort()
+        .reverse()
+    } catch {
+      return []
+    }
+  }
+
+  async loadArchive(date: string): Promise<JournalData | null> {
+    try {
+      const archivePath = path.join(this.archiveDir, `${date}.json`)
+      const raw = await fs.readFile(archivePath, 'utf-8')
+      return JSON.parse(raw) as JournalData
+    } catch {
+      return null
+    }
+  }
 }
 
 export const journalManager = new JournalManager()

@@ -10,10 +10,22 @@ export function WorkTrackerCollapsed() {
   const breakSuggestion = useWorkTrackerStore((s) => s.breakSuggestion)
   const isExpanded = useWorkTrackerStore((s) => s.isExpanded)
   const toggleExpanded = useWorkTrackerStore((s) => s.toggleExpanded)
+  const tokenUsage = useWorkTrackerStore((s) => s.tokenUsage)
 
   const isGentle = breakSuggestion === 'gentle'
   const isStrong = breakSuggestion === 'strong'
   const hasBreak = isGentle || isStrong
+  const hasActivity = todayTotalMinutes > 0
+
+  const sessionText = hasBreak
+    ? isStrong
+      ? 'take a break'
+      : 'break?'
+    : `${todaySessionCount} session${todaySessionCount !== 1 ? 's' : ''}`
+
+  const costSuffix = tokenUsage && tokenUsage.todayCost > 0
+    ? ` · ~$${Math.round(tokenUsage.todayCost)}`
+    : ''
 
   return (
     <button
@@ -34,7 +46,9 @@ export function WorkTrackerCollapsed() {
             ? isStrong
               ? 'text-wellbeing-strong'
               : 'text-wellbeing-gentle'
-            : 'text-accent'
+            : hasActivity
+              ? 'text-accent'
+              : 'text-text-tertiary'
         )}
       />
       <span
@@ -44,14 +58,16 @@ export function WorkTrackerCollapsed() {
             ? isStrong
               ? 'text-wellbeing-strong'
               : 'text-wellbeing-gentle'
-            : 'text-accent'
+            : hasActivity
+              ? 'text-accent'
+              : 'text-text-tertiary'
         )}
       >
         {formatDuration(todayTotalMinutes)}
       </span>
       <span className="text-[11px] text-text-tertiary">·</span>
       <span className="text-[11px] text-text-tertiary flex-1 truncate">
-        {hasBreak ? (isStrong ? 'take a break' : 'break?') : `${todaySessionCount} session${todaySessionCount !== 1 ? 's' : ''}`}
+        {sessionText}{costSuffix}
       </span>
       {isExpanded ? (
         <ChevronUpIcon className="w-3 h-3 text-text-tertiary flex-shrink-0" />

@@ -12,6 +12,7 @@ import { cn } from '../../lib/utils'
 import { useHistoryStore } from '../../store/history-store'
 import type { HistorySession } from '../../store/history-store'
 import { useSessionStore } from '../../store/session-store'
+import { filterMetaSessions } from '../../lib/history-utils'
 import { SectionHeading } from '../layout/SidebarSections'
 import { Collapsible, CollapsibleContent } from '../ui/collapsible'
 
@@ -365,9 +366,9 @@ export function HistorySidebarSection() {
               </div>
             ) : (
               projects.map((project) => {
-                const sessions = sessionsByProject[project.id] ?? []
+                const sessions = filterMetaSessions(sessionsByProject[project.id] ?? [])
                 const expanded = expandedProjects[project.id] ?? false
-                const previewTitles = sessions.slice(0, 2).map((session) => session.title)
+                const previewTitles = sessions.slice(0, 2).map((session) => session.summary || session.title)
 
                 return (
                   <div key={project.id} className="rounded-xl border border-border-subtle bg-surface-50 overflow-hidden">
@@ -414,7 +415,7 @@ export function HistorySidebarSection() {
                           >
                             <div className="flex items-center gap-2">
                               <SparklesIcon className="w-4 h-4 flex-shrink-0 text-text-tertiary" />
-                              <div className="text-xs font-medium truncate">{session.title}</div>
+                              <div className="text-xs font-medium truncate">{session.summary || session.title}</div>
                             </div>
                           </button>
                         ))}

@@ -15,16 +15,22 @@ export function WeeklyChart({ dailyMinutes, avgDailyMinutes }: WeeklyChartProps)
 
   return (
     <div>
-      <div className="flex items-end gap-1 h-8 mb-1">
+      <div className="flex items-end gap-1 h-10 mb-0.5">
         {dailyMinutes.map((minutes, i) => (
-          <div
-            key={i}
-            className={cn(
-              'flex-1 rounded-sm min-h-[2px] transition-all',
-              i === todayIndex ? 'bg-accent' : minutes > 0 ? 'bg-surface-400' : 'bg-surface-200'
+          <div key={i} className="flex-1 flex flex-col items-center justify-end h-full">
+            {minutes >= 60 && (
+              <span className="text-[8px] text-text-tertiary mb-0.5">
+                {Math.round(minutes / 60)}h
+              </span>
             )}
-            style={{ height: `${Math.max((minutes / max) * 100, 6)}%` }}
-          />
+            <div
+              className={cn(
+                'w-full rounded-sm min-h-[2px] transition-all',
+                i === todayIndex ? 'bg-accent' : minutes > 0 ? 'bg-surface-400' : 'bg-surface-200'
+              )}
+              style={{ height: `${Math.max((minutes / max) * 100, 6)}%` }}
+            />
+          </div>
         ))}
       </div>
       <div className="flex justify-between">

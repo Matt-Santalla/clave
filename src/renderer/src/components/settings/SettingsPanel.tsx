@@ -423,98 +423,82 @@ export function SettingsPanel() {
           <LocationsTab />
         </section>
 
-        <WorkTrackerSection />
-
-        <AIAssistantSection />
+        <SidebarWidgetsSection />
       </div>
     </div>
   )
 }
 
-function WorkTrackerSection() {
-  const enabled = useWorkTrackerStore((s) => s.enabled)
-  const setEnabled = useWorkTrackerStore((s) => s.setEnabled)
-
+function ToggleRow({
+  label,
+  description,
+  checked,
+  onChange
+}: {
+  label: string
+  description: string
+  checked: boolean
+  onChange: (value: boolean) => void
+}) {
   return (
-    <section className="mt-8">
-      <h3 className="text-xs font-semibold text-text-tertiary uppercase tracking-widest mb-3">Work Tracker</h3>
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-[13px] text-text-secondary">Show work tracker widget</p>
-          <p className="text-[11px] text-text-tertiary mt-0.5">
-            Track daily work time, break reminders, and weekly trends in the sidebar
-          </p>
-        </div>
-        <button
-          role="switch"
-          aria-checked={enabled}
-          onClick={() => setEnabled(!enabled)}
-          className={`relative w-9 h-5 rounded-full transition-colors ${
-            enabled ? 'bg-accent' : 'bg-surface-300'
-          }`}
-        >
-          <div
-            className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
-              enabled ? 'translate-x-[18px]' : 'translate-x-0.5'
-            }`}
-          />
-        </button>
+    <div className="flex items-center justify-between gap-4">
+      <div className="min-w-0">
+        <p className="text-[13px] text-text-secondary">{label}</p>
+        <p className="text-[11px] text-text-tertiary mt-0.5">{description}</p>
       </div>
-    </section>
+      <button
+        role="switch"
+        aria-checked={checked}
+        onClick={() => onChange(!checked)}
+        className={`relative flex-shrink-0 w-9 h-5 rounded-full transition-colors ${
+          checked ? 'bg-accent' : 'bg-surface-300'
+        }`}
+      >
+        <div
+          className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
+            checked ? 'translate-x-[18px]' : 'translate-x-0.5'
+          }`}
+        />
+      </button>
+    </div>
   )
 }
 
-function AIAssistantSection() {
-  const enabled = useAssistantStore((s) => s.enabled)
-  const setEnabled = useAssistantStore((s) => s.setEnabled)
+function SidebarWidgetsSection() {
+  const workTrackerEnabled = useWorkTrackerStore((s) => s.enabled)
+  const setWorkTrackerEnabled = useWorkTrackerStore((s) => s.setEnabled)
+  const assistantEnabled = useAssistantStore((s) => s.enabled)
+  const setAssistantEnabled = useAssistantStore((s) => s.setEnabled)
   const aiSummaries = useAssistantStore((s) => s.aiSummaries)
   const setAiSummaries = useAssistantStore((s) => s.setAiSummaries)
 
   return (
     <section className="mt-8">
-      <h3 className="text-xs font-semibold text-text-tertiary uppercase tracking-widest mb-3">AI Assistant</h3>
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-[13px] text-text-secondary">Show AI tab in side panel</p>
-          <p className="text-[11px] text-text-tertiary mt-0.5">
-            Work journal showing today&apos;s accomplishments grouped by project
-          </p>
-        </div>
-        <button
-          onClick={() => setEnabled(!enabled)}
-          className={`relative w-9 h-5 rounded-full transition-colors ${
-            enabled ? 'bg-accent' : 'bg-surface-300'
-          }`}
-        >
-          <div
-            className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
-              enabled ? 'translate-x-[18px]' : 'translate-x-0.5'
-            }`}
+      <h3 className="text-xs font-semibold text-text-tertiary uppercase tracking-widest mb-3">
+        Sidebar Widgets
+      </h3>
+      <div className="space-y-4">
+        <ToggleRow
+          label="Work Tracker"
+          description="Track daily work time, break reminders, and weekly trends"
+          checked={workTrackerEnabled}
+          onChange={setWorkTrackerEnabled}
+        />
+        <ToggleRow
+          label="Daily Log"
+          description="Session activity grouped by project with daily summaries"
+          checked={assistantEnabled}
+          onChange={setAssistantEnabled}
+        />
+        {assistantEnabled && (
+          <ToggleRow
+            label="AI session summaries"
+            description="Generate smart summaries when sessions end (uses Claude Haiku)"
+            checked={aiSummaries}
+            onChange={setAiSummaries}
           />
-        </button>
+        )}
       </div>
-      {enabled && (
-        <div className="flex items-center justify-between mt-3 pl-3 border-l-2 border-surface-200">
-          <div>
-            <p className="text-[13px] text-text-secondary">AI session summaries</p>
-            <p className="text-[11px] text-text-tertiary mt-0.5">
-              Generate smart summaries when sessions end (uses Claude Haiku)
-            </p>
-          </div>
-          <button
-            onClick={() => setAiSummaries(!aiSummaries)}
-            className={`relative w-9 h-5 rounded-full transition-colors ${
-              aiSummaries ? 'bg-accent' : 'bg-surface-300'
-            }`}
-          >
-            <div
-              className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
-                aiSummaries ? 'translate-x-[18px]' : 'translate-x-0.5'
-              }`}
-            />
-          </button>
-        </div>
-      )}
     </section>
   )
 }

@@ -8,6 +8,11 @@ interface AssistantState {
   enabled: boolean
   aiSummaries: boolean
 
+  // Archive navigation
+  viewingDate: string | null // null = today (live), string = viewing archived date
+  archivedJournal: JournalDay | null
+  availableArchiveDates: string[]
+
   // Actions
   loadJournal: () => Promise<void>
   setEnabled: (enabled: boolean) => void
@@ -17,6 +22,9 @@ interface AssistantState {
   updateEntrySummary: (sessionId: string, summary: string) => void
   updateEntryName: (sessionId: string, name: string) => void
   removeActiveEntry: (sessionId: string) => void
+  loadArchiveDates: () => Promise<void>
+  navigateDay: (direction: 'prev' | 'next') => Promise<void>
+  goToToday: () => void
 }
 
 function getTodayString(): string {
@@ -41,6 +49,9 @@ export const useAssistantStore = create<AssistantState>((set, get) => ({
   loaded: false,
   enabled: localStorage.getItem('clave-ai-assistant-enabled') !== 'false',
   aiSummaries: localStorage.getItem('clave-ai-summaries-enabled') !== 'false',
+  viewingDate: null,
+  archivedJournal: null,
+  availableArchiveDates: [],
 
   setEnabled: (enabled) => {
     localStorage.setItem('clave-ai-assistant-enabled', String(enabled))
@@ -176,5 +187,47 @@ export const useAssistantStore = create<AssistantState>((set, get) => ({
     const updated = { ...state.journal, projects }
     set({ journal: updated })
     debouncedSave(updated)
+  },
+
+  loadArchiveDates: async () => {
+    if (!window.electronAPI?.journalListArchives) return
+    const dates = await window.electronAPI.journalListArchives()
+    set({ availableArchiveDates: dates })
+  },
+
+  navigateDay: async (direction) => {
+    const state = get()
+    const todayStr = getTodayString()
+
+    // Build sorted list of all dates: archives + today
+    const allDates = [...new Set([...state.availableArchiveDates, todayStr])].sort()
+    const currentDate = state.viewingDate || todayStr
+    const currentIndex = allDates.indexOf(currentDate)
+
+    let targetIndex: number
+    if (direction === 'prev') {
+      targetIndex = currentIndex > 0 ? currentIndex - 1 : -1
+    } else {
+      targetIndex = currentIndex < allDates.length - 1 ? currentIndex + 1 : -1
+    }
+
+    if (targetIndex < 0) return
+
+    const targetDate = allDates[targetIndex]
+
+    if (targetDate === todayStr) {
+      set({ viewingDate: null, archivedJournal: null })
+      return
+    }
+
+    if (!window.electronAPI?.journalLoadArchive) return
+    const archived = await window.electronAPI.journalLoadArchive(targetDate)
+    if (archived) {
+      set({ viewingDate: targetDate, archivedJournal: archived })
+    }
+  },
+
+  goToToday: () => {
+    set({ viewingDate: null, archivedJournal: null })
   }
 }))

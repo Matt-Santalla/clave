@@ -38,4 +38,11 @@ export function registerJournalHandlers(): void {
     if (!isValidJournalData(data) || !data.date) return
     return journalManager.archive(data)
   })
+
+  ipcMain.handle('journal:list-archives', () => journalManager.listArchives())
+
+  ipcMain.handle('journal:load-archive', (_event, date: string) => {
+    if (typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return null
+    return journalManager.loadArchive(date)
+  })
 }

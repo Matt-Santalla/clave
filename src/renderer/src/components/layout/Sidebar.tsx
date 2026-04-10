@@ -18,6 +18,7 @@ import { GroupCommandDialog } from '../ui/GroupCommandDialog'
 import { ExportClaveDialog } from '../ui/ExportClaveDialog'
 import { cn } from '../../lib/utils'
 import { SectionHeading, TaskQueueSection, HistorySection, JournalSection } from './SidebarSections'
+import { WhatsNewBanner } from '../help/WhatsNewBanner'
 import { NewSessionDropdown } from './NewSessionDropdown'
 import { RemoteDirectoryPicker } from '../ui/RemoteDirectoryPicker'
 import { useAgentStore } from '../../store/agent-store'
@@ -1222,6 +1223,9 @@ export function Sidebar() {
             </div>
           </>
         )}
+
+        {/* What's new inline card */}
+        <WhatsNewBanner />
 
         {/* Activity section */}
         <SectionHeading title="Activity" collapsed={boardCollapsed} onToggle={() => setBoardCollapsed((c) => !c)} />

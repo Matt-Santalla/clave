@@ -35,11 +35,11 @@ export function WorkTrackerExpanded() {
 
   return (
     <div>
-      {/* Today's Breakdown */}
-      {todayProjects.length > 0 && (
-        <div className="px-3 py-2.5 border-b border-border-subtle">
-          <SectionLabel>Today</SectionLabel>
-          {todayProjects.map((project) => (
+      {/* Today's Breakdown — always visible */}
+      <div className="px-3 py-2.5 border-b border-border-subtle">
+        <SectionLabel>Today</SectionLabel>
+        {todayProjects.length > 0 ? (
+          todayProjects.map((project) => (
             <div key={project.projectPath} className="flex justify-between py-0.5">
               <span className="text-[12px] text-text-secondary truncate mr-2">
                 {project.projectName}
@@ -48,9 +48,11 @@ export function WorkTrackerExpanded() {
                 {formatDuration(project.totalMinutes)}
               </span>
             </div>
-          ))}
-        </div>
-      )}
+          ))
+        ) : (
+          <div className="text-[12px] text-text-tertiary">No activity yet</div>
+        )}
+      </div>
 
       {/* Current Streak */}
       {streakMinutes > 0 && (
