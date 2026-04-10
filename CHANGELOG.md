@@ -6,6 +6,20 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions use [Se
 
 ## [Unreleased]
 
+## [1.32.0] — 2026-04-10
+
+### Changed
+- Work tracker redesigned: merged into unified sidebar footer section as a single clickable line instead of a floating card
+- Clicking the work tracker now navigates directly to the full Usage page
+- Time tracking now shows wall-clock time instead of summing concurrent sessions independently
+
+### Fixed
+- Work tracker could show impossible values like "18 hours yesterday" due to a heuristic that multiplied message counts by 2 minutes
+- Concurrent sessions inflated today's total (3 sessions for 1 hour showed 3h instead of 1h)
+
+### Removed
+- Yesterday summary, weekly chart, and token costs from the work tracker widget (available in the Usage page instead)
+
 ## [1.31.0] — 2026-04-10
 
 ### Added
