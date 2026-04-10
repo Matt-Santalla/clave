@@ -31,6 +31,7 @@ export function SidePanel() {
   const sidePanelTab = useSessionStore((s) => s.sidePanelTab)
   const setSidePanelTab = useSessionStore((s) => s.setSidePanelTab)
 
+
   const focusedSession = sessions.find((s) => s.id === focusedSessionId)
   const sessionCwd = focusedSession?.cwd ?? null
 

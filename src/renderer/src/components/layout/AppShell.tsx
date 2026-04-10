@@ -10,8 +10,11 @@ import { SettingsPanel } from '../settings/SettingsPanel'
 import { UpdateOverlay } from '../ui/UpdateOverlay'
 import { AgentChatPanel } from '../agents/AgentChatPanel'
 import { HistoryPanel } from '../history/HistoryPanel'
+import { AssistantPanel } from '../assistant/AssistantPanel'
 import { useLaunchTemplate } from '../../hooks/use-launch-template'
 import { useWorkTracker } from '../../store/work-tracker-store'
+import { useJournalPersistence } from '../../hooks/use-journal-persistence'
+import { useJournalSessionSync } from '../../hooks/use-journal-session-sync'
 import { FilePalette } from '../files/FilePalette'
 import { SidePanel } from '../git/SidePanel'
 import { FilePreview } from '../files/FilePreview'
@@ -52,6 +55,8 @@ export function AppShell() {
 
   useLaunchTemplate()
   useWorkTracker()
+  useJournalPersistence()
+  useJournalSessionSync()
 
   const spawnSessionWithOptions = useCallback(
     async (claudeMode: boolean, dangerousMode: boolean) => {
@@ -528,6 +533,9 @@ export function AppShell() {
           </div>
           <div className={activeView === 'history' ? 'flex-1 flex min-h-0 min-w-0' : 'hidden'}>
             <HistoryPanel />
+          </div>
+          <div className={activeView === 'journal' ? 'flex-1 flex min-h-0' : 'hidden'}>
+            <AssistantPanel />
           </div>
         </div>
 
