@@ -24,6 +24,7 @@ Three-process Electron app:
 - **Icons**: Use Heroicons (`@heroicons/react/24/outline`) for all UI icons. No hand-rolled SVGs for standard icons. Custom SVGs only for file-type icons in `components/files/file-icons.tsx`.
 - **Themes**: Three themes (dark, light, coffee). CSS vars on `:root` / `[data-theme="light"]` / `[data-theme="coffee"]` in `main.css`. xterm has separate theme objects updated via `terminal.options.theme`.
 - **Stores**: Zustand stores in `src/renderer/src/store/`. `session-store.ts` is the main one (sessions, groups, layout, theme).
+- **Design system**: `main.css` defines semantic CSS classes (`sidebar-item`, `btn-primary`, `btn-secondary`, `btn-dialog`, `btn-icon`, `input-field`, `input-compact`, `badge`, etc.) that are the single source of truth for spacing, radius, shadows, and interactive states. All UI components must use these tokens instead of repeating inline Tailwind patterns. Never duplicate styling logic across components. When adding new UI, check `main.css` for an existing class first; if none fits, extend the design system with a new semantic class rather than inlining styles. The goal is visual coherence through a unified system where components inherit from the same parameters.
 
 ## Signing and notarization
 

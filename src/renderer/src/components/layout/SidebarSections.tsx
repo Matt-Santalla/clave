@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react'
-import { ChevronRightIcon, ClockIcon, QueueListIcon, SparklesIcon } from '@heroicons/react/24/outline'
+import { ChevronRightIcon, CheckCircleIcon, ClockIcon, QueueListIcon, SparklesIcon } from '@heroicons/react/24/outline'
 import { useSessionStore } from '../../store/session-store'
 import { useBoardStore } from '../../store/board-store'
 import { useHistoryStore, type HistorySession } from '../../store/history-store'
@@ -57,7 +57,6 @@ export function TaskQueueSection({ collapsed }: { collapsed: boolean }) {
             <span className="truncate">Queue</span>
             {tasks.length > 0 && (
               <span className="ml-auto flex items-center gap-1.5">
-                <span className="text-[12px] text-text-tertiary">{tasks.length}</span>
                 <span
                   role="button"
                   onClick={(e) => {
@@ -173,9 +172,6 @@ export function HistorySection({ collapsed }: { collapsed: boolean }) {
             <ClockIcon className="flex-shrink-0 w-4 h-4 text-text-tertiary" />
             <span className="truncate">History</span>
             <span className="ml-auto flex items-center gap-1.5">
-              {totalCount > 0 && (
-                <span className="text-[12px] text-text-tertiary">{totalCount}</span>
-              )}
               <span
                 role="button"
                 onClick={handleChevronClick}
@@ -246,10 +242,22 @@ export function JournalSection({ collapsed }: { collapsed: boolean }) {
   const setActiveView = useSessionStore((s) => s.setActiveView)
   const enabled = useAssistantStore((s) => s.enabled)
   const journal = useAssistantStore((s) => s.journal)
+  const [expanded, setExpanded] = useState(false)
 
   if (!enabled) return null
 
-  const totalSessions = journal.projects.reduce((sum, p) => sum + p.entries.length, 0)
+  // Recent completed entries (most recent first)
+  const recentEntries = journal.projects
+    .flatMap((p) =>
+      p.entries.map((e) => ({
+        ...e,
+        projectName: p.name
+      }))
+    )
+    .sort((a, b) => (b.endTime || b.startTime) - (a.endTime || a.startTime))
+    .slice(0, 5)
+
+  const hasEntries = recentEntries.length > 0
 
   return (
     <div
@@ -265,10 +273,68 @@ export function JournalSection({ collapsed }: { collapsed: boolean }) {
           >
             <SparklesIcon className="flex-shrink-0 w-4 h-4 text-text-tertiary" />
             <span className="truncate">Daily Log</span>
-            {totalSessions > 0 && (
-              <span className="ml-auto text-[12px] text-text-tertiary">{totalSessions}</span>
+            {hasEntries && (
+              <span className="ml-auto flex items-center gap-1.5">
+                <span
+                  role="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setExpanded((v) => !v)
+                  }}
+                  className="btn-icon btn-icon-xs hover:bg-surface-300/50"
+                >
+                  <ChevronRightIcon
+                    className={cn(
+                      'w-3 h-3 text-text-tertiary transition-transform duration-150',
+                      expanded ? 'rotate-90' : 'rotate-0'
+                    )}
+                  />
+                </span>
+              </span>
             )}
           </button>
+
+          {/* Expanded: recent entries with vertical connecting line */}
+          {expanded && hasEntries && (
+            <div className="relative ml-[18px] mt-0.5">
+              <div className="absolute left-0 top-0 bottom-0 w-px bg-border-subtle" />
+              {recentEntries.map((entry) => {
+                // Extract the first non-bullet line as headline
+                const summaryClean = entry.summary?.replace(/<[^>]*>/g, '').trim()
+                const headline = summaryClean
+                  ? summaryClean.split('\n').map((l) => l.trim()).find((l) => l && !/^[-•*]\s/.test(l))
+                  : undefined
+                const label = headline || entry.sessionName
+                const isActive = entry.status === 'active'
+                return (
+                  <button
+                    key={entry.sessionId}
+                    onClick={() => setActiveView('journal')}
+                    className="group relative w-full flex items-center gap-2 pl-4 pr-2 py-1 text-left rounded-r-md hover:bg-surface-100 transition-colors"
+                  >
+                    <div className="absolute left-0 top-1/2 w-2.5 h-px bg-border-subtle" />
+                    {isActive ? (
+                      <span
+                        className="w-2 h-2 rounded-full flex-shrink-0 animate-pulse"
+                        style={{ backgroundColor: 'var(--journal-active-dot)' }}
+                      />
+                    ) : (
+                      <CheckCircleIcon className="flex-shrink-0 w-3 h-3 text-text-tertiary" />
+                    )}
+                    <span className="text-[12px] text-text-secondary truncate">{label}</span>
+                  </button>
+                )
+              })}
+
+              <button
+                onClick={() => setActiveView('journal')}
+                className="group relative w-full flex items-center pl-4 pr-2 py-1.5 text-left rounded-r-md hover:bg-surface-100 transition-colors"
+              >
+                <div className="absolute left-0 top-1/2 w-2.5 h-px bg-border-subtle" />
+                <span className="text-[12px] text-accent">View full log →</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

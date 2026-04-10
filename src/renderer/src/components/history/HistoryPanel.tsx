@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { ArrowPathIcon, ClockIcon, PlayIcon } from '@heroicons/react/24/outline'
+import { ArrowPathIcon, PlayIcon } from '@heroicons/react/24/outline'
 import { cn } from '../../lib/utils'
 import { MarkdownRenderer } from '../files/MarkdownRenderer'
 import { useHistoryStore } from '../../store/history-store'
@@ -39,56 +39,76 @@ function highlightText(content: string, needle: string): ReactNode {
   )
 }
 
-function roleClasses(role: string): string {
-  if (role === 'user') return 'bg-surface-100 border-border-subtle'
-  if (role === 'assistant') return 'bg-surface-50 border-border'
-  if (role === 'tool') return 'bg-surface-200/60 border-border-subtle'
-  return 'bg-surface-100/80 border-border-subtle'
+/** A "turn" groups an assistant message with its subsequent tool results */
+interface ConversationTurn {
+  id: string
+  role: 'user' | 'assistant'
+  messages: { id: string; role: string; content: string; timestamp: string }[]
+  timestamp: string
 }
 
-function ToolMessageContent({
-  content,
-  renderedContent
-}: {
-  content: string
-  renderedContent: ReactNode
-}) {
-  const contentRef = useRef<HTMLDivElement | null>(null)
-  const [expanded, setExpanded] = useState(false)
-  const [isOverflowing, setIsOverflowing] = useState(false)
+function groupIntoTurns(messages: { id: string; role: string; content: string; timestamp: string }[]): ConversationTurn[] {
+  const turns: ConversationTurn[] = []
+  let current: ConversationTurn | null = null
 
-  useEffect(() => {
-    const measure = () => {
-      const node = contentRef.current
-      if (!node) return
-      setIsOverflowing(node.scrollHeight > node.clientHeight + 1)
+  for (const msg of messages) {
+    if (msg.role === 'user') {
+      // User messages are always their own turn
+      if (current) turns.push(current)
+      turns.push({
+        id: msg.id,
+        role: 'user',
+        messages: [msg],
+        timestamp: msg.timestamp
+      })
+      current = null
+    } else if (msg.role === 'assistant') {
+      // Start a new assistant turn
+      if (current) turns.push(current)
+      current = {
+        id: msg.id,
+        role: 'assistant',
+        messages: [msg],
+        timestamp: msg.timestamp
+      }
+    } else if (msg.role === 'tool') {
+      // Attach tool results to current assistant turn
+      if (current && current.role === 'assistant') {
+        current.messages.push(msg)
+      } else {
+        // Orphaned tool message, show standalone
+        if (current) turns.push(current)
+        current = {
+          id: msg.id,
+          role: 'assistant',
+          messages: [msg],
+          timestamp: msg.timestamp
+        }
+      }
+    } else {
+      // system / unknown: skip
+      if (current) turns.push(current)
+      current = null
     }
+  }
+  if (current) turns.push(current)
+  return turns
+}
 
-    measure()
-    window.addEventListener('resize', measure)
-    return () => window.removeEventListener('resize', measure)
-  }, [content])
-
-  useEffect(() => {
-    setExpanded(false)
-  }, [content])
+function ToolResultBlock({ content, searchQuery }: { content: string; searchQuery: string }) {
+  const [expanded, setExpanded] = useState(false)
+  const preview = content.length > 120 ? content.slice(0, 120).trimEnd() + '…' : content
 
   return (
-    <div>
-      <div
-        ref={contentRef}
-        className={cn(
-          'text-sm leading-6 text-text-primary whitespace-pre-wrap break-words',
-          !expanded && 'line-clamp-1'
-        )}
-      >
-        {renderedContent}
+    <div className="mt-2 rounded-lg bg-surface-200/40 border border-border-subtle px-2.5 py-1.5 text-xs text-text-secondary font-mono">
+      <div className={cn('whitespace-pre-wrap break-words', !expanded && content.length > 120 && 'line-clamp-2')}>
+        {searchQuery.trim() ? highlightText(expanded ? content : preview, searchQuery) : (expanded ? content : preview)}
       </div>
-      {isOverflowing && (
+      {content.length > 120 && (
         <button
           type="button"
-          onClick={() => setExpanded((value) => !value)}
-          className="mt-2 text-xs font-medium text-text-tertiary hover:text-text-primary transition-colors"
+          onClick={() => setExpanded((v) => !v)}
+          className="mt-1 text-[10px] font-medium text-text-tertiary hover:text-text-primary transition-colors"
         >
           {expanded ? 'Collapse' : 'Expand'}
         </button>
@@ -187,6 +207,11 @@ export function HistoryPanel() {
   const sortedMessages = useMemo(
     () => [...messages].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()),
     [messages]
+  )
+
+  const conversationTurns = useMemo(
+    () => groupIntoTurns(sortedMessages),
+    [sortedMessages]
   )
 
   const allSessions = useMemo(() => {
@@ -300,25 +325,19 @@ export function HistoryPanel() {
 
   return (
     <div className="flex-1 min-w-0 min-h-0 flex flex-col bg-surface-50">
-      <div className="flex flex-wrap items-start justify-between gap-4 px-6 py-4 border-b border-border bg-surface-100/80">
-        <div className="min-w-0 flex-1 basis-0">
-          <div className="text-xs uppercase tracking-[0.18em] text-text-tertiary mb-1">
-            Claude History
-          </div>
-          <h2 className="text-lg font-semibold text-text-primary truncate">
+      {/* Compact header */}
+      <div className="flex items-center gap-3 px-6 py-3 border-b border-border bg-surface-100/80 flex-shrink-0">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-[13px] font-semibold text-text-primary truncate">
             {selectedSession.title}
           </h2>
-          <div className="text-sm text-text-secondary truncate mt-1">
-            {selectedSession.cwd}
+          <div className="flex items-center gap-0 text-xs text-text-tertiary mt-0.5">
+            <span className="truncate">{selectedSession.cwd.replace(/^\/Users\/[^/]+/, '~')}</span>
+            <span className="mx-1.5 opacity-40 flex-shrink-0">·</span>
+            <span className="flex-shrink-0">{selectedSession.messageCount} messages</span>
           </div>
-          {selectedSession.summary && (
-            <p className="text-sm text-text-tertiary mt-2 line-clamp-2">
-              {selectedSession.summary}
-            </p>
-          )}
         </div>
-
-        <div className="ml-auto flex items-center gap-1.5 flex-shrink-0">
+        <div className="flex items-center gap-1.5 flex-shrink-0">
           <button
             type="button"
             onClick={() => refresh()}
@@ -330,7 +349,7 @@ export function HistoryPanel() {
           <button
             type="button"
             onClick={restoreSession}
-            className="h-7 px-2.5 rounded text-xs font-medium bg-accent text-accent-foreground hover:opacity-90 transition-opacity inline-flex items-center gap-1.5"
+            className="btn-primary"
           >
             <PlayIcon className="w-3 h-3" />
             Resume
@@ -338,57 +357,93 @@ export function HistoryPanel() {
         </div>
       </div>
 
-      <div className="px-6 py-3 border-b border-border bg-surface-50/80 text-xs text-text-tertiary flex items-center gap-5">
-        <span>{selectedSession.messageCount} messages</span>
-        <span className="inline-flex items-center gap-1.5">
-          <ClockIcon className="w-3.5 h-3.5" />
-          Last updated {formatTimestamp(selectedSession.lastModified)}
-        </span>
-      </div>
+      {/* Chat messages */}
+      <div className="flex-1 min-h-0 overflow-y-auto">
+        <div className="px-6 py-5 space-y-3">
+          {isLoadingMessages ? (
+            <div className="text-sm text-text-tertiary text-center py-8">Loading session messages...</div>
+          ) : conversationTurns.length === 0 ? (
+            <div className="text-sm text-text-tertiary text-center py-8">No visible messages in this session.</div>
+          ) : (
+            conversationTurns.map((turn) => {
+              const isUser = turn.role === 'user'
+              const mainMsg = turn.messages[0]
+              const toolMessages = turn.messages.filter((m) => m.role === 'tool')
+              const assistantMessages = turn.messages.filter((m) => m.role === 'assistant')
+              const timeStr = new Date(turn.timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
 
-      <div className="flex-1 min-h-0 overflow-y-auto px-6 py-5 space-y-3">
-        {isLoadingMessages ? (
-          <div className="text-sm text-text-tertiary">Loading session messages...</div>
-        ) : sortedMessages.length === 0 ? (
-          <div className="text-sm text-text-tertiary">No visible messages in this session.</div>
-        ) : (
-          sortedMessages.map((message) => (
-            <div
-              key={message.id}
-              ref={(node) => {
-                messageRefs.current[message.id] = node
-              }}
-              className={cn(
-                'rounded-xl border p-4 transition-colors',
-                roleClasses(message.role),
-                targetMessageId === message.id && 'ring-2 ring-accent shadow-[0_0_0_1px_rgba(0,0,0,0.04)]'
-              )}
-            >
-              <div className="flex items-center justify-between gap-3 mb-2">
-                <span className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                  {message.role}
-                </span>
-                <span className="text-xs text-text-tertiary">
-                  {formatTimestamp(message.timestamp)}
-                </span>
-              </div>
-              {message.role === 'tool' ? (
-                <ToolMessageContent
-                  content={message.content}
-                  renderedContent={highlightText(message.content, searchQuery)}
-                />
-              ) : message.role === 'assistant' && !searchQuery.trim() ? (
-                <div className="text-sm leading-6 text-text-primary prose-sm max-w-none">
-                  <MarkdownRenderer content={message.content} />
+              return (
+                <div
+                  key={turn.id}
+                  ref={(node) => {
+                    // Register refs for all messages in the turn (for search scroll targeting)
+                    for (const m of turn.messages) {
+                      messageRefs.current[m.id] = node
+                    }
+                  }}
+                  className={cn(
+                    'flex flex-col',
+                    isUser ? 'items-end' : 'items-start'
+                  )}
+                >
+                  {/* Timestamp */}
+                  <span className={cn(
+                    'text-[10px] text-text-tertiary/60 mb-1 px-1',
+                    isUser ? 'text-right' : 'text-left'
+                  )}>
+                    {timeStr}
+                  </span>
+
+                  {/* Bubble — same component for both sides */}
+                  <div
+                    className={cn(
+                      'rounded-2xl border px-2.5 py-1.5 w-fit max-w-[85%]',
+                      isUser
+                        ? 'rounded-br-md bg-accent/10 border-accent/20'
+                        : 'rounded-bl-md bg-surface-100 border-border-subtle',
+                      turn.messages.some((m) => targetMessageId === m.id) && 'ring-2 ring-accent'
+                    )}
+                  >
+                    {/* Text content — same render for both sides */}
+                    {(isUser ? [mainMsg] : assistantMessages).map((msg, i) => {
+                      const hasMarkdown = !searchQuery.trim() && msg.role === 'assistant' && /[*#`\[\]|>~]/.test(msg.content)
+                      return (
+                        <div key={msg.id}>
+                          {i > 0 && <div className="my-1.5 border-t border-border-subtle" />}
+                          {hasMarkdown ? (
+                            <div className="text-[13px] leading-normal text-text-primary max-w-none [&_p]:mb-1 [&_p:last-child]:mb-0 [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0.5 [&_pre]:my-1.5 [&_h1]:mb-1 [&_h2]:mb-1 [&_h3]:mb-1 [&_h1]:mt-2 [&_h2]:mt-2 [&_h3]:mt-1.5">
+                              <MarkdownRenderer content={msg.content} />
+                            </div>
+                          ) : (
+                            <div className="text-[13px] leading-normal text-text-primary whitespace-pre-wrap break-words">
+                              {searchQuery.trim() ? highlightText(msg.content, searchQuery) : msg.content}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+
+                    {/* Tool results (only present in assistant turns) */}
+                    {toolMessages.length > 0 && (
+                      <div className="mt-2 space-y-1.5">
+                        <div className="flex items-center gap-1.5">
+                          <div className="h-px flex-1 bg-border-subtle" />
+                          <span className="text-[9px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
+                            {toolMessages.length} tool {toolMessages.length === 1 ? 'result' : 'results'}
+                          </span>
+                          <div className="h-px flex-1 bg-border-subtle" />
+                        </div>
+                        {toolMessages.map((tm) => (
+                          <ToolResultBlock key={tm.id} content={tm.content} searchQuery={searchQuery} />
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              ) : (
-                <div className="text-sm leading-6 text-text-primary whitespace-pre-wrap break-words">
-                  {highlightText(message.content, searchQuery)}
-                </div>
-              )}
-            </div>
-          ))
-        )}
+              )
+            })
+          )}
+        </div>
       </div>
     </div>
   )
