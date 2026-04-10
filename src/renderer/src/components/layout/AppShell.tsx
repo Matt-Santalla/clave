@@ -4,7 +4,7 @@ import { useSessionStore, isFileTabId, getDisplayOrder } from '../../store/sessi
 import { useAgentStore } from '../../store/agent-store'
 import { Sidebar } from './Sidebar'
 import { TerminalGrid } from './TerminalGrid'
-import { TaskQueue } from '../board/KanbanBoard'
+import { TaskQueue } from '../board/TaskQueue'
 import { UsagePanel } from '../usage/UsagePanel'
 import { SettingsPanel } from '../settings/SettingsPanel'
 import { UpdateOverlay } from '../ui/UpdateOverlay'
