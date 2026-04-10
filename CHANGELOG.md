@@ -6,6 +6,22 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions use [Se
 
 ## [Unreleased]
 
+## [1.30.0] — 2026-04-10
+
+### Added
+- AI Journal: daily work tracker with smart session summaries powered by Claude Haiku
+- Journal accessible from Activity section in sidebar, renders in full-width main content area
+
+### Changed
+- Help moved from side panel tab to standalone ? toggle button
+- Side panel tabs (Files/Git) use consistent active state via effectiveTab
+
+### Fixed
+- WhatsNewBanner dismiss stored wrong version, causing banner to re-show
+- will-navigate dev fallback matched all URLs when ELECTRON_RENDERER_URL unset
+- setWindowOpenHandler now blocks non-HTTP schemes from shell.openExternal
+- Toggle knob asymmetric padding on settings switches
+
 ## [1.29.0] — 2026-04-10
 
 ### Added
