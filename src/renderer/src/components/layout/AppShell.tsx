@@ -501,8 +501,8 @@ export function AppShell() {
               <button
                 onClick={toggleFileTree}
                 className={cn(
-                  'p-1.5 rounded-lg hover:bg-surface-200 transition-colors',
-                  fileTreeOpen ? 'text-accent' : 'text-text-secondary hover:text-text-primary'
+                  'btn-icon btn-icon-md',
+                  fileTreeOpen && '!text-accent'
                 )}
                 title="File tree (Cmd+E)"
               >
