@@ -6,6 +6,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions use [Se
 
 ## [Unreleased]
 
+## [1.32.2] — 2026-04-10
+
+### Changed
+- Usage panel: replaced 30-day bar chart with a GitHub-style contribution heatmap showing a full year of activity
+- Heatmap uses percentile-based intensity levels with theme-aware accent colors
+
 ## [1.32.1] — 2026-04-10
 
 ### Changed

@@ -90,6 +90,11 @@
   --claude-toggle-bg: rgba(255, 255, 255, 0.08);
   --claude-toggle-active: rgba(217, 119, 87, 0.18);
   --claude-toggle-glow: rgba(217, 119, 87, 0.25);
+  --heatmap-0: #161616;
+  --heatmap-1: rgba(94, 106, 210, 0.3);
+  --heatmap-2: rgba(94, 106, 210, 0.5);
+  --heatmap-3: rgba(94, 106, 210, 0.7);
+  --heatmap-4: rgba(94, 106, 210, 0.95);
 }
 
 /* Light theme — Linear-inspired warm grays */
@@ -114,6 +119,11 @@
   --claude-toggle-bg: rgba(0, 0, 0, 0.05);
   --claude-toggle-active: rgba(217, 119, 87, 0.14);
   --claude-toggle-glow: rgba(217, 119, 87, 0.17);
+  --heatmap-0: #e4e3e0;
+  --heatmap-1: rgba(94, 106, 210, 0.2);
+  --heatmap-2: rgba(94, 106, 210, 0.4);
+  --heatmap-3: rgba(94, 106, 210, 0.65);
+  --heatmap-4: rgba(94, 106, 210, 0.9);
   --color-wellbeing-gentle: oklch(0.55 0.15 85);
   --color-wellbeing-gentle-bg: oklch(0.95 0.03 85);
   --color-wellbeing-gentle-border: oklch(0.8 0.08 85);
@@ -156,6 +166,11 @@
   --claude-toggle-bg: rgba(120, 100, 80, 0.08);
   --claude-toggle-active: rgba(217, 119, 87, 0.18);
   --claude-toggle-glow: rgba(217, 119, 87, 0.22);
+  --heatmap-0: #ddd9d1;
+  --heatmap-1: rgba(94, 106, 210, 0.2);
+  --heatmap-2: rgba(94, 106, 210, 0.4);
+  --heatmap-3: rgba(94, 106, 210, 0.65);
+  --heatmap-4: rgba(94, 106, 210, 0.9);
   --color-wellbeing-gentle: oklch(0.5 0.12 85);
   --color-wellbeing-gentle-bg: oklch(0.85 0.04 85);
   --color-wellbeing-gentle-border: oklch(0.7 0.08 85);

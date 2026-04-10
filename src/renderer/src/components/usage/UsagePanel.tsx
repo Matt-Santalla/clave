@@ -35,100 +35,211 @@ function getModelColor(model: string): string {
   return 'var(--color-text-tertiary)'
 }
 
+const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+const DAY_LABELS = ['', 'Mon', '', 'Wed', '', 'Fri', '']
+
+interface HeatmapDay {
+  date: string
+  count: number
+  level: 0 | 1 | 2 | 3 | 4
+}
+
+function buildHeatmapGrid(dailyActivity: UsageData['dailyActivity']): {
+  weeks: HeatmapDay[][]
+  monthLabels: { label: string; col: number }[]
+  totalMessages: number
+} {
+  const lookup = new Map<string, number>()
+  for (const d of dailyActivity) {
+    lookup.set(d.date, d.messageCount)
+  }
+
+  // Build 52 weeks ending today (Sunday-aligned weeks like GitHub)
+  const today = new Date()
+  const todayDay = today.getDay() // 0=Sun
+  // End of the grid is today. Start is 52 weeks back, aligned to Sunday.
+  const endDate = new Date(today)
+  const startDate = new Date(today)
+  startDate.setDate(startDate.getDate() - (52 * 7 + todayDay))
+
+  const days: { date: string; count: number }[] = []
+  const cursor = new Date(startDate)
+  while (cursor <= endDate) {
+    const dateStr = cursor.toISOString().slice(0, 10)
+    days.push({ date: dateStr, count: lookup.get(dateStr) ?? 0 })
+    cursor.setDate(cursor.getDate() + 1)
+  }
+
+  // Compute percentile thresholds from non-zero days
+  const nonZero = days.map((d) => d.count).filter((c) => c > 0).sort((a, b) => a - b)
+  let q1 = 1, q2 = 2, q3 = 3
+  if (nonZero.length > 0) {
+    q1 = nonZero[Math.floor(nonZero.length * 0.25)] || 1
+    q2 = nonZero[Math.floor(nonZero.length * 0.5)] || q1 + 1
+    q3 = nonZero[Math.floor(nonZero.length * 0.75)] || q2 + 1
+  }
+
+  function getLevel(count: number): 0 | 1 | 2 | 3 | 4 {
+    if (count === 0) return 0
+    if (count <= q1) return 1
+    if (count <= q2) return 2
+    if (count <= q3) return 3
+    return 4
+  }
+
+  // Group into weeks (columns). Each week is Sun..Sat (7 rows).
+  const weeks: HeatmapDay[][] = []
+  let currentWeek: HeatmapDay[] = []
+  for (const d of days) {
+    const dow = new Date(d.date).getDay()
+    if (dow === 0 && currentWeek.length > 0) {
+      weeks.push(currentWeek)
+      currentWeek = []
+    }
+    currentWeek.push({ ...d, level: getLevel(d.count) })
+  }
+  if (currentWeek.length > 0) weeks.push(currentWeek)
+
+  // Build month labels: find the first week where a month starts
+  const monthLabels: { label: string; col: number }[] = []
+  let lastMonth = -1
+  for (let col = 0; col < weeks.length; col++) {
+    const firstDay = weeks[col][0]
+    if (!firstDay) continue
+    const month = new Date(firstDay.date).getMonth()
+    if (month !== lastMonth) {
+      monthLabels.push({ label: MONTH_LABELS[month], col })
+      lastMonth = month
+    }
+  }
+
+  const totalMessages = days.reduce((sum, d) => sum + d.count, 0)
+
+  return { weeks, monthLabels, totalMessages }
+}
+
+function formatDateLabel(dateStr: string): string {
+  const d = new Date(dateStr + 'T12:00:00')
+  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+function ContributionHeatmap({ data }: { data: UsageData }) {
+  const [tooltip, setTooltip] = useState<{ date: string; count: number; x: number; y: number } | null>(null)
+
+  const { weeks, monthLabels, totalMessages } = useMemo(
+    () => buildHeatmapGrid(data.dailyActivity),
+    [data.dailyActivity]
+  )
+
+  const cellSize = 11
+  const cellGap = 2
+  const cellStep = cellSize + cellGap
+  const labelWidth = 28
+  const topPadding = 18
+  const svgWidth = labelWidth + weeks.length * cellStep
+  const svgHeight = topPadding + 7 * cellStep
+
+  const levelColors = [
+    'var(--heatmap-0, var(--surface-200))',
+    'var(--heatmap-1)',
+    'var(--heatmap-2)',
+    'var(--heatmap-3)',
+    'var(--heatmap-4)'
+  ]
+
+  return (
+    <div className="bg-surface-100 border border-border-subtle rounded-xl p-4">
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-xs font-medium text-text-secondary">
+          {formatNumber(totalMessages)} messages in the last year
+        </span>
+        {tooltip && (
+          <span className="text-[11px] text-text-tertiary">
+            {tooltip.count.toLocaleString()} messages on {formatDateLabel(tooltip.date)}
+          </span>
+        )}
+      </div>
+      <div>
+        <svg
+          viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+          className="block w-full"
+          style={{ height: 'auto' }}
+        >
+          {/* Month labels */}
+          {monthLabels.map((m) => (
+            <text
+              key={`${m.label}-${m.col}`}
+              x={labelWidth + m.col * cellStep}
+              y={10}
+              fontSize="9"
+              fill="var(--text-tertiary)"
+              fontFamily="var(--font-sans)"
+            >
+              {m.label}
+            </text>
+          ))}
+          {/* Day labels */}
+          {DAY_LABELS.map((label, row) =>
+            label ? (
+              <text
+                key={row}
+                x={0}
+                y={topPadding + row * cellStep + cellSize - 2}
+                fontSize="9"
+                fill="var(--text-tertiary)"
+                fontFamily="var(--font-sans)"
+              >
+                {label}
+              </text>
+            ) : null
+          )}
+          {/* Cells */}
+          {weeks.map((week, col) =>
+            week.map((day) => {
+              const row = new Date(day.date).getDay()
+              return (
+                <rect
+                  key={day.date}
+                  x={labelWidth + col * cellStep}
+                  y={topPadding + row * cellStep}
+                  width={cellSize}
+                  height={cellSize}
+                  rx={2}
+                  fill={levelColors[day.level]}
+                  onMouseEnter={(e) => {
+                    const rect = (e.target as SVGRectElement).getBoundingClientRect()
+                    setTooltip({ date: day.date, count: day.count, x: rect.x, y: rect.y })
+                  }}
+                  onMouseLeave={() => setTooltip(null)}
+                  style={{ cursor: 'default' }}
+                />
+              )
+            })
+          )}
+        </svg>
+      </div>
+      {/* Legend */}
+      <div className="flex items-center justify-end gap-1.5 mt-2">
+        <span className="text-[10px] text-text-tertiary mr-1">Less</span>
+        {levelColors.map((color, i) => (
+          <div
+            key={i}
+            className="rounded-sm"
+            style={{ width: cellSize, height: cellSize, backgroundColor: color }}
+          />
+        ))}
+        <span className="text-[10px] text-text-tertiary ml-1">More</span>
+      </div>
+    </div>
+  )
+}
+
 function StatCard({ label, value, sub }: { label: string; value: string; sub: string }) {
   return (
     <div className="bg-surface-100 border border-border-subtle rounded-xl p-4 flex flex-col gap-1">
       <span className="text-xs text-text-tertiary font-medium">{label}</span>
       <span className="text-xl font-semibold text-text-primary">{value}</span>
       <span className="text-[11px] text-text-tertiary">{sub}</span>
-    </div>
-  )
-}
-
-function ActivityChart({ data }: { data: UsageData }) {
-  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null)
-
-  const last30 = useMemo(() => {
-    const now = new Date()
-    const cutoff = new Date(now)
-    cutoff.setDate(cutoff.getDate() - 30)
-    const cutoffStr = cutoff.toISOString().slice(0, 10)
-    return data.dailyActivity
-      .filter((d) => d.date >= cutoffStr)
-      .sort((a, b) => a.date.localeCompare(b.date))
-  }, [data.dailyActivity])
-
-  if (last30.length === 0) return null
-
-  const maxMessages = Math.max(...last30.map((d) => d.messageCount), 1)
-  const chartWidth = 600
-  const chartHeight = 160
-  const barWidth = Math.max(4, Math.floor((chartWidth - 40) / last30.length) - 2)
-  const barGap = 2
-
-  return (
-    <div className="bg-surface-100 border border-border-subtle rounded-xl p-4">
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-xs font-medium text-text-secondary">Activity (last 30 days)</span>
-        {hoveredIdx !== null && last30[hoveredIdx] && (
-          <span className="text-[11px] text-text-tertiary">
-            {last30[hoveredIdx].date}: {last30[hoveredIdx].messageCount.toLocaleString()} messages
-          </span>
-        )}
-      </div>
-      <svg
-        viewBox={`0 0 ${chartWidth} ${chartHeight}`}
-        className="w-full"
-        style={{ maxHeight: 180 }}
-      >
-        <text x="0" y="12" className="fill-[var(--text-tertiary)]" fontSize="9" fontFamily="var(--font-sans)">
-          {formatNumber(maxMessages)}
-        </text>
-        <text x="0" y={chartHeight - 2} className="fill-[var(--text-tertiary)]" fontSize="9" fontFamily="var(--font-sans)">
-          0
-        </text>
-        {last30.map((day, i) => {
-          const barHeight = (day.messageCount / maxMessages) * (chartHeight - 24)
-          const x = 36 + i * (barWidth + barGap)
-          const y = chartHeight - 12 - barHeight
-          const isHovered = hoveredIdx === i
-          return (
-            <g key={day.date}>
-              <rect
-                x={x - 1}
-                y={0}
-                width={barWidth + 2}
-                height={chartHeight}
-                fill="transparent"
-                onMouseEnter={() => setHoveredIdx(i)}
-                onMouseLeave={() => setHoveredIdx(null)}
-              />
-              <rect
-                x={x}
-                y={y}
-                width={barWidth}
-                height={barHeight}
-                rx={2}
-                fill="var(--color-accent)"
-                opacity={isHovered ? 1 : 0.7}
-                style={{ transition: 'opacity 0.15s', pointerEvents: 'none' }}
-              />
-              {(i % Math.ceil(last30.length / 6) === 0 || i === last30.length - 1) && (
-                <text
-                  x={x + barWidth / 2}
-                  y={chartHeight}
-                  textAnchor="middle"
-                  className="fill-[var(--text-tertiary)]"
-                  fontSize="8"
-                  fontFamily="var(--font-sans)"
-                >
-                  {day.date.slice(5)}
-                </text>
-              )}
-            </g>
-          )
-        })}
-      </svg>
     </div>
   )
 }
@@ -295,6 +406,9 @@ export function UsagePanel() {
           </button>
         </div>
 
+        {/* Contribution heatmap — centerpiece */}
+        <ContributionHeatmap data={data} />
+
         {/* Stat cards */}
         <div className="grid grid-cols-4 gap-3">
           <StatCard
@@ -318,9 +432,6 @@ export function UsagePanel() {
             sub="total"
           />
         </div>
-
-        {/* Activity chart */}
-        <ActivityChart data={data} />
 
         {/* Bottom row: model breakdown + hour grid */}
         <div className="grid grid-cols-2 gap-3">
