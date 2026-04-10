@@ -1425,6 +1425,9 @@ function PinnedSection({
   // Show pinned section when there are pins, dragging a group, or dragging a .clave file
   const showSection = pinnedGroups.length > 0 || !!draggedGroupId || isFileDragOver
 
+  // Force expand when dragging a group or file over
+  const effectiveCollapsed = pinnedCollapsed && !draggedGroupId && !isFileDragOver
+
   if (!showSection) return null
 
   return (
@@ -1434,14 +1437,20 @@ function PinnedSection({
         collapsed={pinnedCollapsed}
         onToggle={togglePinnedCollapsed}
       />
-      <PinnedGroupsGrid
-        ref={pinnedZoneRef}
-        collapsed={pinnedCollapsed}
-        onContextMenu={handleContextMenu}
-        isOverPinnedZone={isOverPinnedZone}
-        draggedGroupId={draggedGroupId}
-        isFileDragOver={isFileDragOver}
-      />
+      <div
+        className="grid transition-[grid-template-rows,opacity,transform] duration-250 ease-out"
+        style={{ gridTemplateRows: effectiveCollapsed ? '0fr' : '1fr', opacity: effectiveCollapsed ? 0 : 1, transform: effectiveCollapsed ? 'translateY(-4px)' : 'translateY(0)' }}
+      >
+        <div className="overflow-hidden">
+          <PinnedGroupsGrid
+            ref={pinnedZoneRef}
+            onContextMenu={handleContextMenu}
+            isOverPinnedZone={isOverPinnedZone}
+            draggedGroupId={draggedGroupId}
+            isFileDragOver={isFileDragOver}
+          />
+        </div>
+      </div>
       <ExportClaveDialog
         isOpen={exportDialogPinnedId !== null}
         defaultFileName={exportDialogPinnedId ? getExportFileName(exportDialogPinnedId) : 'group.clave'}
