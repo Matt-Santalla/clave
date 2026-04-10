@@ -1224,9 +1224,6 @@ export function Sidebar() {
           </>
         )}
 
-        {/* What's new inline card */}
-        <WhatsNewBanner />
-
         {/* Activity section */}
         <SectionHeading title="Activity" collapsed={boardCollapsed} onToggle={() => setBoardCollapsed((c) => !c)} />
         <TaskQueueSection collapsed={boardCollapsed} />
@@ -1236,6 +1233,9 @@ export function Sidebar() {
 
       {/* Work tracker widget */}
       <WorkTracker />
+
+      {/* What's new banner */}
+      <WhatsNewBanner />
 
       {/* User footer */}
       <SidebarFooter />
