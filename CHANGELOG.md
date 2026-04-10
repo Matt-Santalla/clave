@@ -4,30 +4,13 @@ All notable changes to Clave are documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/). Versions use [Semantic Versioning](https://semver.org/).
 
-## [Unreleased] — feature/in-app-docs
+## [Unreleased]
 
 ### Added
-- Help tab in right side panel with searchable documentation (10 help topics)
+- In-app help panel with searchable documentation (10 help topics)
 - What's New banner for post-update feature announcements
 - `clave://navigate` deep links in help docs to jump to features
-- Cmd+? keyboard shortcut to open Help tab
 - App version exposed to renderer via IPC
-
-## [Unreleased] — feature/kanban-board
-
-### Added
-- Kanban board with columns (Backlog, Ready, Running, Done), drag-and-drop, and context menus
-- Auto-create board cards for new Claude-mode sessions
-- Session sync — cards auto-move to Done when sessions end, show live status (active/idle/permission)
-- Tag system with color-coded pills, autocomplete, filtering, and create-on-enter
-- History integration — show session summaries on cards and detail panel with Browse History
-- Task detail panel for editing notes, prompt, metadata, and tags
-- Run tasks directly from cards — spawns session, sends prompt, moves to Running
-
-### Fixed
-- Prevent duplicate cards on resume and detect session close
-- Drag-and-drop stale closure bug
-- Null guards for unmigrated tag data
 
 ## [1.26.2] — 2026-04-03
 
