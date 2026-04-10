@@ -18,8 +18,8 @@
   --color-text-secondary: var(--text-secondary);
   --color-text-tertiary: var(--text-tertiary);
 
-  --color-accent: oklch(0.65 0.2 265);
-  --color-accent-hover: oklch(0.7 0.22 265);
+  --color-accent: #5e6ad2;
+  --color-accent-hover: #6e79dd;
 
   --color-wellbeing-gentle: oklch(0.75 0.15 85);
   --color-wellbeing-gentle-bg: oklch(0.25 0.03 85);
@@ -38,7 +38,7 @@
   --color-accent-shadcn: var(--surface-200);
   --color-accent-foreground: var(--text-primary);
   --color-destructive: #ef4444;
-  --color-ring: oklch(0.65 0.2 265);
+  --color-ring: #5e6ad2;
   --radius: 0.5rem;
 
   --color-status-working: #3b82f6;

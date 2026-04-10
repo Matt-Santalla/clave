@@ -6,6 +6,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions use [Se
 
 ## [Unreleased]
 
+## [1.32.1] — 2026-04-10
+
+### Changed
+- Light theme refreshed with Linear-inspired warm grays instead of pure neutral grays
+- Accent color updated from bright blue to Linear's indigo-violet (#5e6ad2)
+- Color palette (profile avatars and group colors) replaced with muted, desaturated tones matching Linear's aesthetic
+
 ## [1.32.0] — 2026-04-10
 
 ### Changed

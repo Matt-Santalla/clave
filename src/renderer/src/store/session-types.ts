@@ -29,14 +29,14 @@ export const GROUP_TERMINAL_COLORS: GroupTerminalColor[] = [
 ]
 
 export const TERMINAL_COLOR_VALUES: Record<string, string> = {
-  black: '#3A3A3C',
-  green: '#34C759',
-  teal: '#5AC8FA',
-  blue: '#007AFF',
-  purple: '#AF52DE',
-  yellow: '#FFD60A',
-  pink: '#FF6482',
-  red: '#FF3B30'
+  black: '#95979c',
+  green: '#4cb782',
+  teal: '#53b7c5',
+  blue: '#5e6ad2',
+  purple: '#8b95a8',
+  yellow: '#e8b931',
+  pink: '#db8b4e',
+  red: '#d45461'
 }
 
 /** Resolve a color name or custom hex string to its hex value */

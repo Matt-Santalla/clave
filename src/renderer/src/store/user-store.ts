@@ -18,14 +18,14 @@ export const USER_ICONS = [
 export type UserIcon = (typeof USER_ICONS)[number]
 
 export const USER_ICON_COLORS = [
-  '#3A3A3C',
-  '#007AFF',
-  '#AF52DE',
-  '#34C759',
-  '#5AC8FA',
-  '#FF6482',
-  '#FF3B30',
-  '#FFD60A'
+  '#95979c',
+  '#5e6ad2',
+  '#8b95a8',
+  '#4cb782',
+  '#53b7c5',
+  '#db8b4e',
+  '#d45461',
+  '#e8b931'
 ] as const
 
 interface UserProfile {
