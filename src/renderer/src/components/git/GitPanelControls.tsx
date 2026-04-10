@@ -55,7 +55,7 @@ export function CollapseAllButton() {
   return (
     <IconButton
       onClick={triggerCollapseAll}
-      className="p-1 rounded text-text-tertiary hover:text-text-primary hover:bg-surface-200 transition-colors flex-shrink-0"
+      className="btn-icon btn-icon-sm flex-shrink-0"
       tooltip="Collapse all"
     >
       <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
@@ -73,7 +73,7 @@ export function ViewModeToggle() {
   return (
     <IconButton
       onClick={() => setGitViewMode(isTree ? 'list' : 'tree')}
-      className="p-1 rounded text-text-tertiary hover:text-text-primary hover:bg-surface-200 transition-colors flex-shrink-0"
+      className="btn-icon btn-icon-sm flex-shrink-0"
       tooltip={isTree ? 'List view' : 'Tree view'}
     >
       {isTree ? (
@@ -92,7 +92,7 @@ export function PanelModeToggle() {
   return (
     <IconButton
       onClick={() => setGitPanelMode(isLog ? 'changes' : 'log')}
-      className="p-1 rounded text-text-tertiary hover:text-text-primary hover:bg-surface-200 transition-colors flex-shrink-0"
+      className="btn-icon btn-icon-sm flex-shrink-0"
       tooltip={isLog ? 'Changes' : 'Commit log'}
     >
       {isLog ? (
@@ -177,7 +177,7 @@ export function MagicSyncButton({
       <IconButton
         onClick={handleSync}
         disabled={syncing || repoPaths.length === 0}
-        className="p-1 rounded text-text-tertiary hover:text-text-primary hover:bg-surface-200 transition-colors flex-shrink-0 disabled:opacity-40"
+        className="btn-icon btn-icon-sm flex-shrink-0 disabled:opacity-40"
         tooltip={syncing ? (currentStep ?? 'Syncing...') : 'Magic sync'}
       >
         <ArrowPathIcon className={`w-3 h-3 ${syncing ? 'animate-spin' : ''}`} />
@@ -252,7 +252,7 @@ export function MagicPullButton({
       <IconButton
         onClick={handlePull}
         disabled={pulling || repoPaths.length === 0}
-        className="p-1 rounded text-text-tertiary hover:text-text-primary hover:bg-surface-200 transition-colors flex-shrink-0 disabled:opacity-40"
+        className="btn-icon btn-icon-sm flex-shrink-0 disabled:opacity-40"
         tooltip={pulling ? (currentStep ?? 'Pulling...') : 'Pull all'}
       >
         <ArrowDownIcon className={`w-3 h-3 ${pulling ? 'animate-bounce' : ''}`} />
@@ -335,7 +335,7 @@ export function JourneyButton({ cwd, repoName }: { cwd: string; repoName: string
   return (
     <IconButton
       onClick={() => openJourneyPanel(cwd, repoName)}
-      className="p-1 rounded text-text-tertiary hover:text-text-primary hover:bg-surface-200 transition-colors flex-shrink-0"
+      className="btn-icon btn-icon-sm flex-shrink-0"
       tooltip="Journey"
     >
       {/* Timeline/route icon */}

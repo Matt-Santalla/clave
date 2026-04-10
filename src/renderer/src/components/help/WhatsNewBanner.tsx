@@ -77,7 +77,7 @@ export function WhatsNewBanner(): ReactNode {
               </span>
               <button
                 onClick={dismiss}
-                className="p-0.5 rounded hover:bg-surface-200 text-text-tertiary hover:text-text-secondary transition-colors flex-shrink-0"
+                className="btn-icon btn-icon-xs flex-shrink-0"
               >
                 <XMarkIcon className="w-3 h-3" />
               </button>

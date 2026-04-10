@@ -1020,7 +1020,7 @@ export function Sidebar() {
               style={{ gridTemplateRows: sessionsCollapsed ? '0fr' : '1fr', opacity: sessionsCollapsed ? 0 : 1, transform: sessionsCollapsed ? 'translateY(-4px)' : 'translateY(0)' }}
             >
               <div className="overflow-hidden">
-              <div className="px-2 space-y-2">
+              <div className="px-2 space-y-1">
                 {filteredSessions ? (
                   filteredSessions.length === 0 ? (
                     <div className="px-3 py-6 text-center text-xs text-text-tertiary">

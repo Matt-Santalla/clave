@@ -93,18 +93,19 @@ export function SidebarTabItem({
         onContextMenu={onContextMenu}
         onKeyDown={handleButtonKeyDown}
         title={title}
+        data-selected={isSelected && !grouped ? 'true' : undefined}
         className={cn(
-          'group w-full flex items-center gap-2.5 py-1.5 rounded-lg text-left transition-all outline-none',
-          grouped ? 'pl-1 pr-2' : 'px-2.5',
+          'sidebar-item group',
+          grouped ? 'pl-1 pr-2' : '',
           groupSelected
             ? 'text-text-primary'
             : isSelected
               ? grouped
                 ? 'text-text-primary'
-                : 'bg-surface-200 text-text-primary shadow-[0_0_0.5px_rgba(0,0,0,0.12)]'
+                : ''
               : groupColorHex
                 ? 'text-text-secondary'
-                : 'text-text-secondary hover:bg-surface-100',
+                : '',
           isDragging && 'opacity-30'
         )}
         style={groupColorHex && isSelected && !groupSelected && grouped
@@ -154,7 +155,7 @@ export function SidebarTabItem({
               e.stopPropagation()
               onDelete()
             }}
-            className="flex-shrink-0 opacity-0 group-hover:opacity-100 p-0.5 rounded transition-opacity text-text-tertiary hover:text-text-primary"
+            className="btn-icon btn-icon-xs flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
           >
             <XMarkIcon className="w-3.5 h-3.5" />
           </span>

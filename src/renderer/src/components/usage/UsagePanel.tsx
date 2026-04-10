@@ -274,7 +274,7 @@ export function UsagePanel() {
           <button
             onClick={fetchData}
             disabled={loading}
-            className="p-1.5 rounded-md hover:bg-surface-200 text-text-secondary hover:text-text-primary transition-colors disabled:opacity-50"
+            className="btn-icon btn-icon-md disabled:opacity-50"
             title="Refresh"
           >
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className={loading ? 'animate-spin' : ''}>

@@ -24,7 +24,7 @@ export function AgentHeader() {
         <span className="text-xs text-text-tertiary">{agent.model}</span>
       )}
       {location && location.type === 'remote' && (
-        <span className="ml-auto text-xs text-text-tertiary bg-surface-100 rounded-full px-2 py-0.5">
+        <span className="badge ml-auto bg-surface-100 text-text-tertiary">
           {location.name}
         </span>
       )}

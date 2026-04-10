@@ -209,7 +209,7 @@ export function HistorySidebarSection() {
                 await searchMessages(globalSearchQuery, searchRoleFilter)
               }
             }}
-            className="w-5 h-5 rounded-md flex items-center justify-center text-text-tertiary hover:text-text-primary hover:bg-surface-200 transition-colors"
+            className="btn-icon btn-icon-sm w-5 h-5"
             title="Refresh Claude history"
           >
             <ArrowPathIcon className={cn('w-3.5 h-3.5', isLoadingProjects && 'animate-spin')} />
@@ -334,7 +334,7 @@ export function HistorySidebarSection() {
                               <div className="flex items-center gap-2 text-[11px] text-text-tertiary mb-1">
                                 <span
                                   className={cn(
-                                    'inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em]',
+                                    'badge badge-uppercase',
                                     roleBadgeClasses(result.role)
                                   )}
                                 >
@@ -406,12 +406,8 @@ export function HistorySidebarSection() {
                             key={session.id}
                             type="button"
                             onClick={() => openHistorySession(session)}
-                            className={cn(
-                              'w-full rounded-lg px-2 py-2 text-left transition-colors',
-                              activeView === 'history' && selectedSessionId === session.sourcePath
-                                ? 'bg-surface-200 text-text-primary'
-                                : 'hover:bg-surface-100 text-text-secondary'
-                            )}
+                            data-selected={activeView === 'history' && selectedSessionId === session.sourcePath ? 'true' : undefined}
+                            className="sidebar-item"
                           >
                             <div className="flex items-center gap-2">
                               <SparklesIcon className="w-4 h-4 flex-shrink-0 text-text-tertiary" />

@@ -135,7 +135,7 @@ export function SessionGroupItem({
                 onAddTerminalClick()
               }}
               className={cn(
-                'p-0.5 rounded transition-all text-text-tertiary hover:text-text-secondary',
+                'btn-icon btn-icon-xs hover:text-text-secondary',
                 group.terminals.length === 0
                   ? ''
                   : 'opacity-0 group-hover:opacity-100'
@@ -169,7 +169,7 @@ export function SessionGroupItem({
                     onTerminalIconContextMenu(t.id, e)
                   }}
                   className={cn(
-                    'p-1 rounded transition-all',
+                    'btn-icon btn-icon-sm',
                     focused && 'bg-surface-200/80'
                   )}
                   style={{ color: colorHex, opacity: alive ? 1 : 0.35 }}

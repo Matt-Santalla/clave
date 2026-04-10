@@ -46,16 +46,12 @@ export function TaskQueueSection({ collapsed }: { collapsed: boolean }) {
       style={{ gridTemplateRows: collapsed ? '0fr' : '1fr', opacity: collapsed ? 0 : 1, transform: collapsed ? 'translateY(-4px)' : 'translateY(0)' }}
     >
       <div className="overflow-hidden">
-        <div className="px-2 pt-0.5 pb-2">
+        <div className="px-2 pb-1">
           {/* Queue row — clickable to navigate, chevron to expand sub-items */}
           <button
             onClick={() => setActiveView('board')}
-            className={cn(
-              'w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[13px] font-medium transition-colors',
-              activeView === 'board'
-                ? 'bg-surface-200 text-text-primary shadow-[0_0_0.5px_rgba(0,0,0,0.12)]'
-                : 'text-text-secondary hover:text-text-primary hover:bg-surface-100'
-            )}
+            data-selected={activeView === 'board' ? 'true' : undefined}
+            className="sidebar-item"
           >
             <QueueListIcon className="flex-shrink-0 w-4 h-4 text-text-tertiary" />
             <span className="truncate">Queue</span>
@@ -68,7 +64,7 @@ export function TaskQueueSection({ collapsed }: { collapsed: boolean }) {
                     e.stopPropagation()
                     setExpanded((v) => !v)
                   }}
-                  className="p-0.5 rounded hover:bg-surface-300/50 transition-colors"
+                  className="btn-icon btn-icon-xs hover:bg-surface-300/50"
                 >
                   <ChevronRightIcon
                     className={cn(
@@ -167,16 +163,12 @@ export function HistorySection({ collapsed }: { collapsed: boolean }) {
       style={{ gridTemplateRows: collapsed ? '0fr' : '1fr', opacity: collapsed ? 0 : 1, transform: collapsed ? 'translateY(-4px)' : 'translateY(0)' }}
     >
       <div className="overflow-hidden">
-        <div className="px-2 pt-0.5 pb-2">
+        <div className="px-2 pb-1">
           {/* History row — mirrors Queue design */}
           <button
             onClick={openAll}
-            className={cn(
-              'w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[13px] font-medium transition-colors',
-              activeView === 'history'
-                ? 'bg-surface-200 text-text-primary shadow-[0_0_0.5px_rgba(0,0,0,0.12)]'
-                : 'text-text-secondary hover:text-text-primary hover:bg-surface-100'
-            )}
+            data-selected={activeView === 'history' ? 'true' : undefined}
+            className="sidebar-item"
           >
             <ClockIcon className="flex-shrink-0 w-4 h-4 text-text-tertiary" />
             <span className="truncate">History</span>
@@ -187,7 +179,7 @@ export function HistorySection({ collapsed }: { collapsed: boolean }) {
               <span
                 role="button"
                 onClick={handleChevronClick}
-                className="p-0.5 rounded hover:bg-surface-300/50 transition-colors"
+                className="btn-icon btn-icon-xs hover:bg-surface-300/50"
               >
                 <ChevronRightIcon
                   className={cn(
@@ -265,15 +257,11 @@ export function JournalSection({ collapsed }: { collapsed: boolean }) {
       style={{ gridTemplateRows: collapsed ? '0fr' : '1fr', opacity: collapsed ? 0 : 1, transform: collapsed ? 'translateY(-4px)' : 'translateY(0)' }}
     >
       <div className="overflow-hidden">
-        <div className="px-2 pt-0.5 pb-2">
+        <div className="px-2 pb-1">
           <button
             onClick={() => setActiveView('journal')}
-            className={cn(
-              'w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[13px] font-medium transition-colors',
-              activeView === 'journal'
-                ? 'bg-surface-200 text-text-primary shadow-[0_0_0.5px_rgba(0,0,0,0.12)]'
-                : 'text-text-secondary hover:text-text-primary hover:bg-surface-100'
-            )}
+            data-selected={activeView === 'journal' ? 'true' : undefined}
+            className="sidebar-item"
           >
             <SparklesIcon className="flex-shrink-0 w-4 h-4 text-text-tertiary" />
             <span className="truncate">Daily Log</span>

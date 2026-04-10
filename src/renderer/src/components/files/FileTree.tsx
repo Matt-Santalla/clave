@@ -390,7 +390,7 @@ export function FileTree({ cwd, isCustom, onChangeFolder, onResetFolder, onNavig
         {isCustom && (
           <IconButton
             onClick={onResetFolder}
-            className="p-1 rounded hover:bg-surface-200 text-text-tertiary hover:text-text-primary transition-colors flex-shrink-0"
+            className="btn-icon btn-icon-sm flex-shrink-0"
             tooltip="Reset to session folder"
           >
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
@@ -402,7 +402,7 @@ export function FileTree({ cwd, isCustom, onChangeFolder, onResetFolder, onNavig
         )}
         <IconButton
           onClick={onChangeFolder}
-          className="p-1 rounded hover:bg-surface-200 text-text-tertiary hover:text-text-primary transition-colors flex-shrink-0"
+          className="btn-icon btn-icon-sm flex-shrink-0"
           tooltip="Browse folder"
         >
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
@@ -416,7 +416,7 @@ export function FileTree({ cwd, isCustom, onChangeFolder, onResetFolder, onNavig
         </IconButton>
         <IconButton
           onClick={collapseAll}
-          className="p-1 rounded hover:bg-surface-200 text-text-tertiary hover:text-text-primary transition-colors flex-shrink-0"
+          className="btn-icon btn-icon-sm flex-shrink-0"
           tooltip="Collapse all"
         >
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none">

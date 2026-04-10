@@ -288,7 +288,7 @@ export function AssistantPanel(): React.ReactNode {
           <button
             onClick={() => navigateDay('prev')}
             disabled={!canGoPrev}
-            className="p-1 rounded hover:bg-surface-200 transition-colors disabled:opacity-30 disabled:cursor-default"
+            className="btn-icon btn-icon-sm disabled:opacity-30 disabled:cursor-default"
           >
             <ChevronLeftIcon className="w-4 h-4 text-text-secondary" />
           </button>
@@ -298,7 +298,7 @@ export function AssistantPanel(): React.ReactNode {
           <button
             onClick={() => navigateDay('next')}
             disabled={!canGoNext}
-            className="p-1 rounded hover:bg-surface-200 transition-colors disabled:opacity-30 disabled:cursor-default"
+            className="btn-icon btn-icon-sm disabled:opacity-30 disabled:cursor-default"
           >
             <ChevronRightIcon className="w-4 h-4 text-text-secondary" />
           </button>

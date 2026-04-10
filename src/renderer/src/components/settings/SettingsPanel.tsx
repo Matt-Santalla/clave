@@ -372,7 +372,7 @@ export function SettingsPanel() {
 
                   <button
                     onClick={() => deleteTemplate(t.id)}
-                    className="flex-shrink-0 p-1 rounded hover:bg-surface-200 text-text-tertiary hover:text-red-400 transition-colors"
+                    className="btn-icon btn-icon-sm hover:text-red-400"
                     title="Delete template"
                   >
                     <TrashIcon className="w-3.5 h-3.5" />
@@ -612,7 +612,7 @@ function WorkspacesSection() {
                   e.stopPropagation()
                   removeWorkspace(ws.id)
                 }}
-                className="p-1 rounded text-text-tertiary hover:text-red-400 transition-colors flex-shrink-0"
+                className="btn-icon btn-icon-sm hover:text-red-400 flex-shrink-0"
               >
                 <TrashIcon className="w-3.5 h-3.5" />
               </button>

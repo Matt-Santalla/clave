@@ -113,7 +113,7 @@ export function AddLocationDialog({ onClose }: AddLocationDialogProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={handleRemoveOnCancel}>
       <div
-        className="bg-surface-0 rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden border border-border-subtle"
+        className="bg-surface-0 rounded-xl shadow-2xl w-full max-w-md mx-4 overflow-hidden border border-border-subtle"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -121,7 +121,7 @@ export function AddLocationDialog({ onClose }: AddLocationDialogProps) {
           <h3 className="text-base font-semibold text-text-primary">Add Remote Location</h3>
           <button
             onClick={handleRemoveOnCancel}
-            className="p-1 rounded-lg hover:bg-surface-200 text-text-tertiary hover:text-text-primary transition-colors"
+            className="btn-icon btn-icon-sm"
           >
             <XMarkIcon className="w-5 h-5" />
           </button>
@@ -151,7 +151,7 @@ export function AddLocationDialog({ onClose }: AddLocationDialogProps) {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="My Mac Mini"
-                  className="w-full text-sm bg-surface-100 rounded-lg px-3 py-2 outline-none border border-border-subtle focus:border-accent text-text-primary placeholder:text-text-tertiary"
+                  className="input-field"
                 />
               </div>
               <div className="grid grid-cols-3 gap-3">
@@ -161,7 +161,7 @@ export function AddLocationDialog({ onClose }: AddLocationDialogProps) {
                     value={host}
                     onChange={(e) => setHost(e.target.value)}
                     placeholder="100.x.x.x or hostname"
-                    className="w-full text-sm bg-surface-100 rounded-lg px-3 py-2 outline-none border border-border-subtle focus:border-accent text-text-primary placeholder:text-text-tertiary"
+                    className="input-field"
                   />
                 </div>
                 <div>
@@ -169,7 +169,7 @@ export function AddLocationDialog({ onClose }: AddLocationDialogProps) {
                   <input
                     value={port}
                     onChange={(e) => setPort(e.target.value)}
-                    className="w-full text-sm bg-surface-100 rounded-lg px-3 py-2 outline-none border border-border-subtle focus:border-accent text-text-primary placeholder:text-text-tertiary"
+                    className="input-field"
                   />
                 </div>
               </div>
@@ -179,7 +179,7 @@ export function AddLocationDialog({ onClose }: AddLocationDialogProps) {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   placeholder="admin"
-                  className="w-full text-sm bg-surface-100 rounded-lg px-3 py-2 outline-none border border-border-subtle focus:border-accent text-text-primary placeholder:text-text-tertiary"
+                  className="input-field"
                 />
               </div>
               <div>
@@ -206,7 +206,7 @@ export function AddLocationDialog({ onClose }: AddLocationDialogProps) {
                   <input
                     value={privateKeyPath}
                     onChange={(e) => setPrivateKeyPath(e.target.value)}
-                    className="w-full text-sm bg-surface-100 rounded-lg px-3 py-2 outline-none border border-border-subtle focus:border-accent text-text-primary placeholder:text-text-tertiary"
+                    className="input-field"
                   />
                 </div>
               )}
@@ -217,7 +217,7 @@ export function AddLocationDialog({ onClose }: AddLocationDialogProps) {
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full text-sm bg-surface-100 rounded-lg px-3 py-2 outline-none border border-border-subtle focus:border-accent text-text-primary placeholder:text-text-tertiary"
+                    className="input-field"
                   />
                 </div>
               )}
@@ -247,7 +247,7 @@ export function AddLocationDialog({ onClose }: AddLocationDialogProps) {
                           <button
                             onClick={handleInstallPlugin}
                             disabled={installing}
-                            className="text-xs px-3 py-1.5 rounded-lg bg-accent text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
+                            className="btn-primary"
                           >
                             {installing ? 'Installing...' : 'Install Clave Channel Plugin'}
                           </button>
@@ -305,7 +305,7 @@ export function AddLocationDialog({ onClose }: AddLocationDialogProps) {
             <button
               onClick={() => { handleTest(); setStep('test') }}
               disabled={!credentialsValid}
-              className="text-sm px-4 py-2 rounded-lg bg-accent text-white hover:opacity-90 disabled:opacity-40 transition-opacity"
+              className="btn-primary h-auto py-2 px-4 text-sm"
             >
               Test Connection
             </button>
@@ -314,7 +314,7 @@ export function AddLocationDialog({ onClose }: AddLocationDialogProps) {
             <button
               onClick={() => setStep('summary')}
               disabled={!testResult?.success}
-              className="text-sm px-4 py-2 rounded-lg bg-accent text-white hover:opacity-90 disabled:opacity-40 transition-opacity"
+              className="btn-primary h-auto py-2 px-4 text-sm"
             >
               Continue
             </button>
@@ -322,7 +322,7 @@ export function AddLocationDialog({ onClose }: AddLocationDialogProps) {
           {step === 'summary' && (
             <button
               onClick={handleFinish}
-              className="text-sm px-4 py-2 rounded-lg bg-accent text-white hover:opacity-90 transition-opacity"
+              className="btn-primary h-auto py-2 px-4 text-sm"
             >
               Done
             </button>

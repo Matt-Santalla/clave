@@ -208,85 +208,91 @@ export function HistoryPanel() {
   if (!selectedSession) {
     return (
       <div className="flex-1 min-w-0 min-h-0 flex flex-col bg-surface-50">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-surface-100/80 flex-shrink-0">
-          <div>
-            <div className="text-xs uppercase tracking-[0.18em] text-text-tertiary mb-1">Claude History</div>
-            <h2 className="text-lg font-semibold text-text-primary">
-              {isLoadingProjects ? 'Loading…' : `${allSessions.length} conversations`}
-            </h2>
-          </div>
-          <button
-            type="button"
-            onClick={() => refresh()}
-            className="p-1.5 rounded text-text-tertiary hover:text-text-primary hover:bg-surface-200 transition-colors"
-            title="Refresh"
-          >
-            <ArrowPathIcon className={`w-3.5 h-3.5 ${isLoadingProjects ? 'animate-spin' : ''}`} />
-          </button>
-        </div>
-
-        {/* Session list */}
         <div className="flex-1 overflow-auto">
-          {isLoadingProjects && allSessions.length === 0 ? (
-            <div className="flex items-center justify-center h-40 text-sm text-text-tertiary gap-2">
-              <ArrowPathIcon className="w-4 h-4 animate-spin" />
-              Scanning history…
+          <div className="max-w-2xl mx-auto px-6 py-8">
+            {/* Title */}
+            <div className="flex items-center justify-between mb-6">
+              <h1 className="text-2xl font-semibold text-text-primary">Chats</h1>
+              <button
+                type="button"
+                onClick={() => refresh()}
+                className="btn-icon btn-icon-md"
+                title="Refresh"
+              >
+                <ArrowPathIcon className={`w-4 h-4 ${isLoadingProjects ? 'animate-spin' : ''}`} />
+              </button>
             </div>
-          ) : allSessions.length === 0 ? (
-            <div className="flex items-center justify-center h-40 text-sm text-text-tertiary">
-              No history found on this machine.
-            </div>
-          ) : (
-            <div>
-              {groupedSessions.map((group) => (
-                <div key={group.label}>
-                  <div className="sticky top-0 z-10 px-6 py-2 bg-surface-50/95 backdrop-blur-sm border-b border-border-subtle">
-                    <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
-                      {group.label}
-                    </span>
-                  </div>
-                  <div className="divide-y divide-border-subtle">
-                    {group.sessions.map((session) => {
-                      const projectName = getProjectDisplayName(session.projectName)
-                      return (
-                        <button
-                          key={session.id}
-                          type="button"
-                          onClick={() => selectSession(session).catch(console.error)}
-                          className="w-full flex items-start gap-4 px-6 py-4 text-left hover:bg-surface-100 transition-colors"
-                        >
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2 mb-1">
+
+            {/* Session list */}
+            {isLoadingProjects && allSessions.length === 0 ? (
+              <div className="flex items-center justify-center h-40 text-sm text-text-tertiary gap-2">
+                <ArrowPathIcon className="w-4 h-4 animate-spin" />
+                Scanning history…
+              </div>
+            ) : allSessions.length === 0 ? (
+              <div className="flex items-center justify-center h-40 text-sm text-text-tertiary">
+                No history found on this machine.
+              </div>
+            ) : (
+              <div>
+                {groupedSessions.map((group) => (
+                  <div key={group.label} className="mb-1">
+                    <div className="sticky top-0 z-10 py-2 bg-surface-50/95 backdrop-blur-sm">
+                      <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
+                        {group.label}
+                      </span>
+                    </div>
+                    <div>
+                      {group.sessions.map((session) => {
+                        const projectName = getProjectDisplayName(session.projectName)
+                        const date = new Date(session.lastModified)
+                        const isToday = date.toDateString() === new Date().toDateString()
+                        const timeStr = isToday
+                          ? date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+                          : date.toLocaleDateString([], { month: 'short', day: 'numeric' })
+                        return (
+                          <button
+                            key={session.id}
+                            type="button"
+                            onClick={() => selectSession(session).catch(console.error)}
+                            className="w-full flex items-center gap-4 px-3 py-3 -mx-3 rounded-lg text-left hover:bg-surface-100 transition-colors group"
+                          >
+                            <div className="min-w-0 flex-1">
+                              <div className="text-[13px] font-medium text-text-primary truncate">
+                                {session.title}
+                              </div>
+                              <div className="flex items-center gap-0 text-xs text-text-tertiary mt-0.5">
+                                <span className="truncate max-w-[65%]">
+                                  {session.summary && session.summary !== session.title
+                                    ? session.summary
+                                    : `${session.messageCount} messages`}
+                                </span>
+                                <span className="mx-1.5 opacity-40 flex-shrink-0">·</span>
+                                <span className="flex-shrink-0 whitespace-nowrap">{timeStr}</span>
+                                <span className="mx-1.5 opacity-40 flex-shrink-0">·</span>
+                                <span className="flex-shrink-0 whitespace-nowrap tabular-nums">{session.messageCount} msg</span>
+                              </div>
+                            </div>
+                            <div className="flex-shrink-0">
                               <span
-                                className="text-[11px] font-medium px-1.5 py-0.5 rounded"
+                                className="text-[10px] font-medium px-1.5 py-0.5 rounded max-w-[120px] truncate block"
                                 style={{
                                   color: getProjectColor(projectName),
-                                  backgroundColor: 'color-mix(in srgb, currentColor 12%, transparent)'
+                                  backgroundColor: 'color-mix(in srgb, currentColor 10%, transparent)'
                                 }}
                               >
                                 {projectName}
                               </span>
-                              <span className="text-[11px] text-text-tertiary">
-                                {new Date(session.lastModified).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-                              </span>
                             </div>
-                            <div className="text-sm font-medium text-text-primary truncate">{session.title}</div>
-                            {session.summary && session.summary !== session.title && (
-                              <div className="text-xs text-text-tertiary truncate mt-0.5">{session.summary}</div>
-                            )}
-                          </div>
-                          <div className="flex-shrink-0 text-[11px] text-text-tertiary pt-0.5">
-                            {session.messageCount} msg
-                          </div>
-                        </button>
-                      )
-                    })}
+                          </button>
+                        )
+                      })}
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     )
@@ -316,7 +322,7 @@ export function HistoryPanel() {
           <button
             type="button"
             onClick={() => refresh()}
-            className="p-1.5 rounded text-text-tertiary hover:text-text-primary hover:bg-surface-200 transition-colors"
+            className="btn-icon btn-icon-md"
             title="Refresh"
           >
             <ArrowPathIcon className="w-3.5 h-3.5" />

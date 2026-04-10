@@ -113,7 +113,7 @@ export function ExportClaveDialog({
                         }
                       }}
                       placeholder="filename.clave"
-                      className="mt-2 w-full h-8 px-3 rounded-lg bg-surface-100 border border-border-subtle text-xs text-text-primary placeholder:text-text-tertiary outline-none focus:ring-1 focus:ring-accent transition-colors"
+                      className="mt-2 input-compact"
                     />
 
                     {/* Keep synced toggle */}
@@ -144,14 +144,14 @@ export function ExportClaveDialog({
                     <button
                       type="button"
                       onClick={onCancel}
-                      className="flex-1 py-2.5 text-[13px] font-medium text-text-secondary hover:text-text-primary hover:bg-surface-100 transition-colors border-r border-border-subtle"
+                      className="btn-dialog text-text-secondary hover:text-text-primary border-r border-border-subtle"
                     >
                       Cancel
                     </button>
                     <button
                       type="button"
                       onClick={handleExport}
-                      className="flex-1 py-2.5 text-[13px] font-medium text-accent hover:brightness-110 hover:bg-surface-100 transition-colors outline-none"
+                      className="btn-dialog text-accent hover:brightness-110 outline-none"
                     >
                       Export
                     </button>

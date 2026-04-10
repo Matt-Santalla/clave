@@ -210,14 +210,14 @@ export function RemoteDirectoryPicker({
           <div className="flex items-center gap-2">
             <button
               onClick={onCancel}
-              className="h-7 px-3 rounded-lg text-xs text-text-secondary hover:text-text-primary hover:bg-surface-200 transition-colors"
+              className="btn-secondary"
             >
               Cancel
             </button>
             <button
               onClick={() => onSelect(currentPath)}
               disabled={!currentPath}
-              className="h-7 px-4 rounded-lg bg-accent text-white text-xs font-medium hover:bg-accent/90 transition-colors disabled:opacity-50"
+              className="btn-primary"
             >
               Open
             </button>

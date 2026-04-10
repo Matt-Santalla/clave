@@ -13,7 +13,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
   if (isSystem) {
     return (
       <div className="flex justify-center py-2">
-        <span className="text-xs text-text-tertiary bg-surface-100 rounded-full px-3 py-1">
+        <span className="badge bg-surface-100 text-text-tertiary px-3 py-1">
           {message.content}
         </span>
       </div>

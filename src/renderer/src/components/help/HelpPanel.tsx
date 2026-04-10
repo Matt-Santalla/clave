@@ -66,7 +66,7 @@ export function HelpPanel(): ReactNode {
         <div className="flex items-center gap-2 px-3 py-2 border-b border-border-subtle flex-shrink-0">
           <button
             onClick={() => setSelectedDocId(null)}
-            className="p-0.5 rounded hover:bg-surface-200 text-text-secondary hover:text-text-primary transition-colors"
+            className="btn-icon btn-icon-xs"
           >
             <ArrowLeftIcon className="w-4 h-4" />
           </button>

@@ -59,7 +59,7 @@ export function ConfirmDialog({ isOpen, onConfirm, onCancel, title, message, con
                     <button
                       type="button"
                       onClick={onCancel}
-                      className="flex-1 py-2.5 text-[13px] font-medium text-text-secondary hover:text-text-primary hover:bg-surface-100 transition-colors border-r border-border-subtle"
+                      className="btn-dialog text-text-secondary hover:text-text-primary border-r border-border-subtle"
                     >
                       Cancel
                     </button>
@@ -67,7 +67,7 @@ export function ConfirmDialog({ isOpen, onConfirm, onCancel, title, message, con
                       ref={confirmRef}
                       type="button"
                       onClick={onConfirm}
-                      className="flex-1 py-2.5 text-[13px] font-medium text-red-400 hover:text-red-300 hover:bg-surface-100 transition-colors outline-none"
+                      className="btn-dialog text-red-400 hover:text-red-300 outline-none"
                     >
                       {confirmLabel}
                     </button>

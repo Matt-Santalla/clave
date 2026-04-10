@@ -62,7 +62,7 @@ function LocationCard({ location }: { location: Location }) {
         <div className="flex items-center gap-1">
           <button
             onClick={handleConnect}
-            className="p-1.5 rounded-lg hover:bg-surface-200 text-text-tertiary hover:text-text-primary transition-colors"
+            className="btn-icon btn-icon-md"
             title={location.status === 'connected' ? 'Disconnect' : 'Connect'}
           >
             {location.status === 'connected' ? (
@@ -75,7 +75,7 @@ function LocationCard({ location }: { location: Location }) {
           </button>
           <button
             onClick={() => removeLocation(location.id)}
-            className="p-1.5 rounded-lg hover:bg-surface-200 text-text-tertiary hover:text-red-400 transition-colors"
+            className="btn-icon btn-icon-md hover:text-red-400"
             title="Remove location"
           >
             <TrashIcon className="w-4 h-4" />

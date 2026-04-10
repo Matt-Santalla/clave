@@ -470,7 +470,7 @@ export function AppShell() {
             >
               <button
                 onClick={toggleSidebar}
-                className="p-1.5 rounded-lg hover:bg-surface-200 text-text-secondary hover:text-text-primary transition-colors"
+                className="btn-icon btn-icon-md"
                 title={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
               >
                 <Bars3BottomLeftIcon className="w-4 h-4" />
@@ -492,7 +492,7 @@ export function AppShell() {
               {/* File palette button */}
               <button
                 onClick={toggleFilePalette}
-                className="p-1.5 rounded-lg hover:bg-surface-200 text-text-secondary hover:text-text-primary transition-colors"
+                className="btn-icon btn-icon-md"
                 title="Search files (Cmd+P)"
               >
                 <MagnifyingGlassIcon className="w-4 h-4" />

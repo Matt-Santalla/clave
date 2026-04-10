@@ -51,7 +51,7 @@ export function RemoteFileTree({ locationId, cwd }: RemoteFileTreeProps) {
       <div className="flex items-center justify-end px-2 py-1 flex-shrink-0">
         <button
           onClick={refresh}
-          className="p-1 rounded hover:bg-surface-200 text-text-tertiary hover:text-text-primary transition-colors"
+          className="btn-icon btn-icon-sm"
           title="Refresh"
         >
           <ArrowPathIcon className="w-3.5 h-3.5" />

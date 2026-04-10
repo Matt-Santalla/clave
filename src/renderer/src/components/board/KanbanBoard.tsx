@@ -153,12 +153,12 @@ export function TaskQueue() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search tasks by prompt or folder..."
-            className="w-full h-7 pl-8 pr-3 rounded bg-surface-100 border border-border-subtle text-xs text-text-primary placeholder:text-text-tertiary outline-none focus:ring-1 focus:ring-accent/40 focus:border-accent/40 transition-all"
+            className="input-compact pl-8"
           />
         </div>
         <button
           onClick={handleNewTask}
-          className="h-7 px-2.5 rounded text-xs font-medium bg-accent text-white hover:bg-accent/90 transition-colors flex items-center gap-1.5 flex-shrink-0"
+          className="btn-primary flex-shrink-0"
         >
           <PlusIcon className="w-3 h-3" />
           Add Task
@@ -207,7 +207,7 @@ export function TaskQueue() {
                       </span>
                     )}
                     {task.dangerousMode && (
-                      <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-500/10 text-red-400">
+                      <span className="badge flex-shrink-0 bg-red-500/10 text-red-400">
                         skip-perms
                       </span>
                     )}

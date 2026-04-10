@@ -8,7 +8,7 @@ function LocationBadge({ locationId }: { locationId: string }) {
   const location = useLocationStore((s) => s.locations.find((l) => l.id === locationId))
   if (!location || location.type !== 'remote') return null
   return (
-    <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium text-text-tertiary bg-surface-100 truncate max-w-[60px]">
+    <span className="badge flex-shrink-0 bg-surface-100 text-text-tertiary truncate max-w-[60px]">
       {location.name}
     </span>
   )

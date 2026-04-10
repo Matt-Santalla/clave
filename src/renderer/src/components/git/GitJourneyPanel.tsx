@@ -448,7 +448,7 @@ export function GitJourneyPanel() {
           <div className="flex items-center gap-1 flex-shrink-0 ml-2">
             <button
               onClick={refresh}
-              className="p-1 rounded text-text-tertiary hover:text-text-primary hover:bg-surface-200 transition-colors"
+              className="btn-icon btn-icon-sm"
               title="Refresh"
             >
               <ArrowPathIcon className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />

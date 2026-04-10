@@ -103,7 +103,7 @@ export function TerminalHeader({ sessionId }: TerminalHeaderProps) {
               {serverStatus === 'running' && (
                 <button
                   onClick={handleServerStop}
-                  className="p-0.5 rounded text-text-tertiary hover:text-red-400 hover:bg-red-400/10 transition-colors"
+                  className="btn-icon btn-icon-xs hover:text-red-400 hover:bg-red-400/10"
                   title="Stop server (Ctrl+C)"
                 >
                   <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
@@ -120,7 +120,7 @@ export function TerminalHeader({ sessionId }: TerminalHeaderProps) {
             <>
               <button
                 onClick={() => window.electronAPI.saveDiscussion(session.cwd, session.claudeSessionId!, session.name)}
-                className="p-1 rounded hover:bg-surface-300 text-text-tertiary hover:text-text-primary transition-colors"
+                className="btn-icon btn-icon-sm hover:bg-surface-300"
                 title="Save discussion"
               >
                 <ArrowDownTrayIcon className="w-3.5 h-3.5" />
@@ -128,7 +128,7 @@ export function TerminalHeader({ sessionId }: TerminalHeaderProps) {
               {session.planFilePath && (
                 <button
                   onClick={() => window.electronAPI.savePlan(session.cwd, session.claudeSessionId!, session.name)}
-                  className="p-1 rounded hover:bg-surface-300 text-text-tertiary hover:text-text-primary transition-colors"
+                  className="btn-icon btn-icon-sm hover:bg-surface-300"
                   title="Save plan"
                 >
                   <DocumentTextIcon className="w-3.5 h-3.5" />
@@ -138,7 +138,7 @@ export function TerminalHeader({ sessionId }: TerminalHeaderProps) {
           )}
           <button
             onClick={() => setShowConfirm(true)}
-            className="p-1 rounded hover:bg-surface-300 text-text-tertiary hover:text-text-primary transition-colors"
+            className="btn-icon btn-icon-sm hover:bg-surface-300"
             title="Kill session"
           >
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none">

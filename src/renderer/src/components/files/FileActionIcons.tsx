@@ -55,5 +55,4 @@ export function OpenInTabIcon() {
 }
 
 /** Standard button styling for file action icon buttons */
-export const fileActionButtonClass =
-  'p-1 rounded hover:bg-surface-200 text-text-tertiary hover:text-text-primary transition-colors'
+export const fileActionButtonClass = 'btn-icon btn-icon-sm'

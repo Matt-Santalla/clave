@@ -668,7 +668,7 @@ function MultiRepoSection({
             </span>
           )}
           {changeCount > 0 && (
-            <span className="text-[10px] font-medium bg-surface-200 text-text-secondary rounded-full px-1.5 py-0.5 min-w-[18px] text-center">
+            <span className="badge bg-surface-200 text-text-secondary min-w-[18px] text-center">
               {changeCount}
             </span>
           )}
@@ -758,7 +758,7 @@ export function MultiRepoGitPanel({
           <div className="group/sep flex items-center gap-0 px-3 py-1">
             <div className="flex-1 h-px bg-border" />
             <button
-              className="p-0.5 rounded text-text-tertiary opacity-0 group-hover/sep:opacity-100 hover:text-text-primary hover:bg-surface-200 transition-all flex-shrink-0 mx-1"
+              className="btn-icon btn-icon-xs opacity-0 group-hover/sep:opacity-100 transition-opacity flex-shrink-0 mx-1"
               onClick={() => setNestedDocked(true)}
               title="Dock nested repos"
             >
@@ -815,7 +815,7 @@ export function MultiRepoGitPanel({
             </svg>
             <span>{nestedRepos.length} nested repo{nestedRepos.length !== 1 ? 's' : ''}</span>
             {nestedChangeCount > 0 && (
-              <span className="bg-surface-200 text-text-tertiary rounded-full px-1.5 min-w-[16px] text-center text-[9px]">
+              <span className="badge bg-surface-200 text-text-tertiary min-w-[16px] text-center">
                 {nestedChangeCount}
               </span>
             )}

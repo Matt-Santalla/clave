@@ -77,7 +77,7 @@ export function FileRow({
       {dir && <span className="text-text-tertiary truncate text-[10px]">{dir}</span>}
       <div className="ml-auto flex-shrink-0 flex items-center gap-0.5">
         <button
-          className="w-5 h-5 flex items-center justify-center rounded text-text-tertiary opacity-0 group-hover:opacity-100 hover:text-red-400 hover:bg-surface-200 transition-all"
+          className="btn-icon btn-icon-sm w-5 h-5 opacity-0 group-hover:opacity-100 hover:text-red-400 transition-opacity"
           onClick={(e) => {
             e.stopPropagation()
             onDiscard?.()
@@ -87,7 +87,7 @@ export function FileRow({
           <ArrowUturnLeftIcon className="w-3 h-3" />
         </button>
         <button
-          className="w-5 h-5 flex items-center justify-center rounded text-text-tertiary opacity-0 group-hover:opacity-100 hover:text-text-primary hover:bg-surface-200 transition-all"
+          className="btn-icon btn-icon-sm w-5 h-5 opacity-0 group-hover:opacity-100 transition-opacity"
           onClick={(e) => {
             e.stopPropagation()
             onStageToggle?.()
@@ -233,7 +233,7 @@ export function GitTreeFileRow({
       </span>
       <div className="ml-auto flex-shrink-0 flex items-center gap-0.5">
         <button
-          className="w-5 h-5 flex items-center justify-center rounded text-text-tertiary opacity-0 group-hover:opacity-100 hover:text-red-400 hover:bg-surface-200 transition-all"
+          className="btn-icon btn-icon-sm w-5 h-5 opacity-0 group-hover:opacity-100 hover:text-red-400 transition-opacity"
           onClick={(e) => {
             e.stopPropagation()
             onDiscard?.()
@@ -243,7 +243,7 @@ export function GitTreeFileRow({
           <ArrowUturnLeftIcon className="w-3 h-3" />
         </button>
         <button
-          className="w-5 h-5 flex items-center justify-center rounded text-text-tertiary opacity-0 group-hover:opacity-100 hover:text-text-primary hover:bg-surface-200 transition-all"
+          className="btn-icon btn-icon-sm w-5 h-5 opacity-0 group-hover:opacity-100 transition-opacity"
           onClick={(e) => {
             e.stopPropagation()
             onStageToggle?.()

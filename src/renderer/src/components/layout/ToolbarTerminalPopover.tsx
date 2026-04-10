@@ -147,7 +147,7 @@ export function ToolbarTerminalPopover({
             <div className={`w-1.5 h-1.5 rounded-full ${statusColor}`} />
             <button
               onClick={() => handleOpenChange(false)}
-              className="p-0.5 rounded hover:bg-surface-200 transition-colors text-text-secondary"
+              className="btn-icon btn-icon-xs"
             >
               <XMarkIcon className="w-3.5 h-3.5" />
             </button>

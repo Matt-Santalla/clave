@@ -240,7 +240,7 @@ export function GroupCommandDialog({
                       <button
                         type="button"
                         onClick={onDelete}
-                        className="flex-1 py-2.5 text-[13px] font-medium text-red-400 hover:text-red-300 hover:bg-surface-100 transition-colors border-r border-border-subtle"
+                        className="btn-dialog text-red-400 hover:text-red-300 border-r border-border-subtle"
                       >
                         Delete
                       </button>
@@ -248,14 +248,14 @@ export function GroupCommandDialog({
                     <button
                       type="button"
                       onClick={onCancel}
-                      className="flex-1 py-2.5 text-[13px] font-medium text-text-secondary hover:text-text-primary hover:bg-surface-100 transition-colors border-r border-border-subtle"
+                      className="btn-dialog text-text-secondary hover:text-text-primary border-r border-border-subtle"
                     >
                       Cancel
                     </button>
                     <button
                       type="button"
                       onClick={handleSave}
-                      className="flex-1 py-2.5 text-[13px] font-medium text-accent hover:brightness-110 hover:bg-surface-100 transition-colors outline-none"
+                      className="btn-dialog text-accent hover:brightness-110 outline-none"
                     >
                       Save
                     </button>

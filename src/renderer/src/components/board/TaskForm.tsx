@@ -129,12 +129,12 @@ export function TaskForm({ isOpen, onClose, editTask }: TaskFormProps) {
                         value={cwd}
                         readOnly
                         placeholder="Select a folder..."
-                        className="flex-1 h-8 px-3 rounded-lg bg-surface-200 border-none text-sm text-text-primary placeholder:text-text-tertiary outline-none cursor-default truncate"
+                        className="input-field flex-1 bg-surface-200 border-none cursor-default truncate"
                       />
                       <button
                         type="button"
                         onClick={handlePickFolder}
-                        className="h-8 px-3 rounded-lg bg-surface-200 hover:bg-surface-300 text-text-secondary hover:text-text-primary text-xs font-medium transition-colors flex-shrink-0"
+                        className="btn-secondary h-8 bg-surface-200 hover:bg-surface-300 flex-shrink-0"
                       >
                         Browse
                       </button>
@@ -163,7 +163,7 @@ export function TaskForm({ isOpen, onClose, editTask }: TaskFormProps) {
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
                       placeholder="Short label for the task"
-                      className="w-full h-8 px-3 rounded-lg bg-surface-200 border-none text-sm text-text-primary placeholder:text-text-tertiary outline-none focus:ring-1 focus:ring-border transition-colors"
+                      className="input-field bg-surface-200 border-none"
                     />
                   </div>
                 </div>
@@ -176,14 +176,14 @@ export function TaskForm({ isOpen, onClose, editTask }: TaskFormProps) {
                     <button
                       type="button"
                       onClick={onClose}
-                      className="h-7 px-3 rounded-lg text-xs text-text-secondary hover:text-text-primary hover:bg-surface-200 transition-colors"
+                      className="btn-secondary"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
                       disabled={!prompt.trim() || !cwd.trim()}
-                      className="h-7 px-4 rounded-lg text-xs font-medium bg-accent text-white hover:bg-accent/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                      className="btn-primary"
                     >
                       {editTask ? 'Save' : 'Create'}
                     </button>
