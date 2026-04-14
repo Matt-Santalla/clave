@@ -6,6 +6,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions use [Se
 
 ## [Unreleased]
 
+## [1.33.0] — 2026-04-14
+
+### Changed
+- Daily Log redesigned for at-a-glance readability: 7-day week strip with heatmap intensity, stat cards for time/sessions/projects, and a timeline view of entries coloured by project
+- Entry cards get a unified card layout with clearer hierarchy — project chip, entry name, time range, and parsed summary with bullets
+- New Timeline / By project toggle lets you switch between a flat chronological feed and the project-grouped view
+
 ## [1.32.6] — 2026-04-13
 
 ### Added
