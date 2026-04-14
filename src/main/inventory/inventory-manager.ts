@@ -29,13 +29,13 @@ class InventoryManager {
     const warnings: string[] = []
     const results = await Promise.allSettled([
       scanClaudeMd(cwd),
-      scanSkills(),
-      scanPlugins(),
+      scanSkills(cwd),
+      scanPlugins(cwd),
       scanMcp(cwd),
       scanHooks(cwd),
       scanMemory(cwd),
-      scanCommands(),
-      scanAgents()
+      scanCommands(cwd),
+      scanAgents(cwd)
     ])
 
     const entries: InventoryEntry[] = []

@@ -6,6 +6,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions use [Se
 
 ## [Unreleased]
 
+## [1.34.2] — 2026-04-14
+
+### Fixed
+- Context Inventory no longer shows the same plugin, skill, or command multiple times — it now reads the active install list from `~/.claude/plugins/installed_plugins.json` instead of walking every cached version on disk, and honours `enabledPlugins` plus local-scope `projectPath` so only plugins Claude Code would actually load for the current session are counted
+
 ## [1.34.1] — 2026-04-14
 
 ### Fixed

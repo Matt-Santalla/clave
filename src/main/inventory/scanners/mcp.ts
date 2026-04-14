@@ -47,7 +47,7 @@ export async function scanMcp(cwd: string): Promise<InventoryEntry[]> {
   if (userSettings) addServersFromJson(userSettings, userSettingsPath, 'user', undefined, out)
 
   // Plugin .mcp.json files
-  await forEachPluginRoot(async (pluginRoot, pluginName) => {
+  await forEachPluginRoot(cwd, async (pluginRoot, pluginName) => {
     const mcpFile = path.join(pluginRoot, '.mcp.json')
     const parsed = await readJson(mcpFile)
     if (parsed) addServersFromJson(parsed, mcpFile, 'plugin', pluginName, out)

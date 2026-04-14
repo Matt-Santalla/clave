@@ -57,26 +57,81 @@ export async function walkUpFromCwd(
   }
 }
 
+interface InstalledPluginEntry {
+  scope?: string
+  projectPath?: string
+  installPath?: string
+}
+
+interface InstalledPluginsFile {
+  plugins?: Record<string, InstalledPluginEntry[]>
+}
+
+interface SettingsFile {
+  enabledPlugins?: Record<string, boolean>
+}
+
+function isWithin(child: string, parent: string): boolean {
+  if (child === parent) return true
+  return child.startsWith(parent + path.sep)
+}
+
 /**
- * Iterates all installed plugin roots under `~/.claude/plugins/cache`.
- * Each plugin is typically versioned: `cache/<marketplace>/<plugin>/<version>`,
- * but we also fall back to `cache/<marketplace>/<plugin>` when no version
- * subdirectories exist.
+ * Returns the single active install path for every plugin Claude Code would
+ * load for a session at `cwd`. Reads:
+ *
+ *   - `~/.claude/plugins/installed_plugins.json` — which install path is the
+ *     active version per plugin (other versions on disk are rollback cache).
+ *   - `~/.claude/settings.json` → `enabledPlugins` — which plugins are toggled on.
+ *
+ * Filters local-scoped plugins to those whose `projectPath` contains `cwd`.
+ * Falls back to an empty list when `installed_plugins.json` is missing or
+ * malformed — we'd rather under-report than dedupe incorrectly.
+ */
+async function getActivePlugins(
+  cwd: string
+): Promise<Array<{ pluginRoot: string; pluginName: string }>> {
+  const home = os.homedir()
+  const installed = (await readJson(
+    path.join(home, '.claude', 'plugins', 'installed_plugins.json')
+  )) as InstalledPluginsFile | null
+  if (!installed?.plugins) return []
+
+  const settings = (await readJson(
+    path.join(home, '.claude', 'settings.json')
+  )) as SettingsFile | null
+  const enabled = settings?.enabledPlugins ?? {}
+
+  const resolvedCwd = path.resolve(cwd)
+  const out: Array<{ pluginRoot: string; pluginName: string }> = []
+
+  for (const [key, entries] of Object.entries(installed.plugins)) {
+    if (enabled[key] === false) continue
+    const at = key.lastIndexOf('@')
+    const pluginName = at > 0 ? key.slice(0, at) : key
+    for (const entry of entries ?? []) {
+      if (!entry?.installPath) continue
+      if (entry.scope === 'local') {
+        if (!entry.projectPath) continue
+        if (!isWithin(resolvedCwd, path.resolve(entry.projectPath))) continue
+      }
+      out.push({ pluginRoot: entry.installPath, pluginName })
+    }
+  }
+  return out
+}
+
+/**
+ * Iterates every plugin Claude Code actually loads for this session. Each
+ * plugin is visited exactly once — no multi-version duplication, no
+ * out-of-scope local plugins, no disabled plugins.
  */
 export async function forEachPluginRoot(
+  cwd: string,
   visit: (pluginRoot: string, pluginName: string) => Promise<void>
 ): Promise<void> {
-  const pluginCache = path.join(os.homedir(), '.claude', 'plugins', 'cache')
-  const marketplaces = await listDirs(pluginCache)
-  for (const marketplace of marketplaces) {
-    const plugins = await listDirs(marketplace)
-    for (const plugin of plugins) {
-      const versions = await listDirs(plugin)
-      const pluginRoots = versions.length > 0 ? versions : [plugin]
-      const pluginName = path.basename(plugin)
-      for (const pluginRoot of pluginRoots) {
-        await visit(pluginRoot, pluginName)
-      }
-    }
+  const plugins = await getActivePlugins(cwd)
+  for (const p of plugins) {
+    await visit(p.pluginRoot, p.pluginName)
   }
 }

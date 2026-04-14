@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback } from 'react'
 import { PlusIcon, FolderIcon } from '@heroicons/react/24/outline'
 import { useBoardStore } from '../../store/board-store'
 import { useSessionStore } from '../../store/session-store'

@@ -48,12 +48,12 @@ async function scanCommandsDir(
   return out
 }
 
-export async function scanCommands(): Promise<InventoryEntry[]> {
+export async function scanCommands(cwd: string): Promise<InventoryEntry[]> {
   const home = os.homedir()
   const out: InventoryEntry[] = []
   out.push(...(await scanCommandsDir(path.join(home, '.claude', 'commands'), 'user', undefined)))
 
-  await forEachPluginRoot(async (pluginRoot, pluginName) => {
+  await forEachPluginRoot(cwd, async (pluginRoot, pluginName) => {
     out.push(...(await scanCommandsDir(path.join(pluginRoot, 'commands'), 'plugin', pluginName)))
   })
 

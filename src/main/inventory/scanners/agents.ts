@@ -42,12 +42,12 @@ async function scanAgentsDir(
   return out
 }
 
-export async function scanAgents(): Promise<InventoryEntry[]> {
+export async function scanAgents(cwd: string): Promise<InventoryEntry[]> {
   const home = os.homedir()
   const out: InventoryEntry[] = []
   out.push(...(await scanAgentsDir(path.join(home, '.claude', 'agents'), 'user', undefined)))
 
-  await forEachPluginRoot(async (pluginRoot, pluginName) => {
+  await forEachPluginRoot(cwd, async (pluginRoot, pluginName) => {
     out.push(...(await scanAgentsDir(path.join(pluginRoot, 'agents'), 'plugin', pluginName)))
   })
 

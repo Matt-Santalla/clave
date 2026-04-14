@@ -11,7 +11,7 @@ import { useBoardStore } from '../../store/board-store'
 import { useHistoryStore, type HistorySession } from '../../store/history-store'
 import { useAssistantStore } from '../../store/assistant-store'
 import { cn } from '../../lib/utils'
-import { filterMetaSessions, isMetaSession } from '../../lib/history-utils'
+import { filterMetaSessions } from '../../lib/history-utils'
 import { parseSummary } from '../../lib/journal-utils'
 
 export function SectionHeading({

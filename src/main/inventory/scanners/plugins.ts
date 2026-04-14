@@ -5,10 +5,10 @@ import { estimateTokens } from '../token-estimator'
 import { forEachPluginRoot } from '../scan-utils'
 import type { InventoryEntry } from '../../../shared/inventory-types'
 
-export async function scanPlugins(): Promise<InventoryEntry[]> {
+export async function scanPlugins(cwd: string): Promise<InventoryEntry[]> {
   const out: InventoryEntry[] = []
 
-  await forEachPluginRoot(async (pluginRoot, pluginDirName) => {
+  await forEachPluginRoot(cwd, async (pluginRoot, pluginDirName) => {
     const manifestPath = path.join(pluginRoot, '.claude-plugin', 'plugin.json')
     const content = await contentCache.readIfChanged(manifestPath)
     if (!content) return

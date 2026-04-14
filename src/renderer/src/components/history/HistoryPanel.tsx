@@ -11,12 +11,6 @@ import {
   groupSessionsByDate
 } from '../../lib/history-utils'
 
-function formatTimestamp(value: string): string {
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return 'Unknown time'
-  return date.toLocaleString()
-}
-
 function highlightText(content: string, needle: string): ReactNode {
   if (!needle.trim()) return <>{content}</>
 

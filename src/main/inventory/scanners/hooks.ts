@@ -53,7 +53,7 @@ export async function scanHooks(cwd: string): Promise<InventoryEntry[]> {
     if (parsed) extractHookEntries(parsed, projectSettings, 'project', undefined, out)
   })
 
-  await forEachPluginRoot(async (pluginRoot, pluginName) => {
+  await forEachPluginRoot(cwd, async (pluginRoot, pluginName) => {
     const hooksFile = path.join(pluginRoot, 'hooks', 'hooks.json')
     const parsed = await readJson(hooksFile)
     if (parsed) extractHookEntries(parsed, hooksFile, 'plugin', pluginName, out)

@@ -36,12 +36,12 @@ async function scanSkillsDir(
   return out
 }
 
-export async function scanSkills(): Promise<InventoryEntry[]> {
+export async function scanSkills(cwd: string): Promise<InventoryEntry[]> {
   const home = os.homedir()
   const entries: InventoryEntry[] = []
   entries.push(...(await scanSkillsDir(path.join(home, '.claude', 'skills'), 'user')))
 
-  await forEachPluginRoot(async (pluginRoot, pluginName) => {
+  await forEachPluginRoot(cwd, async (pluginRoot, pluginName) => {
     const skillsDir = path.join(pluginRoot, 'skills')
     entries.push(...(await scanSkillsDir(skillsDir, 'plugin', pluginName)))
   })
