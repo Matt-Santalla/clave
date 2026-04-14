@@ -1,11 +1,18 @@
 import { useCallback, useMemo, useState } from 'react'
-import { ChevronRightIcon, CheckCircleIcon, ClockIcon, QueueListIcon, SparklesIcon } from '@heroicons/react/24/outline'
+import {
+  ChevronRightIcon,
+  CheckCircleIcon,
+  ClockIcon,
+  QueueListIcon,
+  SparklesIcon
+} from '@heroicons/react/24/outline'
 import { useSessionStore } from '../../store/session-store'
 import { useBoardStore } from '../../store/board-store'
 import { useHistoryStore, type HistorySession } from '../../store/history-store'
 import { useAssistantStore } from '../../store/assistant-store'
 import { cn } from '../../lib/utils'
 import { filterMetaSessions, isMetaSession } from '../../lib/history-utils'
+import { parseSummary } from '../../lib/journal-utils'
 
 export function SectionHeading({
   title,
@@ -43,7 +50,11 @@ export function TaskQueueSection({ collapsed }: { collapsed: boolean }) {
   return (
     <div
       className="grid transition-[grid-template-rows,opacity,transform] duration-250 ease-out flex-shrink-0"
-      style={{ gridTemplateRows: collapsed ? '0fr' : '1fr', opacity: collapsed ? 0 : 1, transform: collapsed ? 'translateY(-4px)' : 'translateY(0)' }}
+      style={{
+        gridTemplateRows: collapsed ? '0fr' : '1fr',
+        opacity: collapsed ? 0 : 1,
+        transform: collapsed ? 'translateY(-4px)' : 'translateY(0)'
+      }}
     >
       <div className="overflow-hidden">
         <div className="px-2 pb-1">
@@ -94,7 +105,9 @@ export function TaskQueueSection({ collapsed }: { collapsed: boolean }) {
                     <div className="absolute left-0 top-1/2 w-2.5 h-px bg-border-subtle" />
                     <span className="text-[12px] text-text-secondary truncate">{label}</span>
                     {task.dangerousMode && (
-                      <span className="flex-shrink-0 text-[9px] text-red-400 font-medium">skip</span>
+                      <span className="flex-shrink-0 text-[9px] text-red-400 font-medium">
+                        skip
+                      </span>
                     )}
                   </button>
                 )
@@ -159,7 +172,11 @@ export function HistorySection({ collapsed }: { collapsed: boolean }) {
   return (
     <div
       className="grid transition-[grid-template-rows,opacity,transform] duration-250 ease-out flex-shrink-0"
-      style={{ gridTemplateRows: collapsed ? '0fr' : '1fr', opacity: collapsed ? 0 : 1, transform: collapsed ? 'translateY(-4px)' : 'translateY(0)' }}
+      style={{
+        gridTemplateRows: collapsed ? '0fr' : '1fr',
+        opacity: collapsed ? 0 : 1,
+        transform: collapsed ? 'translateY(-4px)' : 'translateY(0)'
+      }}
     >
       <div className="overflow-hidden">
         <div className="px-2 pb-1">
@@ -262,7 +279,11 @@ export function JournalSection({ collapsed }: { collapsed: boolean }) {
   return (
     <div
       className="grid transition-[grid-template-rows,opacity,transform] duration-250 ease-out flex-shrink-0"
-      style={{ gridTemplateRows: collapsed ? '0fr' : '1fr', opacity: collapsed ? 0 : 1, transform: collapsed ? 'translateY(-4px)' : 'translateY(0)' }}
+      style={{
+        gridTemplateRows: collapsed ? '0fr' : '1fr',
+        opacity: collapsed ? 0 : 1,
+        transform: collapsed ? 'translateY(-4px)' : 'translateY(0)'
+      }}
     >
       <div className="overflow-hidden">
         <div className="px-2 pb-1">
@@ -299,11 +320,7 @@ export function JournalSection({ collapsed }: { collapsed: boolean }) {
             <div className="relative ml-[18px] mt-0.5">
               <div className="absolute left-0 top-0 bottom-0 w-px bg-border-subtle" />
               {recentEntries.map((entry) => {
-                // Extract the first non-bullet line as headline
-                const summaryClean = entry.summary?.replace(/<[^>]*>/g, '').trim()
-                const headline = summaryClean
-                  ? summaryClean.split('\n').map((l) => l.trim()).find((l) => l && !/^[-•*]\s/.test(l))
-                  : undefined
+                const { headline } = parseSummary(entry.summary)
                 const label = headline || entry.sessionName
                 const isActive = entry.status === 'active'
                 return (

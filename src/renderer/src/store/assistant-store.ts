@@ -2,6 +2,11 @@
 import { create } from 'zustand'
 import type { JournalEntry, JournalData as JournalDay } from '../../../shared/journal-types'
 
+export interface DaySummary {
+  count: number
+  minutes: number
+}
+
 interface AssistantState {
   journal: JournalDay
   loaded: boolean
@@ -13,6 +18,11 @@ interface AssistantState {
   archivedJournal: JournalDay | null
   availableArchiveDates: string[]
 
+  // Summaries for the last 6 past days keyed by YYYY-MM-DD. Today is not
+  // cached here — compute it from `journal` at render time so the week strip
+  // reflects live additions without a reload.
+  weekSummaries: Record<string, DaySummary>
+
   // Actions
   loadJournal: () => Promise<void>
   setEnabled: (enabled: boolean) => void
@@ -23,8 +33,35 @@ interface AssistantState {
   updateEntryName: (sessionId: string, name: string) => void
   removeActiveEntry: (sessionId: string) => void
   loadArchiveDates: () => Promise<void>
+  loadWeekSummaries: () => Promise<void>
   navigateDay: (direction: 'prev' | 'next') => Promise<void>
+  jumpToDate: (date: string) => Promise<void>
   goToToday: () => void
+}
+
+function summarizeJournal(day: JournalDay): DaySummary {
+  let count = 0
+  let minutes = 0
+  for (const project of day.projects) {
+    count += project.entries.length
+    for (const entry of project.entries) {
+      if (entry.endTime && entry.startTime) {
+        minutes += Math.max(0, Math.round((entry.endTime - entry.startTime) / 60000))
+      }
+    }
+  }
+  return { count, minutes }
+}
+
+function pastDatesEndingYesterday(todayStr: string, days: number): string[] {
+  const out: string[] = []
+  const base = new Date(todayStr + 'T12:00:00')
+  for (let i = days; i >= 1; i--) {
+    const d = new Date(base)
+    d.setDate(d.getDate() - i)
+    out.push(d.toISOString().slice(0, 10))
+  }
+  return out
 }
 
 function getTodayString(): string {
@@ -52,6 +89,7 @@ export const useAssistantStore = create<AssistantState>((set, get) => ({
   viewingDate: null,
   archivedJournal: null,
   availableArchiveDates: [],
+  weekSummaries: {},
 
   setEnabled: (enabled) => {
     localStorage.setItem('clave-ai-assistant-enabled', String(enabled))
@@ -193,6 +231,41 @@ export const useAssistantStore = create<AssistantState>((set, get) => ({
     if (!window.electronAPI?.journalListArchives) return
     const dates = await window.electronAPI.journalListArchives()
     set({ availableArchiveDates: dates })
+  },
+
+  loadWeekSummaries: async () => {
+    if (!window.electronAPI?.journalLoadArchive) return
+    const today = getTodayString()
+    const dates = pastDatesEndingYesterday(today, 6)
+    const results = await Promise.all(
+      dates.map(async (date) => {
+        try {
+          const data = await window.electronAPI.journalLoadArchive(date)
+          return [date, data ? summarizeJournal(data) : { count: 0, minutes: 0 }] as const
+        } catch {
+          return [date, { count: 0, minutes: 0 }] as const
+        }
+      })
+    )
+    const summaries: Record<string, DaySummary> = {}
+    for (const [date, summary] of results) summaries[date] = summary
+    set({ weekSummaries: summaries })
+  },
+
+  jumpToDate: async (date) => {
+    const today = getTodayString()
+    if (date === today) {
+      set({ viewingDate: null, archivedJournal: null })
+      return
+    }
+    if (!window.electronAPI?.journalLoadArchive) return
+    const archived = await window.electronAPI.journalLoadArchive(date)
+    // Even if the archive returns null (no entries for that day), switch the
+    // view so the user lands on the requested date with an empty state.
+    set({
+      viewingDate: date,
+      archivedJournal: archived ?? { date, projects: [] }
+    })
   },
 
   navigateDay: async (direction) => {
