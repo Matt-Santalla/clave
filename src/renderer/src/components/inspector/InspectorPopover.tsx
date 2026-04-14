@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Popover, PopoverTrigger, PopoverContent } from '../ui/popover'
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '../ui/tooltip'
 import { ArrowPathIcon, XMarkIcon, InformationCircleIcon } from '@heroicons/react/24/outline'
@@ -35,6 +35,7 @@ export function InspectorPopover({ open, onOpenChange, cwd, model, children }: I
   const storeLoading = useInventoryStore((s) => s.loading[key] ?? false)
   const [refreshing, setRefreshing] = useState(false)
   const loading = storeLoading || refreshing
+  const contentRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (open) fetch(cwd, model)
@@ -88,7 +89,18 @@ export function InspectorPopover({ open, onOpenChange, cwd, model, children }: I
         sideOffset={8}
         className="w-[420px] max-h-[500px] flex flex-col"
         onOpenAutoFocus={(e) => e.preventDefault()}
+        // xterm.js re-focuses its hidden textarea whenever the terminal is "active".
+        // That fires Radix's FocusOutside detector, which would close the popover on
+        // any click inside (focus briefly moves to popover, xterm snatches it back).
+        // Guard against that by refusing to close on focus-based outside events —
+        // pointer-based outside clicks still close normally via PointerDownOutside.
+        onFocusOutside={(e) => e.preventDefault()}
+        onInteractOutside={(e) => {
+          const target = e.detail.originalEvent.target as Node | null
+          if (target && contentRef.current?.contains(target)) e.preventDefault()
+        }}
       >
+        <div ref={contentRef} className="contents">
         <div className="flex items-center justify-between px-3 py-2 border-b border-border-subtle">
           <div className="flex flex-col">
             <span className="text-xs font-semibold text-text-primary">Context Inventory</span>
@@ -191,6 +203,7 @@ export function InspectorPopover({ open, onOpenChange, cwd, model, children }: I
               {report.warnings.join(' · ')}
             </div>
           ) : null}
+        </div>
         </div>
       </PopoverContent>
     </Popover>
