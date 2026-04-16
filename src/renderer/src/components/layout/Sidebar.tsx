@@ -40,7 +40,9 @@ import {
   XMarkIcon,
   DocumentDuplicateIcon,
   BookmarkIcon,
-  ArrowDownTrayIcon
+  ArrowDownTrayIcon,
+  PlayIcon,
+  ShieldExclamationIcon
 } from '@heroicons/react/24/outline'
 
 interface ContextMenuState {
@@ -689,6 +691,40 @@ export function Sidebar() {
     [addSession]
   )
 
+  const handleResumeSession = useCallback(
+    async (sessionId: string, dangerousMode: boolean) => {
+      const state = useSessionStore.getState()
+      const session = state.sessions.find((s) => s.id === sessionId)
+      if (!session || !session.claudeSessionId) return
+
+      try {
+        const sessionInfo = await window.electronAPI.spawnSession(session.cwd, {
+          claudeMode: true,
+          dangerousMode,
+          resumeSessionId: session.claudeSessionId
+        })
+        addSession({
+          id: sessionInfo.id,
+          cwd: sessionInfo.cwd,
+          folderName: sessionInfo.folderName,
+          name: session.name || sessionInfo.folderName,
+          alive: sessionInfo.alive,
+          activityStatus: 'idle',
+          promptWaiting: null,
+          claudeMode: true,
+          dangerousMode,
+          claudeSessionId: sessionInfo.claudeSessionId,
+          sessionType: 'local'
+        })
+        useSessionStore.getState().selectSession(sessionInfo.id, false)
+        useSessionStore.getState().setFocusedSession(sessionInfo.id)
+      } catch (err) {
+        console.error('Failed to resume session:', err)
+      }
+    },
+    [addSession]
+  )
+
   const handleSessionContextMenu = useCallback(
     (e: React.MouseEvent, sessionId: string) => {
       e.preventDefault()
@@ -731,6 +767,20 @@ export function Sidebar() {
           onClick: () => handleDuplicateSession(sessionId)
         }
       ]
+      if (session && !session.alive && session.claudeMode && session.claudeSessionId) {
+        items.push(
+          {
+            label: 'Resume',
+            icon: <PlayIcon className="w-3.5 h-3.5" />,
+            onClick: () => handleResumeSession(sessionId, false)
+          },
+          {
+            label: 'Resume (skip permissions)',
+            icon: <ShieldExclamationIcon className="w-3.5 h-3.5" />,
+            onClick: () => handleResumeSession(sessionId, true)
+          }
+        )
+      }
       const state = useSessionStore.getState()
       if (state.selectedSessionIds.length >= 1) {
         items.push({
@@ -748,7 +798,7 @@ export function Sidebar() {
       })
       setContextMenu({ x: e.clientX, y: e.clientY, items })
     },
-    [sessions, createGroup, handleDeleteSession, handleDuplicateSession, hideAgentSession]
+    [sessions, createGroup, handleDeleteSession, handleDuplicateSession, handleResumeSession, hideAgentSession]
   )
 
   const handleGroupContextMenu = useCallback(

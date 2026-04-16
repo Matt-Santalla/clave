@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { ArrowPathIcon, PlayIcon } from '@heroicons/react/24/outline'
+import { ArrowPathIcon, PlayIcon, ShieldExclamationIcon } from '@heroicons/react/24/outline'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem
+} from '../ui/dropdown-menu'
 import { cn } from '../../lib/utils'
 import { MarkdownRenderer } from '../files/MarkdownRenderer'
 import { useHistoryStore } from '../../store/history-store'
@@ -169,11 +175,14 @@ export function HistoryPanel() {
     }
   }, [targetMessageId, clearTargetMessage, messages])
 
-  const restoreSession = async () => {
+  const [resumeMenuOpen, setResumeMenuOpen] = useState(false)
+
+  const restoreSession = async (dangerousMode: boolean = false) => {
     if (!selectedSession) return
     try {
       const sessionInfo = await window.electronAPI.spawnSession(selectedSession.cwd, {
         claudeMode: true,
+        dangerousMode,
         resumeSessionId: selectedSession.sessionId
       })
       addSession({
@@ -185,7 +194,7 @@ export function HistoryPanel() {
         activityStatus: 'idle',
         promptWaiting: null,
         claudeMode: true,
-        dangerousMode: false,
+        dangerousMode,
         claudeSessionId: sessionInfo.claudeSessionId,
         sessionType: 'local'
       })
@@ -340,14 +349,24 @@ export function HistoryPanel() {
           >
             <ArrowPathIcon className="w-3.5 h-3.5" />
           </button>
-          <button
-            type="button"
-            onClick={restoreSession}
-            className="btn-primary"
-          >
-            <PlayIcon className="w-3 h-3" />
-            Resume
-          </button>
+          <DropdownMenu open={resumeMenuOpen} onOpenChange={setResumeMenuOpen}>
+            <DropdownMenuTrigger asChild>
+              <button type="button" className="btn-primary">
+                <PlayIcon className="w-3 h-3" />
+                Resume
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent animated open={resumeMenuOpen} align="end">
+              <DropdownMenuItem onSelect={() => restoreSession(false)}>
+                <PlayIcon className="w-3.5 h-3.5 flex-shrink-0 text-text-tertiary" />
+                <span className="flex-1">Resume</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => restoreSession(true)}>
+                <ShieldExclamationIcon className="w-3.5 h-3.5 flex-shrink-0 text-text-tertiary" />
+                <span className="flex-1">Resume (skip permissions)</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
