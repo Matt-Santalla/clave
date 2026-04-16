@@ -113,12 +113,12 @@ export function SidebarTabItem({
           : undefined
         }
         onMouseEnter={(e) => {
-          if (groupColorHex && !isSelected && !groupSelected) {
+          if (groupColorHex && !isSelected) {
             e.currentTarget.style.backgroundColor = `${groupColorHex}18`
           }
         }}
         onMouseLeave={(e) => {
-          if (groupColorHex && !isSelected && !groupSelected) {
+          if (groupColorHex && !isSelected) {
             e.currentTarget.style.backgroundColor = ''
           }
         }}
