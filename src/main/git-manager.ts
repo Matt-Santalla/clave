@@ -451,30 +451,7 @@ ${diff}`
     delete env.CLAUDECODE
 
     console.log('[git] Spawning claude CLI for commit message generation...')
-    return new Promise<string>((resolve, reject) => {
-      const child = execFile('claude', ['-p', '--model', 'haiku'], {
-        env,
-        encoding: 'utf-8',
-        maxBuffer: 1024 * 1024,
-        timeout: 30000
-      }, (err, stdout, stderr) => {
-        if (err) {
-          console.error('[git] claude CLI error:', err.message, stderr)
-          reject(new Error(stderr || err.message))
-          return
-        }
-        const message = stdout.trim()
-        if (!message) {
-          console.error('[git] claude CLI returned empty output')
-          reject(new Error('Empty response from Claude'))
-          return
-        }
-        console.log('[git] Generated commit message:', message.slice(0, 80))
-        resolve(message)
-      })
-      child.stdin?.write(prompt)
-      child.stdin?.end()
-    })
+    return runClaudePrompt(prompt, env, '[git]')
   }
 
   async magicSync(
@@ -714,25 +691,11 @@ No quotes, no markdown, no extra formatting. Just two lines of plain text.`
     const env = { ...getLoginShellEnv() }
     delete env.CLAUDECODE
 
-    return new Promise<{ title: string; description: string }>((resolve, reject) => {
-      const child = execFile('claude', ['-p', '--model', 'haiku'], {
-        env,
-        encoding: 'utf-8',
-        maxBuffer: 1024 * 1024,
-        timeout: 30000
-      }, (err, stdout, stderr) => {
-        if (err) {
-          reject(new Error(stderr || err.message))
-          return
-        }
-        const lines = stdout.trim().split('\n').filter(Boolean)
-        const title = lines[0] || 'Changes'
-        const description = lines.slice(1).join(' ').trim() || ''
-        resolve({ title, description })
-      })
-      child.stdin?.write(prompt)
-      child.stdin?.end()
-    })
+    const stdout = await runClaudePrompt(prompt, env, '[git:group-summary]')
+    const lines = stdout.split('\n').filter(Boolean)
+    const title = lines[0] || 'Changes'
+    const description = lines.slice(1).join(' ').trim() || ''
+    return { title, description }
   }
 
   async getStatus(cwd: string): Promise<GitStatusResult> {
@@ -764,3 +727,59 @@ No quotes, no markdown, no extra formatting. Just two lines of plain text.`
 }
 
 export const gitManager = new GitManager()
+
+function runClaudeOnce(
+  prompt: string,
+  env: Record<string, string>,
+  logPrefix: string
+): Promise<string> {
+  return new Promise<string>((resolve, reject) => {
+    const child = execFile(
+      'claude',
+      ['-p', '--model', 'haiku', '--fallback-model', 'sonnet'],
+      {
+        env,
+        encoding: 'utf-8',
+        maxBuffer: 1024 * 1024,
+        timeout: 60000
+      },
+      (err, stdout, stderr) => {
+        if (err) {
+          const parts = [err.message, stderr?.trim()].filter(Boolean)
+          const detail = parts.join(' — ') || 'unknown error'
+          console.error(`${logPrefix} claude CLI error:`, detail)
+          reject(new Error(detail))
+          return
+        }
+        const out = stdout.trim()
+        if (!out) {
+          reject(new Error('Empty response from Claude'))
+          return
+        }
+        resolve(out)
+      }
+    )
+    // Swallow stdin EPIPE — if claude exits before we finish writing, the
+    // callback above will report the real error. An unhandled 'error' on
+    // stdin would crash the main process.
+    child.stdin?.on('error', (e) => {
+      console.warn(`${logPrefix} stdin error (ignored):`, (e as Error).message)
+    })
+    child.stdin?.write(prompt)
+    child.stdin?.end()
+  })
+}
+
+async function runClaudePrompt(
+  prompt: string,
+  env: Record<string, string>,
+  logPrefix: string
+): Promise<string> {
+  try {
+    return await runClaudeOnce(prompt, env, logPrefix)
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.warn(`${logPrefix} first attempt failed, retrying once:`, msg)
+    return runClaudeOnce(prompt, env, logPrefix)
+  }
+}
