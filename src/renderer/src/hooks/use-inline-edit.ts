@@ -90,6 +90,9 @@ export function useInlineEdit({
       if (e.key === 'Enter' && !editing) {
         e.preventDefault()
         startEditing()
+      } else if (e.ctrlKey && !e.metaKey && !e.altKey && e.key.toLowerCase() === 'r' && !editing) {
+        e.preventDefault()
+        startEditing()
       }
     },
     [editing, startEditing]
