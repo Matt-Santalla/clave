@@ -26,13 +26,34 @@ Auto-updates are built in — once installed, new versions download silently in 
 
 ## Agent plugin
 
-Clave ships a companion agent plugin ([`codika-io/clave-plugin`](https://github.com/codika-io/clave-plugin)) that lets any Claude Code / Cursor / Open-Plugin-compatible agent generate `.clave` workspace files for you.
+Clave ships a companion agent plugin ([`codika-io/clave-plugin`](https://github.com/codika-io/clave-plugin)) that lets any Claude Code, Cursor, or other [Open-Plugin-compatible](https://github.com/vercel-labs/open-plugin-spec) coding agent generate `.clave` workspace files for you.
+
+**Install (any Open-Plugin-compatible host — auto-detects Claude Code, Cursor, …):**
 
 ```bash
 npx plugins add codika-io/clave-plugin
 ```
 
-Then ask your agent something like *"create a clave workspace for this repo with 3 sessions"* and it writes the `.clave` file for you to open in Clave.
+**Claude Code native alternative:**
+
+```
+/plugin marketplace add codika-io/clave-plugin
+/plugin install clave@clave-plugin
+```
+
+Both paths produce the same `/clave:create-workspace` skill.
+
+**Usage:** ask your agent something like *"create a clave workspace for this repo with 3 sessions"*. It writes a valid `.clave` file to your chosen path; open it in Clave.
+
+**Updating:**
+
+```bash
+npx plugins add codika-io/clave-plugin   # re-run to pull latest
+```
+
+(Or `/plugin update clave@clave-plugin` in Claude Code native.)
+
+**Uninstalling:** `/plugin uninstall clave@clave-plugin` in Claude Code, or the equivalent in your host.
 
 ## Features
 
