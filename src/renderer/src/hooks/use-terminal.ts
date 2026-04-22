@@ -437,6 +437,21 @@ export function useTerminal(sessionId: string) {
     if (terminalRef.current) {
       terminalRef.current.options.cursorBlink = isVisibleRef.current
     }
+    let pendingFitTimer: ReturnType<typeof setTimeout> | null = null
+    const scheduleFit = () => {
+      // ResizeObserver can miss grid-template-columns reflows when siblings
+      // toggle display. Double rAF + delayed fallback covers both the fast
+      // path (layout settles in one frame) and slow path (deferred commit).
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          try { fitAddonRef.current?.fit() } catch { /* ignore */ }
+        })
+      })
+      if (pendingFitTimer) clearTimeout(pendingFitTimer)
+      pendingFitTimer = setTimeout(() => {
+        try { fitAddonRef.current?.fit() } catch { /* ignore */ }
+      }, 150)
+    }
     const unsub = useSessionStore.subscribe((state, prevState) => {
       if (state.selectedSessionIds === prevState.selectedSessionIds) return
       const visible = state.selectedSessionIds.includes(sessionId)
@@ -444,8 +459,12 @@ export function useTerminal(sessionId: string) {
       if (terminalRef.current) {
         terminalRef.current.options.cursorBlink = visible
       }
+      if (visible) scheduleFit()
     })
-    return unsub
+    return () => {
+      if (pendingFitTimer) clearTimeout(pendingFitTimer)
+      unsub()
+    }
   }, [sessionId])
 
   const focus = useCallback(() => {
