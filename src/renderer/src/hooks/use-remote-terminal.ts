@@ -325,7 +325,10 @@ export function useRemoteTerminal(shellId: string) {
       })
     })
 
-    // ResizeObserver for auto-fitting
+    // ResizeObserver for auto-fitting. The debounced fallback fires after
+    // Framer Motion's 200ms panel animation settles so the final fit captures
+    // the settled width, then refreshes the viewport to clear any residual
+    // glyphs left mid-animation.
     let resizeTimer: ReturnType<typeof setTimeout> | null = null
     const resizeObserver = new ResizeObserver((entries) => {
       const entry = entries[0]
@@ -343,10 +346,11 @@ export function useRemoteTerminal(shellId: string) {
       resizeTimer = setTimeout(() => {
         try {
           fitAddon.fit()
+          terminal.refresh(0, terminal.rows - 1)
         } catch {
           // ignore
         }
-      }, 100)
+      }, 250)
     })
     resizeObserver.observe(container)
 
@@ -398,17 +402,18 @@ export function useRemoteTerminal(shellId: string) {
     }
   }, [theme])
 
-  // Track visibility and toggle cursor blink for hidden terminals
+  // Track visibility and toggle cursor blink for hidden terminals.
+  // Also re-fit when anything that alters the terminal grid's available width
+  // changes: selection, file tree / git panel state, and the left sidebar.
+  // ResizeObserver alone is unreliable during Framer Motion's animations.
   useEffect(() => {
-    isVisibleRef.current = useSessionStore.getState().selectedSessionIds.includes(shellId)
+    const initialState = useSessionStore.getState()
+    isVisibleRef.current = initialState.selectedSessionIds.includes(shellId)
     if (terminalRef.current) {
       terminalRef.current.options.cursorBlink = isVisibleRef.current
     }
     let pendingFitTimer: ReturnType<typeof setTimeout> | null = null
     const scheduleFit = () => {
-      // ResizeObserver can miss grid-template-columns reflows when siblings
-      // toggle display. Double rAF + delayed fallback covers both the fast
-      // path (layout settles in one frame) and slow path (deferred commit).
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           try { fitAddonRef.current?.fit() } catch { /* ignore */ }
@@ -416,17 +421,29 @@ export function useRemoteTerminal(shellId: string) {
       })
       if (pendingFitTimer) clearTimeout(pendingFitTimer)
       pendingFitTimer = setTimeout(() => {
-        try { fitAddonRef.current?.fit() } catch { /* ignore */ }
-      }, 150)
+        try {
+          fitAddonRef.current?.fit()
+          terminalRef.current?.refresh(0, (terminalRef.current.rows ?? 1) - 1)
+        } catch { /* ignore */ }
+      }, 300)
     }
     const unsub = useSessionStore.subscribe((state, prevState) => {
-      if (state.selectedSessionIds === prevState.selectedSessionIds) return
-      const visible = state.selectedSessionIds.includes(shellId)
-      isVisibleRef.current = visible
-      if (terminalRef.current) {
-        terminalRef.current.options.cursorBlink = visible
+      const selectionChanged = state.selectedSessionIds !== prevState.selectedSessionIds
+      const layoutChanged =
+        state.fileTreeOpen !== prevState.fileTreeOpen ||
+        state.fileTreeWidth !== prevState.fileTreeWidth ||
+        state.fileTreeWidthOverride !== prevState.fileTreeWidthOverride ||
+        state.sidebarOpen !== prevState.sidebarOpen ||
+        state.sidebarWidth !== prevState.sidebarWidth
+      if (!selectionChanged && !layoutChanged) return
+      if (selectionChanged) {
+        const visible = state.selectedSessionIds.includes(shellId)
+        isVisibleRef.current = visible
+        if (terminalRef.current) {
+          terminalRef.current.options.cursorBlink = visible
+        }
       }
-      if (visible) scheduleFit()
+      if (isVisibleRef.current) scheduleFit()
     })
     return () => {
       if (pendingFitTimer) clearTimeout(pendingFitTimer)

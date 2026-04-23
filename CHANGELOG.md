@@ -6,6 +6,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions use [Se
 
 ## [Unreleased]
 
+## [1.35.7] — 2026-04-23
+
+### Fixed
+- File tree no longer collapses all open folders when you switch to the Git tab and back — expansion and filter state now survive the round-trip
+- Terminal no longer gets left in a cramped or mis-sized state when opening or closing the file tree, git panel, or sidebar — the final fit now waits for the panel animation to settle and refreshes the viewport to clear any leftover glyphs
+
 ## [1.35.6] — 2026-04-22
 
 ### Fixed
