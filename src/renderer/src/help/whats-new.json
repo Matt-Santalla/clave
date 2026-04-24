@@ -1,5 +1,11 @@
 [
   {
+    "version": "1.36.0",
+    "title": "Model Pill",
+    "description": "See the active Claude model at a glance in the terminal header — click for a popover with reasoning effort, thinking, fast mode, context window, and live session cost. Everything stays up to date via Claude Code's statusLine hook",
+    "action": { "type": "navigate", "target": "side:help" }
+  },
+  {
     "version": "1.34.0",
     "title": "Context Inventory",
     "description": "See what Claude Code loads into context per session — CLAUDE.md, skills, plugins, MCP, hooks — with a live percentage badge, category breakdown, and estimated token cost",

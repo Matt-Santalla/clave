@@ -6,6 +6,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions use [Se
 
 ## [Unreleased]
 
+## [1.36.0] — 2026-04-24
+
+### Added
+- Model pill in the terminal header surfaces the active Claude Code model (e.g. "Opus 4.7") at a glance — click it to open a popover with the full session config: raw model id, reasoning effort, thinking on/off, fast mode, context window size, output style, agent, and live session cost
+- All values stay live via Claude Code's documented `statusLine` hook, so running `/model`, `/effort`, or `/fast` inside the session updates the pill on the next status refresh
+
+### Fixed
+- Context Inventory now reports usage against the real 1M context window on extended-context sessions instead of clipping at 200k
+
 ## [1.35.7] — 2026-04-23
 
 ### Fixed
