@@ -6,6 +6,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions use [Se
 
 ## [Unreleased]
 
+## [1.36.1] — 2026-04-24
+
+### Fixed
+- Model / effort / context pills now appear in the packaged app — the statusLine hook script was looked up at the wrong path inside the bundle, so the hook never registered and the pills stayed empty (they only worked in `npm run dev`)
+
 ## [1.36.0] — 2026-04-24
 
 ### Added

@@ -55,9 +55,14 @@ function ensureDirs(): { statusDir: string; settingsDir: string } {
 }
 
 function hookScriptPath(): string {
-  // In dev and packaged builds, resources/ ships under resources/ (asarUnpacked).
+  // Packaged builds asarUnpack resources/** → Contents/Resources/app.asar.unpacked/resources/.
   if (app.isPackaged) {
-    return path.join(process.resourcesPath, 'clave-statusline-hook.sh')
+    return path.join(
+      process.resourcesPath,
+      'app.asar.unpacked',
+      'resources',
+      'clave-statusline-hook.sh'
+    )
   }
   return path.join(app.getAppPath(), 'resources', 'clave-statusline-hook.sh')
 }
