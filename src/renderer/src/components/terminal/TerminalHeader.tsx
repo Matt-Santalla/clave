@@ -4,6 +4,7 @@ import { useSessionStore } from '../../store/session-store'
 import { cn, safePort } from '../../lib/utils'
 import { ConfirmDialog } from '../ui/ConfirmDialog'
 import { InventoryButton } from '../inspector/InventoryButton'
+import { SessionPills } from './SessionPills'
 
 interface TerminalHeaderProps {
   sessionId: string
@@ -11,6 +12,7 @@ interface TerminalHeaderProps {
 
 export function TerminalHeader({ sessionId }: TerminalHeaderProps) {
   const session = useSessionStore((s) => s.sessions.find((sess) => sess.id === sessionId))
+  const modelId = useSessionStore((s) => s.sessionStatuses[sessionId]?.model?.id)
   const removeSession = useSessionStore((s) => s.removeSession)
   const setSessionServerStatus = useSessionStore((s) => s.setSessionServerStatus)
   const [showConfirm, setShowConfirm] = useState(false)
@@ -117,7 +119,8 @@ export function TerminalHeader({ sessionId }: TerminalHeaderProps) {
         </div>
 
         <div className="flex items-center gap-1.5 flex-shrink-0">
-          <InventoryButton sessionId={session.id} cwd={session.cwd} />
+          <SessionPills sessionId={session.id} />
+          <InventoryButton sessionId={session.id} cwd={session.cwd} model={modelId} />
           {session.claudeMode && session.claudeSessionId && (
             <>
               <button
